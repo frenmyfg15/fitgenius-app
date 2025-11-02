@@ -1,0 +1,88 @@
+// src/shared/components/auth/GoogleSignInButton.tsx
+import React, { useState } from "react";
+import { Pressable, Text, View, ActivityIndicator } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
+import clsx from "clsx";
+import { loginConGoogleNativo } from "@/firebase/loginConGoogleNative";
+
+type GoogleResult = {
+  token: string; // Firebase ID Token (JWT ~1h)
+  user: {
+    nombre: string | null;
+    email: string | null;
+    foto: string | null;
+    uid: string;
+  };
+};
+
+type Props = {
+  text?: string;
+  onSuccess?: (result: GoogleResult) => void;
+  onError?: (error: Error) => void;
+  disabled?: boolean;
+  className?: string;
+};
+
+export default function GoogleSignInButton({
+  text = "Continuar con Google",
+  onSuccess,
+  onError,
+  disabled,
+  className,
+}: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const handlePress = async () => {
+    try {
+      if (disabled || loading) return;
+      setLoading(true);
+
+      const result = await loginConGoogleNativo(); // <-- usa tu función nativa
+      // Logs útiles (ya logueamos dentro, pero aquí puedes ver el objeto completo)
+      console.log("[GoogleSignInButton] OK:", {
+        token: result.token.slice(0, 24) + "...",
+        user: result.user,
+      });
+
+      onSuccess?.(result);
+    } catch (e: any) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.error("[GoogleSignInButton] Error:", err.message);
+      onError?.(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View
+      className={clsx("rounded-xl overflow-hidden", className)}
+      style={{
+        shadowColor: "#0f172a",
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 3,
+      }}
+    >
+      <Pressable
+        onPress={handlePress}
+        disabled={disabled || loading}
+        className={clsx(
+          "flex-row items-center justify-center gap-3 px-4 py-3 rounded-xl border",
+          "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700",
+          (disabled || loading) ? "opacity-75" : "active:opacity-90"
+        )}
+        accessibilityRole="button"
+        accessibilityLabel={text}
+      >
+        <AntDesign name="google" size={20} color="#0f172a" />
+        {loading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <Text className="font-medium text-slate-900 dark:text-slate-100">{text}</Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}

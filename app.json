@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "fitgenius",
+    "slug": "fitgenius",
+    "scheme": "fitgenius",
+    "deeplinks": true,
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.novaforge.fitgenius",
+      "googleServicesFile": "./google-services.json"
+    },
+    "extra": {
+      "apiUrl": "process.env.EXPO_PUBLIC_API_URL",
+      "apiToken": "process.env.EXPO_PUBLIC_API_TOKEN"
+    }
+  }
+}

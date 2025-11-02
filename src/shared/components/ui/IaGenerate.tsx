@@ -1,0 +1,460 @@
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useColorScheme } from "nativewind";
+import Toast from "react-native-toast-message";
+
+import { useUsuarioStore, UsuarioLogin } from "@/features/store/useUsuarioStore";
+import { useSyncStore } from "@/features/store/useSyncStore";
+import { useRutinaCache } from "@/features/store/useRutinaCache";
+import { crearRutina } from "@/features/api/rutinas.api";
+import { useRutinasCache } from "@/features/store/useRutinasCache";
+import CandadoPremium from "./CandadoPremium";
+import CargaRutina from "./CargaRutina";
+import { Asterisk, Sparkles } from "lucide-react-native";
+
+/* ---------------- Paleta y glass compartida (igual que en otras cards) ---------------- */
+const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
+const cardBgDarkA = "rgba(20,28,44,0.85)";
+const cardBgDarkB = "rgba(9,14,24,0.9)";
+const cardBorderDark = "rgba(255,255,255,0.08)";
+const textPrimaryDark = "#e5e7eb";
+const textSecondaryDark = "#94a3b8";
+
+/* ---------------- Tipos ---------------- */
+type Props = { onCreate?: () => void };
+
+type CrearRutinaPayload = { nombre: string; instruccion?: string };
+
+
+/* ---------------- Componente ---------------- */
+export default function IaGenerate({ onCreate }: Props) {
+  // Selectores
+  const usuario = useUsuarioStore((s) => s.usuario);
+  const setUsuario = useUsuarioStore((s) => s.setUsuario);
+  const planActual = useUsuarioStore((s) => s.usuario?.planActual);
+  const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
+  const rutinasIACreadas = useUsuarioStore((s) => s.usuario?.rutinasIACreadas ?? 0);
+
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [instruccion, setInstruccion] = useState("");
+
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // UX helpers
+  const maxNombre = 60;
+  const maxInstr = 600;
+  const nombreLen = nombre.trim().length;
+  const instrLen = instruccion.trim().length;
+
+  const abrirModal = () => setShowModal(true);
+  const cerrarModal = () => {
+    if (loading) return;
+    setShowModal(false);
+  };
+
+  const crear = async () => {
+    if (!nombre.trim()) {
+      Toast.show({ type: "error", text1: "Ponle un nombre a tu rutina" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res: any = await crearRutina({ nombre, instruccion } as CrearRutinaPayload);
+      Toast.show({ type: "success", text1: "¡Rutina creada con éxito!" });
+
+      const rutinaId =
+        res?.data?.rutina?.id ??
+        // fallback si API devuelve sin "data"
+        res?.rutina?.id;
+
+      const prevIACount = rutinasIACreadas ?? 0;
+      setUsuario({
+        ...(usuario as UsuarioLogin),
+        rutinaActivaId: rutinaId,
+        rutinasIACreadas: prevIACount + 1,
+      } as UsuarioLogin);
+
+      useSyncStore.getState().bumpRoutineRev();
+      useRutinasCache.getState().clear();
+      useRutinaCache.getState().clear();
+
+      setShowModal(false);
+      onCreate?.();
+    } catch (error) {
+      Toast.show({ type: "error", text1: "Error al crear la rutina. Inténtalo de nuevo." });
+      console.log(error);
+      
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const suggestionChips = useMemo(
+    () => [
+      "Fullbody 3 días nivel principiante",
+      "Push/Pull/Legs 5 días fuerza + hipertrofia",
+      "Upper/Lower 4 días con foco en glúteo",
+      "Torso/Pierna con 2 sesiones de core",
+    ],
+    []
+  );
+
+  // Bloqueo por plan — si NO tiene Premium ACTIVO y ya creó ≥1 IA, bloquear
+  const isPremiumActive = planActual === "PREMIUM" && haPagado;
+  const lockedByPlan = !isPremiumActive && rutinasIACreadas >= 1;
+
+  return (
+    <>
+      {/* Botón principal */}
+      <View className="relative inline-block self-center">
+        <LinearGradient
+          colors={marcoGradient as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="rounded-2xl p-[1px] shadow-xl"
+          style={{ borderRadius: 15 }}
+        >
+          {isDark ? (
+            <LinearGradient
+              colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: 15, borderWidth: 1, borderColor: cardBorderDark, overflow: "hidden" }}
+            >
+              <TouchableOpacity
+                onPress={!lockedByPlan ? abrirModal : undefined}
+                disabled={loading || lockedByPlan}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading || lockedByPlan }}
+                className="px-4 py-2 rounded-2xl flex-row items-center gap-2 active:opacity-90"
+              >
+                <Sparkles size={16} color={'#fff'} />
+                <Text style={{ color: textPrimaryDark, fontWeight: "600" }}>Generar con IA</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          ) : (
+            <View
+              className="rounded-2xl"
+              style={{ backgroundColor: "#ffffff", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", overflow: "hidden" }}
+            >
+              <TouchableOpacity
+                onPress={!lockedByPlan ? abrirModal : undefined}
+                disabled={loading || lockedByPlan}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading || lockedByPlan }}
+                className="px-4 py-2 rounded-2xl flex-row items-center gap-2 active:opacity-90"
+              >
+                <Sparkles size={16} color="#0f172a" />
+                <Text style={{ color: "#0f172a", fontWeight: "600" }}>Generar con IA</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </LinearGradient>
+
+        {lockedByPlan && (
+          <View className="absolute inset-0">
+            <CandadoPremium
+              size={25}
+              blurLevel="backdrop-blur-sm"
+              opacityLevel="bg-white/20"
+              position="center"
+              isDark={isDark}
+            />
+          </View>
+        )}
+      </View>
+
+      {/* Modal */}
+      <Modal visible={showModal} animationType="fade" transparent onRequestClose={cerrarModal}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
+          <TouchableOpacity activeOpacity={1} onPress={cerrarModal} className="flex-1 items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            {/* Contenido del modal */}
+            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} className="w-full max-w-[640px]">
+              <LinearGradient colors={marcoGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-3xl p-[1px] shadow-2xl" style={{ borderRadius: 15 }}>
+                {isDark ? (
+                  <LinearGradient
+                    colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ borderRadius: 15, borderWidth: 1, borderColor: cardBorderDark, overflow: "hidden" }}
+                  >
+                    <ModalInner
+                      isDark
+                      nombre={nombre}
+                      setNombre={setNombre}
+                      nombreLen={nombreLen}
+                      maxNombre={maxNombre}
+                      instruccion={instruccion}
+                      setInstruccion={setInstruccion}
+                      instrLen={instrLen}
+                      maxInstr={maxInstr}
+                      suggestionChips={suggestionChips}
+                      crear={crear}
+                      cerrarModal={cerrarModal}
+                      loading={loading}
+                    />
+                  </LinearGradient>
+                ) : (
+                  <View className="rounded-3xl" style={{ backgroundColor: "#ffffff", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+                    <ModalInner
+                      isDark={false}
+                      nombre={nombre}
+                      setNombre={setNombre}
+                      nombreLen={nombreLen}
+                      maxNombre={maxNombre}
+                      instruccion={instruccion}
+                      setInstruccion={setInstruccion}
+                      instrLen={instrLen}
+                      maxInstr={maxInstr}
+                      suggestionChips={suggestionChips}
+                      crear={crear}
+                      cerrarModal={cerrarModal}
+                      loading={loading}
+                    />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {loading &&
+        <Modal visible={loading} transparent animationType="fade">
+          <CargaRutina />
+        </Modal>
+      }
+    </>
+  );
+}
+
+/* ---------------- Sub-componentes ---------------- */
+function ModalInner({
+  isDark,
+  nombre,
+  setNombre,
+  nombreLen,
+  maxNombre,
+  instruccion,
+  setInstruccion,
+  instrLen,
+  maxInstr,
+  suggestionChips,
+  crear,
+  cerrarModal,
+  loading,
+}: {
+  isDark: boolean;
+  nombre: string;
+  setNombre: (t: string) => void;
+  nombreLen: number;
+  maxNombre: number;
+  instruccion: string;
+  setInstruccion: (t: string) => void;
+  instrLen: number;
+  maxInstr: number;
+  suggestionChips: string[];
+  crear: () => Promise<void> | void;
+  cerrarModal: () => void;
+  loading: boolean;
+}) {
+  return (
+    <View className="rounded-3xl overflow-hidden">
+      {/* Header */}
+      <View className="px-6 pt-6 pb-4 border-b" style={{ borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)" }}>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-xl font-semibold" style={{ color: isDark ? textPrimaryDark : "#0f172a" }} accessibilityRole="header">
+              Configura tu rutina con IA
+            </Text>
+            <Text className="text-xs mt-1" style={{ color: isDark ? textSecondaryDark : "#64748b" }}>
+              Dale un nombre y añade instrucciones para personalizarla.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={cerrarModal} accessibilityLabel="Cerrar" className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#ffffff", borderWidth: 1, borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)" }}>
+            <Text style={{ color: isDark ? textPrimaryDark : "#0f172a" }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Body */}
+      <ScrollView className="px-6 py-5" keyboardShouldPersistTaps="handled">
+        {/* Nombre */}
+        <View>
+          <View className="flex-row items-center mb-1">
+            <Text
+              className="text-sm font-medium mr-1"
+              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
+            >
+              Nombre de la rutina
+            </Text>
+            <Asterisk
+              size={12}
+              color={isDark ? "#ef4444" : "#dc2626"} // rojo vibrante para indicar obligatorio
+              strokeWidth={2.5}
+              style={{ marginTop: 1 }}
+              accessibilityLabel="Campo obligatorio"
+            />
+          </View>
+
+          <View className="mb-2">
+            <TextInput
+              value={nombre}
+              onChangeText={(t) => setNombre(t.slice(0, maxNombre))}
+              placeholder="Ej: Push/Pull/Legs 8 semanas"
+              placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+              editable={!loading}
+              className="w-full px-3.5 py-2.5 rounded-xl text-[15px]"
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#ffffff",
+                borderWidth: 1,
+                borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
+                color: isDark ? textPrimaryDark : "#0f172a",
+              }}
+            />
+
+            <View className="mt-1.5 flex-row items-center justify-between">
+              <Text
+                className="text-[11px] flex-1 pr-2"
+                style={{ color: isDark ? textSecondaryDark : "#64748b" }}
+              >
+                Tu rutina se llamará{" "}
+                <Text
+                  style={{
+                    color: isDark ? textPrimaryDark : "#0f172a",
+                    fontWeight: "600",
+                  }}
+                >
+                  {nombre || "—"}
+                </Text>
+              </Text>
+              <Text
+                className="text-[11px]"
+                style={{ color: isDark ? textSecondaryDark : "#64748b" }}
+              >
+                {nombreLen}/{maxNombre}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Instrucciones */}
+        <Text className="text-sm font-medium mt-3 mb-1" style={{ color: isDark ? textPrimaryDark : "#0f172a" }}>Instrucciones para la IA (opcional)</Text>
+        <View>
+          <TextInput
+            value={instruccion}
+            onChangeText={(t) => setInstruccion(t.slice(0, maxInstr))}
+            placeholder="Cuéntanos días, material, objetivos…"
+            placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+            multiline
+            textAlignVertical="top"
+            editable={!loading}
+            className="w-full min-h-[130px] px-3.5 py-2.5 rounded-xl text-[14px] leading-6"
+            style={{
+              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#ffffff",
+              borderWidth: 1,
+              borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
+              color: isDark ? textPrimaryDark : "#0f172a",
+            }}
+          />
+          <View className="mt-1.5 flex-row items-center justify-between">
+            <Text className="text-[11px]" style={{ color: isDark ? textSecondaryDark : "#64748b" }}>
+              Cuanta más info des (días, material, objetivos), mejor.
+            </Text>
+            <Text className="text-[11px]" style={{ color: isDark ? textSecondaryDark : "#64748b" }}>
+              {instrLen}/{maxInstr}
+            </Text>
+          </View>
+        </View>
+
+        {/* Sugerencias rápidas */}
+        <View className="mt-4 flex-row flex-wrap gap-2">
+          {suggestionChips.map((s) => (
+            <TouchableOpacity
+              key={s}
+              //@ts-ignore
+              onPress={() => setInstruccion((prev) => (prev ? `${prev}${prev.endsWith("\n") ? "" : "\n"}${s}` : s))}
+              className="px-3 py-1.5 rounded-full"
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                borderWidth: 1,
+                borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
+              }}
+            >
+              <Text className="text-xs" style={{ color: isDark ? textPrimaryDark : "#0f172a" }}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
+      <View className="px-6 pb-6 pt-1 flex-row items-center justify-end gap-3">
+        <TouchableOpacity
+          onPress={cerrarModal}
+          disabled={loading}
+          className="px-4 py-2.5 rounded-xl"
+          style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#ffffff", borderWidth: 1, borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)" }}
+        >
+          <Text className="text-sm font-medium" style={{ color: isDark ? textPrimaryDark : "#0f172a" }}>Cancelar</Text>
+        </TouchableOpacity>
+
+        <LinearGradient colors={!nombre.trim() ? ["rgba(20,28,44,0.55)", "rgba(9,14,24,0.55)", "rgba(20,28,44,0.55)"] : marcoGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-xl p-[1px]" style={{ borderRadius: 15 }}>
+          {isDark ? (
+            <LinearGradient
+              colors={
+                !nombre.trim()
+                  ? ["rgba(20,28,44,0.55)", "rgba(9,14,24,0.55)", "rgba(20,28,44,0.55)"] // fondo translúcido
+                  : [cardBgDarkA, cardBgDarkB, cardBgDarkA] // fondo normal
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 15,
+                borderWidth: 1,
+                borderColor: cardBorderDark,
+                overflow: "hidden",
+                opacity: !nombre.trim() ? 0.6 : 1, // levemente difuminado si vacío
+              }}
+            >
+              <TouchableOpacity
+                onPress={crear}
+                disabled={loading || !nombre.trim()}
+                accessibilityState={{ disabled: loading || !nombre.trim() }}
+                className="px-4 py-2.5 rounded-[11px] items-center justify-center"
+              >
+                <Text
+                  className="text-sm font-semibold"
+                  style={{
+                    color: !nombre.trim() ? "rgba(229,231,235,0.6)" : textPrimaryDark,
+                  }}
+                >
+                  {loading ? "Generando…" : "Confirmar y generar"}
+                </Text>
+              </TouchableOpacity>
+            </LinearGradient>
+
+          ) : (
+            <View className="rounded-xl" style={{ backgroundColor: "#ffffff", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+              <TouchableOpacity onPress={crear} disabled={loading || !nombre.trim()} accessibilityState={{ disabled: loading || !nombre.trim() }} className="px-4 py-2.5 rounded-[11px] items-center justify-center">
+                <Text className="text-sm font-semibold" style={{ color: "#0f172a" }}>{loading ? "Generando…" : "Confirmar y generar"}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </LinearGradient>
+      </View>
+    </View>
+  );
+}

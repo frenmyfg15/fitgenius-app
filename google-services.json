@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "908335534107",
+    "project_id": "fitgenius-aa2b5",
+    "storage_bucket": "fitgenius-aa2b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908335534107:android:dde6ba5d92a50c4a0d68be",
+        "android_client_info": {
+          "package_name": "com.novaforge.fitgenius"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "908335534107-pmeq55lpk8sa7s4bttpg8cjkl2glf39a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novaforge.fitgenius",
+            "certificate_hash": "81193fbfa1dbda183b5cf655f6452e797c47c4fd"
+          }
+        },
+        {
+          "client_id": "908335534107-sgsojiedsog8e0pa3nglfrspe4ivhi2m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novaforge.fitgenius",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "908335534107-e496lulonfali73hupjkpt1i98feklni.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtGtDz3OfwvAJ9sqUoH7OwQNobOcfi8wI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "908335534107-e496lulonfali73hupjkpt1i98feklni.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
