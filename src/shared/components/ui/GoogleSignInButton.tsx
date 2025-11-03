@@ -1,12 +1,11 @@
 // src/shared/components/auth/GoogleSignInButton.tsx
 import React, { useState } from "react";
-import { Pressable, Text, View, ActivityIndicator } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { Pressable, Text, View, ActivityIndicator, Image } from "react-native";
 import clsx from "clsx";
 import { loginConGoogleNativo } from "@/firebase/loginConGoogleNative";
 
 type GoogleResult = {
-  token: string; // Firebase ID Token (JWT ~1h)
+  token: string;
   user: {
     nombre: string | null;
     email: string | null;
@@ -37,13 +36,11 @@ export default function GoogleSignInButton({
       if (disabled || loading) return;
       setLoading(true);
 
-      const result = await loginConGoogleNativo(); // <-- usa tu función nativa
-      // Logs útiles (ya logueamos dentro, pero aquí puedes ver el objeto completo)
+      const result = await loginConGoogleNativo();
       console.log("[GoogleSignInButton] OK:", {
         token: result.token.slice(0, 24) + "...",
         user: result.user,
       });
-
       onSuccess?.(result);
     } catch (e: any) {
       const err = e instanceof Error ? e : new Error(String(e));
@@ -70,17 +67,23 @@ export default function GoogleSignInButton({
         disabled={disabled || loading}
         className={clsx(
           "flex-row items-center justify-center gap-3 px-4 py-3 rounded-xl border",
-          "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700",
-          (disabled || loading) ? "opacity-75" : "active:opacity-90"
+          "bg-white border-neutral-300",
+          disabled || loading ? "opacity-75" : "active:opacity-90"
         )}
         accessibilityRole="button"
         accessibilityLabel={text}
       >
-        <AntDesign name="google" size={20} color="#0f172a" />
+        {/* 🟢 Logo oficial desde assets */}
+        <Image
+          source={require("../../../../assets/google.webp")}
+          style={{ width: 22, height: 22 }}
+          resizeMode="contain"
+        />
+
         {loading ? (
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="small" color="#4285F4" />
         ) : (
-          <Text className="font-medium text-slate-900 dark:text-slate-100">{text}</Text>
+          <Text className="font-medium text-slate-900">{text}</Text>
         )}
       </Pressable>
     </View>

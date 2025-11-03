@@ -314,6 +314,10 @@ export default function TarjetaHome({ rutina, dia }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
+ console.log(JSON.stringify(rutina?.dias?.[0]?.ejercicios, null, 2));
+
+  
+
   const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso ?? "kg");
   const planActual = useUsuarioStore((s) => s.usuario?.planActual);
   const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);

@@ -5,16 +5,21 @@ import Toast from "react-native-toast-message";
 
 import { useUsuarioStore, UsuarioLogin } from "@/features/store/useUsuarioStore";
 import { useSyncStore } from "@/features/store/useSyncStore";
-import { guardarSesionEjercicio, obtenerEjercicio } from "@/features/api/ejercicios.api";
-import { calcularCalorias } from "@/shared/lib/calcularCalorias";
+import {
+  guardarSesionCompuesta,
+  guardarSesionEjercicio,
+  obtenerEjercicio,
+  obtenerEjercicioCompuesto, // ← devuelve el JSON (payload) directamente
+} from "@/features/api/ejercicios.api";
+import { calcularCalorias, calcularCaloriasCompuesto } from "@/shared/lib/calcularCalorias";
 import { useEjercicioCache } from "@/features/store/useEjercicioCache";
 
 /* ---------------- Tipos compartidos ---------------- */
 export type Params = {
-  slug: string;                 // ← viene desde TarjetaHome
-  asignadoId?: string;          // ← viene desde TarjetaHome
+  slug: string;                 // viene desde TarjetaHome (simples)
+  asignadoId?: string;          // viene desde TarjetaHome
   nombre?: string;
-  ejercicio?: any;              // opcional: si ya se pasó el objeto, lo usamos como “primer paint”
+  ejercicio?: any;              // si ya se pasó el objeto, se usa como “primer paint”
 };
 
 type Serie = { reps: number; peso: number };
@@ -94,32 +99,110 @@ export function useVistaEjercicioState(params: Params) {
   useEffect(() => {
     let aborted = false;
 
+    console.log("🔍 [VistaEjercicio] init", {
+      slug,
+      prefetch: !!ejercicioPrefetch,
+    });
+
+    // 1) Aplica prefetch si viene (primer paint)
     if (ejercicioPrefetch) {
+      console.log("📦 Prefetch aplicado:", ejercicioPrefetch?.id ?? "(sin id)");
       applyEjercicio(ejercicioPrefetch);
     }
 
-    const hit = cacheGet(slug);
-    if (hit) {
-      applyEjercicio(hit);
-    } else {
+    // ¿Es compuesto según el prefetch?
+    const esCompuestoPrefetch = Boolean(
+      ejercicioPrefetch?.ejercicioCompuestoId || ejercicioPrefetch?.ejercicioCompuesto
+    );
+
+    if (esCompuestoPrefetch) {
+      // Para compuestos: pedir al backend la última sesión del compuesto
+      const compId =
+        ejercicioPrefetch?.ejercicioCompuestoId ?? ejercicioPrefetch?.ejercicioCompuesto?.id;
+
+      if (!compId) {
+        console.warn("⚠️ [VistaEjercicio] compuesto sin id; se mantiene prefetch");
+        return () => {
+          aborted = true;
+          console.log("🧹 cleanup compuesto sin id");
+        };
+      }
+
+      console.log("🧩 Fetch obtenerEjercicioCompuesto(", compId, ")");
       (async () => {
         try {
-          const res = await obtenerEjercicio(slug);
+          const payload = await obtenerEjercicioCompuesto(compId); // ← payload JSON directo
+          console.log("↪ payload.ultimaSesion:", payload?.ultimaSesion?.id ?? null);
+
           if (aborted) return;
+
+          // Enriquecer el objeto ya aplicado con la "ultimaSesion" del compuesto
+          const enriched = {
+            ...(ejercicioPrefetch || {}),
+            ejercicioCompuesto: payload?.compuesto || ejercicioPrefetch?.ejercicioCompuesto,
+            ultimaSesion: payload?.ultimaSesion ?? null,
+          };
+
+          console.log(
+            "✅ obtenerEjercicioCompuesto → ultimaSesion:",
+            enriched.ultimaSesion ? "sí" : "no"
+          );
+
+          applyEjercicio(enriched);
+        } catch (err) {
+          if (!aborted) console.error("❌ obtenerEjercicioCompuesto error:", err);
+        }
+      })();
+
+      // Importante: no continuar con el flujo por slug
+      return () => {
+        aborted = true;
+        console.log("🧹 cleanup compuesto → abort");
+      };
+    }
+
+    // 2) Si no hay slug válido (y no es compuesto), no consultes cache ni API
+    const slugValido =
+      typeof slug === "string" && slug.trim() !== "" && slug !== "undefined" && slug !== "null";
+
+    if (!slugValido) {
+      console.warn("⚠️ [VistaEjercicio] slug inválido; omitiendo cache/API");
+      return () => {
+        aborted = true;
+        console.log("🧹 cleanup (slug inválido) → abort");
+      };
+    }
+
+    // 3) Cache / API para simples
+    const hit = cacheGet(slug);
+    if (hit) {
+      console.log("⚡ cache hit:", slug, "→ id:", hit?.id);
+      applyEjercicio(hit);
+    } else {
+      console.log("🌐 cache miss → API (slug:", slug, ")");
+      (async () => {
+        try {
+          const res = await obtenerEjercicio(slug); // este helper devuelve AxiosResponse
+          if (aborted) {
+            console.log("⏹️ abort antes de aplicar ejercicio:", slug);
+            return;
+          }
+          console.log("✅ API simple → ejercicio.id:", res.data?.id ?? null);
           applyEjercicio(res.data);
           cacheSet(slug, res.data);
         } catch (err) {
-          if (!aborted) console.error("Error al obtener el ejercicio", err);
+          if (!aborted) console.error("❌ obtenerEjercicio error:", err);
         }
       })();
     }
 
     return () => {
       aborted = true;
+      console.log("🧹 cleanup efecto → abort:", slug);
     };
   }, [slug, ejercicioPrefetch, cacheGet, cacheSet, applyEjercicio]);
 
-  /* ---------------- Guardado de sesión ---------------- */
+  /* ---------------- Guardado de sesión (simple) ---------------- */
   const guardarSeries = async () => {
     if (!usuario?.id || !ejercicio?.id) return;
 
@@ -143,8 +226,8 @@ export function useVistaEjercicioState(params: Params) {
 
       setUsuario({
         ...(usuario as UsuarioLogin),
-        experiencia: Number(usuario.experiencia) + Number(experienciaPlus),
-        caloriasMes: Number(usuario.caloriasMes) + Number(caloriasPlus),
+        experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
+        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
       } as UsuarioLogin);
 
       if (storageKey) await AsyncStorage.removeItem(storageKey);
@@ -153,10 +236,9 @@ export function useVistaEjercicioState(params: Params) {
       useSyncStore.getState().bumpWorkoutRev();
 
       setFestejo(true);
-      // cierra la pantalla luego de mostrar la celebración
       setTimeout(() => (navigation as any).goBack(), 3800);
     } catch (error) {
-      console.error("Error al registrar la sesión:", error);
+      console.error("❌ guardarSesionEjercicio error:", error);
       setGuardando(false);
       Toast.show({ type: "error", text1: "Error al guardar. Inténtalo de nuevo." });
     }
@@ -171,6 +253,57 @@ export function useVistaEjercicioState(params: Params) {
       } catch {}
     })();
   }, [series, storageKey]);
+
+  /* ---------------- Guardado de sesión (compuesto) ---------------- */
+  const guardarSeriesCompuesto = async (
+    seriesComp: {
+      ejercicioId: number;
+      pesoKg?: number;
+      repeticiones?: number;
+      duracionSegundos?: number;
+    }[][]
+  ) => {
+    if (!usuario?.id) return;
+
+    const ejercicioCompuestoId =
+      ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id;
+
+    if (!ejercicioCompuestoId) {
+      Toast.show({ type: "error", text1: "No se encontró el ejercicio compuesto." });
+      return;
+    }
+
+    try {
+      setGuardando(true);
+
+      await guardarSesionCompuesta({
+        usuarioId: usuario.id,
+        ejercicioCompuestoId,
+        series: seriesComp,
+      });
+
+      const caloriasPlus = calcularCaloriasCompuesto(seriesComp as any);
+      calorias.current = caloriasPlus;
+
+      setUsuario({
+        ...(usuario as UsuarioLogin),
+        experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
+        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
+      } as UsuarioLogin);
+
+      if (storageKey) await AsyncStorage.removeItem(storageKey);
+
+      cacheDel(slug);
+      useSyncStore.getState().bumpWorkoutRev();
+
+      setFestejo(true);
+      setTimeout(() => (navigation as any).goBack(), 3800);
+    } catch (error) {
+      console.error("❌ guardarSesionCompuesta error:", error);
+      setGuardando(false);
+      Toast.show({ type: "error", text1: "Error al guardar. Inténtalo de nuevo." });
+    }
+  };
 
   /* ---------------- API del hook ---------------- */
   return {
@@ -196,5 +329,6 @@ export function useVistaEjercicioState(params: Params) {
     iniciarDescanso,
     finalizarDescanso,
     guardarSeries,
+    guardarSeriesCompuesto,
   };
 }
