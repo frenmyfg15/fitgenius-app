@@ -4,9 +4,10 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Crown, Sparkles } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
-import PremiumUpsell from "./PremiumUpsell";
+import { useNavigation } from "@react-navigation/native";
 
 export default function PremiumMiniCTACard() {
+  const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -25,10 +26,17 @@ export default function PremiumMiniCTACard() {
   const textPrimaryDark = "#e5e7eb";
   const textSecondaryDark = "#94a3b8";
 
+  const handleGoToPayment = () => {
+    // 👇 Asegúrate de registrar esta pantalla en tu navigator con el nombre "PremiumPayment"
+     navigation.navigate("Perfil", {
+  screen: "PremiumPayment",
+}); 
+  };
+
   return (
     <>
       <LinearGradient
-        colors={frameGradient}
+        colors={frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -52,7 +60,6 @@ export default function PremiumMiniCTACard() {
             borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
             paddingHorizontal: 16,
             paddingVertical: 12,
-            backdropFilter: "blur(12px)" as any, // solo efecto visual en web
           }}
         >
           <View
@@ -138,7 +145,7 @@ export default function PremiumMiniCTACard() {
                     setLoading(true);
                     setTimeout(() => {
                       setLoading(false);
-                      setOpenUpsell(true);
+                      handleGoToPayment()
                     }, 350);
                   }}
                   activeOpacity={0.9}
@@ -180,7 +187,7 @@ export default function PremiumMiniCTACard() {
                     setLoading(true);
                     setTimeout(() => {
                       setLoading(false);
-                      setOpenUpsell(true);
+                      handleGoToPayment()
                     }, 350);
                   }}
                   activeOpacity={0.9}
@@ -210,22 +217,6 @@ export default function PremiumMiniCTACard() {
           </View>
         </View>
       </LinearGradient>
-
-      {/* Modal Premium */}
-      <PremiumUpsell
-        isOpen={openUpsell}
-        onClose={() => setOpenUpsell(false)}
-        mode="modal"
-        price="€4,99/mes"
-        billingHint="Cancela cuando quieras"
-        ctaLabel="Obtener Premium"
-        benefits={[
-          { title: "Estadísticas completas de calorías" },
-          { title: "Ejercicios premium desbloqueados" },
-          { title: "IA avanzada para tus rutinas" },
-          { title: "Historial y progreso detallado" },
-        ]}
-      />
     </>
   );
 }

@@ -81,33 +81,45 @@ export function useVistaEjercicioState(params: Params) {
   };
 
   /* ---------------- Carga de ejercicio ---------------- */
-  const applyEjercicio = useCallback(async (data: any) => {
-    setEjercicio(data);
-    const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
-    setTiempoRestante(tiempo);
-    const key = `series-${data.id}`;
-    setStorageKey(key);
-    try {
-      const saved = await AsyncStorage.getItem(key);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setSeries(parsed);
+  const applyEjercicio = useCallback(
+    async (data: any, source: string = "desconocido") => {
+      console.log(`✅ [EJ] apply (${source}) id=${data?.id ?? "sin-id"}`);
+      setEjercicio(data);
+
+      const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
+      setTiempoRestante(tiempo);
+
+      const key = `series-${data.id}`;
+      setStorageKey(key);
+
+      try {
+        const saved = await AsyncStorage.getItem(key);
+        if (saved) {
+          console.log(`📥 [EJ] series desde AsyncStorage (${key})`);
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setSeries(parsed);
+        } else {
+          console.log(`📭 [EJ] sin series guardadas (${key})`);
+        }
+      } catch (e) {
+        console.log("⚠️ [EJ] error leyendo series local:", e);
       }
-    } catch {}
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     let aborted = false;
 
-    console.log("🔍 [VistaEjercicio] init", {
+    console.log("🔍 [EJ] init vista ejercicio", {
       slug,
       prefetch: !!ejercicioPrefetch,
     });
 
     // 1) Aplica prefetch si viene (primer paint)
     if (ejercicioPrefetch) {
-      console.log("📦 Prefetch aplicado:", ejercicioPrefetch?.id ?? "(sin id)");
-      applyEjercicio(ejercicioPrefetch);
+      console.log("📦 [EJ] prefetch recibido, id:", ejercicioPrefetch?.id ?? "(sin id)");
+      applyEjercicio(ejercicioPrefetch, "prefetch");
     }
 
     // ¿Es compuesto según el prefetch?
@@ -116,48 +128,46 @@ export function useVistaEjercicioState(params: Params) {
     );
 
     if (esCompuestoPrefetch) {
-      // Para compuestos: pedir al backend la última sesión del compuesto
+      console.log("🧩 [EJ] ruta COMPUESTO (por prefetch)");
       const compId =
         ejercicioPrefetch?.ejercicioCompuestoId ?? ejercicioPrefetch?.ejercicioCompuesto?.id;
 
       if (!compId) {
-        console.warn("⚠️ [VistaEjercicio] compuesto sin id; se mantiene prefetch");
+        console.warn("⚠️ [EJ] compuesto sin id; se mantiene solo prefetch");
         return () => {
           aborted = true;
-          console.log("🧹 cleanup compuesto sin id");
+          console.log("🧹 [EJ] cleanup compuesto sin id");
         };
       }
 
-      console.log("🧩 Fetch obtenerEjercicioCompuesto(", compId, ")");
+      console.log("🌐 [EJ] obtenerEjercicioCompuesto API, id:", compId);
       (async () => {
         try {
           const payload = await obtenerEjercicioCompuesto(compId); // ← payload JSON directo
-          console.log("↪ payload.ultimaSesion:", payload?.ultimaSesion?.id ?? null);
+          console.log("📨 [EJ] compuesto API OK, ultimaSesionId:", payload?.ultimaSesion?.id ?? null);
 
-          if (aborted) return;
+          if (aborted) {
+            console.log("⏹️ [EJ] abort antes de apply (compuesto)");
+            return;
+          }
 
-          // Enriquecer el objeto ya aplicado con la "ultimaSesion" del compuesto
           const enriched = {
             ...(ejercicioPrefetch || {}),
             ejercicioCompuesto: payload?.compuesto || ejercicioPrefetch?.ejercicioCompuesto,
             ultimaSesion: payload?.ultimaSesion ?? null,
           };
 
-          console.log(
-            "✅ obtenerEjercicioCompuesto → ultimaSesion:",
-            enriched.ultimaSesion ? "sí" : "no"
-          );
-
-          applyEjercicio(enriched);
+          console.log("✅ [EJ] apply compuesto enriquecido");
+          applyEjercicio(enriched, "api-compuesto");
         } catch (err) {
-          if (!aborted) console.error("❌ obtenerEjercicioCompuesto error:", err);
+          if (!aborted) console.error("❌ [EJ] obtenerEjercicioCompuesto error:", err);
         }
       })();
 
       // Importante: no continuar con el flujo por slug
       return () => {
         aborted = true;
-        console.log("🧹 cleanup compuesto → abort");
+        console.log("🧹 [EJ] cleanup compuesto → abort");
       };
     }
 
@@ -166,39 +176,41 @@ export function useVistaEjercicioState(params: Params) {
       typeof slug === "string" && slug.trim() !== "" && slug !== "undefined" && slug !== "null";
 
     if (!slugValido) {
-      console.warn("⚠️ [VistaEjercicio] slug inválido; omitiendo cache/API");
+      console.warn("⚠️ [EJ] slug inválido; omito cache/API");
       return () => {
         aborted = true;
-        console.log("🧹 cleanup (slug inválido) → abort");
+        console.log("🧹 [EJ] cleanup (slug inválido) → abort");
       };
     }
 
     // 3) Cache / API para simples
+    console.log("🔎 [EJ] ruta SIMPLE, slug:", slug);
     const hit = cacheGet(slug);
     if (hit) {
-      console.log("⚡ cache hit:", slug, "→ id:", hit?.id);
-      applyEjercicio(hit);
+      console.log("⚡ [EJ] cache HIT slug=", slug, "id=", hit?.id);
+      applyEjercicio(hit, "cache-simple");
     } else {
-      console.log("🌐 cache miss → API (slug:", slug, ")");
+      console.log("🌐 [EJ] cache MISS → API (slug:", slug, ")");
       (async () => {
         try {
           const res = await obtenerEjercicio(slug); // este helper devuelve AxiosResponse
           if (aborted) {
-            console.log("⏹️ abort antes de aplicar ejercicio:", slug);
+            console.log("⏹️ [EJ] abort antes de apply (simple)", slug);
             return;
           }
-          console.log("✅ API simple → ejercicio.id:", res.data?.id ?? null);
-          applyEjercicio(res.data);
+          console.log("📨 [EJ] API simple OK, id:", res.data?.id ?? null);
+          applyEjercicio(res.data, "api-simple");
+          console.log("💾 [EJ] guardo en cache slug=", slug);
           cacheSet(slug, res.data);
         } catch (err) {
-          if (!aborted) console.error("❌ obtenerEjercicio error:", err);
+          if (!aborted) console.error("❌ [EJ] obtenerEjercicio error:", err);
         }
       })();
     }
 
     return () => {
       aborted = true;
-      console.log("🧹 cleanup efecto → abort:", slug);
+      console.log("🧹 [EJ] cleanup efecto → abort:", slug);
     };
   }, [slug, ejercicioPrefetch, cacheGet, cacheSet, applyEjercicio]);
 
@@ -250,7 +262,11 @@ export function useVistaEjercicioState(params: Params) {
       if (!storageKey) return;
       try {
         await AsyncStorage.setItem(storageKey, JSON.stringify(series));
-      } catch {}
+        // Log suave para no spamear demasiado
+        // console.log("💿 [EJ] series guardadas en", storageKey);
+      } catch (e) {
+        console.log("⚠️ [EJ] error guardando series local:", e);
+      }
     })();
   }, [series, storageKey]);
 

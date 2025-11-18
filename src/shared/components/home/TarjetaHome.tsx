@@ -1,12 +1,12 @@
-import React, { useMemo, useState, memo } from "react";
-import { View, Text, Image, TouchableOpacity, FlatList } from "react-native";
+import React, { useMemo, memo } from "react";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import CandadoPremium from "../ui/CandadoPremium";
+import { Lock } from "lucide-react-native";
 
 /* ---------------- Tipos ---------------- */
 type GrupoMuscular =
@@ -82,7 +82,10 @@ const imagenPorGrupo = (grupo?: string) => {
   return isGrupoMuscular(key) ? IMAGENES_GRUPO[key] : undefined;
 };
 
-const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg"): string => {
+const formateaDetalles = (
+  i: EjercicioDia,
+  medidaPeso: MedidaPeso = "kg"
+): string => {
   if (i.ejercicioCompuesto) {
     const descanso = i.descansoSeg ?? 0;
     return `${descanso} s descanso`;
@@ -151,80 +154,77 @@ const TarjetaEjercicio = memo(function TarjetaEjercicio({
     ? ejercicio.ejercicioCompuesto!.tipoCompuesto
     : ejercicio.ejercicio?.grupoMuscular ?? "";
 
-  const img = isCompuesto ? circuito : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
+  const img = isCompuesto
+    ? circuito
+    : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
 
   const detalles = formateaDetalles(ejercicio, medidaPeso);
   const completado = Boolean(ejercicio.completadoHoy);
   const { routeName, params } = routeForEjercicio(ejercicio);
 
-const marcoGradient =
-  completado && !locked
-    ?  ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"]
-    : null;
+  const marcoGradient =
+    completado && !locked
+      ? (["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as any)
+      : null;
 
+  const CardInner = (
+    <ContenidoTarjeta
+      img={img}
+      nombre={nombre}
+      tagSuperior={tagSuperior}
+      detalles={detalles}
+      completado={completado}
+      locked={locked}
+    />
+  );
 
   const Card = (
     <TouchableOpacity
       activeOpacity={0.9}
-      disabled={locked}
-      onPress={() => (locked ? onLockedClick?.() : onPressNavegar?.(routeName, params))}
+      onPress={() =>
+        locked
+          ? onLockedClick?.()
+          : onPressNavegar?.(routeName, params)
+      }
       accessibilityRole="button"
-      accessibilityState={{ disabled: locked }}
-      accessibilityLabel={`${locked ? "Bloqueado — " : ""}${isCompuesto ? "compuesto" : "ejercicio"} ${nombre}`}
+      accessibilityState={{ disabled: false }}
+      accessibilityLabel={`${locked ? "Bloqueado — ejercicio extra Premium" : ""
+        } ${isCompuesto ? "compuesto" : "ejercicio"} ${nombre}`}
       className="w-full"
     >
-      <ContenidoTarjeta
-        img={img}
-        nombre={nombre}
-        tagSuperior={tagSuperior}
-        detalles={detalles}
-        completado={completado}
-        locked={locked}
-      />
+      {CardInner}
     </TouchableOpacity>
   );
 
   return (
     <View className="list-none">
       {marcoGradient ? (
-        <LinearGradient colors={marcoGradient as any} className="rounded-2xl p-[1px]"
+        <LinearGradient
+          colors={marcoGradient}
+          className="rounded-2xl p-[1px]"
           style={{ borderRadius: 15, overflow: "hidden" }}
         >
           <View
             className={
               "rounded-2xl shadow-md p-4 relative " +
-              (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white border border-neutral-200")
+              (isDark
+                ? "bg-[#0b1220] border border-white/10"
+                : "bg-white border border-neutral-200")
             }
           >
             {Card}
-            {locked && (
-              <CandadoPremium
-                size={20}
-                blurLevel="backdrop-blur-sm"
-                opacityLevel="bg-white/20"
-                position="bottom-right"
-                isDark={isDark}
-              />
-            )}
           </View>
         </LinearGradient>
       ) : (
         <View
           className={
             "rounded-2xl shadow-md p-4 relative " +
-            (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white border border-neutral-200")
+            (isDark
+              ? "bg-[#0b1220] border border-white/10"
+              : "bg-white border border-neutral-200")
           }
         >
           {Card}
-          {locked && (
-            <CandadoPremium
-              size={20}
-              blurLevel="backdrop-blur-sm"
-              opacityLevel="bg-white/20"
-              position="bottom-right"
-              isDark={isDark}
-            />
-          )}
         </View>
       )}
     </View>
@@ -249,13 +249,79 @@ function ContenidoTarjeta({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  if (locked) {
+    return (
+      <View className="flex-row items-center gap-4">
+        <View
+          className={
+            "h-16 w-16 rounded-xl border items-center justify-center " +
+            (isDark
+              ? "border-white/20 bg-white/5"
+              : "border-neutral-200 bg-neutral-50")
+          }
+        >
+          <Lock
+            size={24}
+            color={isDark ? "#e5e7eb" : "#0f172a"}
+            strokeWidth={2}
+          />
+        </View>
+
+        <View className="min-w-0 flex-1">
+          <View className="mb-1">
+            <View
+              className={
+                "self-start rounded-md px-2 py-0.5 ring-1 " +
+                (isDark
+                  ? "bg-white/5 ring-white/15"
+                  : "bg-neutral-100 ring-neutral-200")
+              }
+            >
+              <Text
+                className={
+                  "text-[11px] font-medium " +
+                  (isDark ? "text-[#94a3b8]" : "text-neutral-700")
+                }
+                numberOfLines={1}
+              >
+                Ejercicio extra Premium
+              </Text>
+            </View>
+          </View>
+
+          <Text
+            className={
+              (isDark ? "text-white" : "text-slate-900") +
+              " font-semibold"
+            }
+            numberOfLines={2}
+          >
+            Desbloquea el último ejercicio de la sesión
+          </Text>
+
+          <Text
+            className={
+              (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+              " text-[12px]"
+            }
+            numberOfLines={2}
+          >
+            Hazte Premium para completar la rutina al 100% y acceder a todos
+            los ejercicios del día.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-row items-center gap-4">
-      {/* Imagen */}
       <View
         className={
           "h-16 w-16 rounded-xl border grid place-items-center overflow-hidden " +
-          (isDark ? "border-white/60 bg-white/10" : "border-neutral-200 bg-white")
+          (isDark
+            ? "border-white/60 bg-white/10"
+            : "border-neutral-200 bg-white")
         }
       >
         {img ? (
@@ -265,17 +331,21 @@ function ContenidoTarjeta({
         )}
       </View>
 
-      {/* Texto */}
       <View className="min-w-0 flex-1">
         <View className="mb-1">
           <View
             className={
               "self-start rounded-md px-2 py-0.5 ring-1 " +
-              (isDark ? "bg-white/5 ring-white/15" : "bg-neutral-100 ring-neutral-200")
+              (isDark
+                ? "bg-white/5 ring-white/15"
+                : "bg-neutral-100 ring-neutral-200")
             }
           >
             <Text
-              className={"text-[11px] font-medium " + (isDark ? "text-[#94a3b8]" : "text-neutral-700")}
+              className={
+                "text-[11px] font-medium " +
+                (isDark ? "text-[#94a3b8]" : "text-neutral-700")
+              }
               numberOfLines={1}
             >
               {`Grupo · ${tagSuperior || "—"}`}
@@ -283,21 +353,33 @@ function ContenidoTarjeta({
           </View>
         </View>
 
-        <Text className={isDark ? "text-white font-semibold" : "text-slate-900 font-semibold"} numberOfLines={1}>
+        <Text
+          className={
+            (isDark ? "text-white" : "text-slate-900") + " font-semibold"
+          }
+          numberOfLines={1}
+        >
           {nombre}
         </Text>
 
-        <Text className={isDark ? "text-[#94a3b8] text-[12px]" : "text-neutral-600 text-[12px]"} numberOfLines={2}>
+        <Text
+          className={
+            (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+            " text-[12px]"
+          }
+          numberOfLines={2}
+        >
           {detalles}
         </Text>
       </View>
 
-      {/* Estado Completado */}
-      {completado && !locked && (
+      {completado && (
         <View
           className={
             "ml-auto h-6 w-6 rounded-full items-center justify-center " +
-            (isDark ? "bg-white/10 ring-1 ring-white/15" : "bg-white ring-1 ring-neutral-200")
+            (isDark
+              ? "bg-white/10 ring-1 ring-white/15"
+              : "bg-white ring-1 ring-neutral-200")
           }
           accessibilityLabel="Completado hoy"
         >
@@ -311,27 +393,24 @@ function ContenidoTarjeta({
 /* ---------------- Principal ---------------- */
 export default function TarjetaHome({ rutina, dia }: Props) {
   const navigation = useNavigation();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
- console.log(JSON.stringify(rutina?.dias?.[0]?.ejercicios, null, 2));
-
-  
-
-  const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso ?? "kg");
   const planActual = useUsuarioStore((s) => s.usuario?.planActual);
   const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
   const rutinaActivaId = useUsuarioStore((s) => s.usuario?.rutinaActivaId);
+  const medidaPeso = useUsuarioStore(
+    (s) => s.usuario?.medidaPeso ?? "kg"
+  );
 
   const hasRutinaActiva = Boolean(rutinaActivaId);
-  const [openUpsell, setOpenUpsell] = useState(false);
 
   const rutinaDia = useMemo(() => {
     if (!rutina?.dias || !dia) return undefined;
     return rutina.dias.find((d) => d.diaSemana === dia);
   }, [rutina, dia]);
 
-  const ejercicios = useMemo<EjercicioDia[]>(() => rutinaDia?.ejercicios ?? [], [rutinaDia]);
+  const ejercicios = useMemo<EjercicioDia[]>(
+    () => rutinaDia?.ejercicios ?? [],
+    [rutinaDia]
+  );
 
   if (!rutinaDia && hasRutinaActiva) {
     return (
@@ -349,35 +428,41 @@ export default function TarjetaHome({ rutina, dia }: Props) {
   if (!rutinaDia) return null;
 
   const isPremiumActive = planActual === "PREMIUM" && haPagado;
-  const allowed = isPremiumActive ? ejercicios.length : Math.ceil(ejercicios.length / 2);
 
   return (
-    <View
-      className="w-full">
-      <FlatList
-        data={ejercicios}
-        keyExtractor={(e, idx) =>
-          String((e.id as any) ?? e.ejercicioCompuesto?.id ?? `${e.ejercicio?.nombre}-${e.orden ?? "x"}-${idx}`)
-        }
-        renderItem={({ item, index }) => {
-          const locked = index >= allowed;
+    <View className="w-full px-2">
+      <View style={{ gap: 12 }}>
+        {ejercicios.map((item, index) => {
+          const key = String(
+            (item.id as any) ??
+              item.ejercicioCompuesto?.id ??
+              `${item.ejercicio?.nombre}-${item.orden ?? "x"}-${index}`
+          );
+
+          const locked =
+            !isPremiumActive && index === ejercicios.length - 1;
+
           return (
-            <View>
+            <View key={key}>
               <TarjetaEjercicio
                 ejercicio={item}
                 medidaPeso={medidaPeso}
                 locked={locked}
-                onLockedClick={() => setOpenUpsell(true)}
+                onLockedClick={() => {
+                  // @ts-ignore
+                  navigation.navigate("Perfil", {
+                    screen: "PremiumPayment",
+                  });
+                }}
                 onPressNavegar={(routeName, params) =>
-                  // @ts-ignore depende de tus tipos de navegación
+                  // @ts-ignore
                   (navigation as any).navigate(routeName, params)
                 }
               />
             </View>
           );
-        }}
-        contentContainerStyle={{ padding: 8, gap: 12 }}
-      />
+        })}
+      </View>
     </View>
   );
 }

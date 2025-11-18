@@ -9,6 +9,7 @@ import pesa from "../../../../assets/mensajeVacio/pesa.png";
 
 import { Rutina } from "@/features/type/rutinas";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { ScrollView } from "react-native";
 
 /* ---------------- Iconos ---------------- */
 const BadgeCheckIcon = memo(({ size = 14, color = "#0f172a" }: { size?: number; color?: string }) => (
@@ -42,7 +43,9 @@ export default function MisRutinas({ rutinas, mostrar }: Props) {
 
   return (
     <View className="w-full">
-
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+      >
       <View className="flex-row flex-wrap gap-4 justify-center">
         {rutinas.map((r) => (
           <CardRutina
@@ -54,6 +57,7 @@ export default function MisRutinas({ rutinas, mostrar }: Props) {
           />
         ))}
       </View>
+      </ScrollView>
     </View>
   );
 }

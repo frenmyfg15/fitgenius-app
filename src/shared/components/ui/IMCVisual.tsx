@@ -1,7 +1,6 @@
 // src/features/fit/components/IMCVisual.tsx
 import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, LayoutChangeEvent } from "react-native";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 
@@ -21,18 +20,22 @@ const COLORS = {
   trackBg: "#E5E7EB",
 } as const;
 
-export default function IMCVisual() {
-  const { usuario } = useUsuarioStore();
+type IMCVisualProps = {
+  peso?: number | string | null;
+  altura?: number | string | null; // en cm
+};
+
+export default function IMCVisual({ peso, altura }: IMCVisualProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const imcRaw = useMemo(() => {
-    if (!usuario?.peso || !usuario?.altura) return null;
-    const kg = Number(usuario.peso);
-    const m = Number(usuario.altura) / 100;
+    if (!peso || !altura) return null;
+    const kg = Number(peso);
+    const m = Number(altura) / 100;
     if (!Number.isFinite(kg) || !Number.isFinite(m) || m <= 0) return null;
     return kg / (m * m);
-  }, [usuario]);
+  }, [peso, altura]);
 
   const imc = useMemo(() => (imcRaw != null ? Number(imcRaw.toFixed(1)) : null), [imcRaw]);
 

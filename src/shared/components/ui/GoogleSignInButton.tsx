@@ -41,6 +41,7 @@ export default function GoogleSignInButton({
         token: result.token.slice(0, 24) + "...",
         user: result.user,
       });
+      //@ts-ignore
       onSuccess?.(result);
     } catch (e: any) {
       const err = e instanceof Error ? e : new Error(String(e));
@@ -68,7 +69,7 @@ export default function GoogleSignInButton({
         className={clsx(
           "flex-row items-center justify-center gap-3 px-4 py-3 rounded-xl border",
           "bg-white border-neutral-300",
-          disabled || loading ? "opacity-75" : "active:opacity-90"
+          disabled
         )}
         accessibilityRole="button"
         accessibilityLabel={text}

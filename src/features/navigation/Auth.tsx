@@ -74,7 +74,7 @@ export default function AuthNavigator() {
           animation: "slide_from_right",
           gestureEnabled: true,
           contentStyle: {
-            backgroundColor: isDark ? "#0b0b0c" : "#f6f7fb",
+            backgroundColor: isDark ? "#0b1220" : "#ffffff",
             // 👇 Solo aplica paddingTop cuando NO sea "Sesion"
             paddingTop: route.name === "Sesion" ? 0 : 100,
           },

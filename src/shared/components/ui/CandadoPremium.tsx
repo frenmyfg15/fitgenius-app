@@ -1,149 +1,157 @@
 // src/features/premium/CandadoPremium.tsx
-import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, Platform } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import React, { useMemo } from "react";
+import { View, Text, Pressable } from "react-native";
+import Svg, {
+  Path,
+  Rect,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from "react-native-svg";
 import { BlurView } from "expo-blur";
-import Svg, { Path, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
-import PremiumUpsell from "./PremiumUpsell";
 
 type Props = {
-  size?: number | string;
-  className?: string;
+  size?: number;
   showTitle?: boolean;
-  titleFontSize?: number | string;
+  titleFontSize?: number;
   blurLevel?: "backdrop-blur-sm" | "backdrop-blur-md" | "backdrop-blur-xl";
-  opacityLevel?: "bg-white/5" | "bg-white/10" | "bg-white/20";
+  /** Opacidad del velo blanco (0 = sin velo, 1 = blanco sólido) */
+  whiteOpacity?: number;
   position?: "center" | "bottom-right";
-  isDark?: boolean; // opcional para matchear tu theme
+  isDark?: boolean;
 };
 
 export default function CandadoPremium({
-  size = 64,
-  className = "",
+  size = 40,
   showTitle = false,
-  titleFontSize = "1rem",
-  blurLevel = "backdrop-blur-md",
-  opacityLevel = "bg-white/10",
+  titleFontSize = 12,
+  blurLevel = "backdrop-blur-xl",
+  whiteOpacity = 0.35,
   position = "center",
   isDark,
 }: Props) {
-  const [openUpsell, setOpenUpsell] = useState(false);
+  const navigation = useNavigation<any>();
 
-  // Intensidad del blur
   const blurIntensity = useMemo(() => {
     switch (blurLevel) {
       case "backdrop-blur-sm":
-        return 12;
-      case "backdrop-blur-xl":
-        return 44;
+        return 20;
       case "backdrop-blur-md":
+        return 40;
+      case "backdrop-blur-xl":
       default:
-        return 24;
+        return 80; // 👈 a tope para que se note
     }
   }, [blurLevel]);
 
-  // Opacidad del velo (en lugar de clases, lo hacemos determinista y compatible RN puro)
-  const veilBg = useMemo(() => {
-    // cristal un poco + claro que #0b1220 en dark; blanco suave en light
-    const darkVeil = "rgba(20, 28, 44, 0.35)"; // ~ #0b1220 aclarado + alpha
-    const lightVeil = "rgba(255,255,255,0.10)";
-    const custom = {
-      "bg-white/5": isDark ? "rgba(20, 28, 44, 0.25)" : "rgba(255,255,255,0.05)",
-      "bg-white/10": isDark ? darkVeil : lightVeil,
-      "bg-white/20": isDark ? "rgba(20, 28, 44, 0.45)" : "rgba(255,255,255,0.20)",
-    } as const;
-    return custom[opacityLevel] ?? (isDark ? darkVeil : lightVeil);
-  }, [opacityLevel, isDark]);
+  // clamp 0–1
+  const alpha =
+    whiteOpacity < 0 ? 0 : whiteOpacity > 1 ? 1 : whiteOpacity;
 
-  // Posición del contenido (candado + texto)
+  const overlayWhite = `rgba(255,255,255,${alpha})`;
+
   const contentPosStyle =
     position === "center"
-      ? { flex: 1, alignItems: "center" as const, justifyContent: "center" as const }
-      : { position: "absolute" as const, bottom: 12, right: 12, alignItems: "center" as const };
+      ? {
+          flex: 1,
+          alignItems: "center" as const,
+          justifyContent: "center" as const,
+        }
+      : {
+          position: "absolute" as const,
+          bottom: 8,
+          right: 8,
+          alignItems: "center" as const,
+        };
 
-  // Tints por plataforma/tema
-  const iosTint = isDark ? "systemThinMaterialDark" : "systemThinMaterialLight";
+  const handleGoToPayment = () => {
+     navigation.navigate("Perfil", {
+  screen: "PremiumPayment",
+}); 
+  };
 
   return (
-    <>
-      {/* Overlay clicable, con clipping para que el blur respete los bordes */}
-      <Pressable
-        onPress={() => setOpenUpsell(true)}
+    <Pressable
+      onPress={handleGoToPayment}
+      style={{
+        flex: 1,
+        backgroundColor: "transparent", // 👈 muy importante
+      }}
+    >
+      {/* 1) BLUR REAL SOBRE TODO LO DEBAJO (contenido de la card) */}
+      <BlurView
+        intensity={blurIntensity}
+        tint={isDark ? "dark" : "light"}
         style={{
           position: "absolute",
-          inset: 0 as any,
-          borderRadius: 16,
-          overflow: "hidden",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
         }}
-      >
-
-
-        {/* 2) Velo semitransparente por encima del blur (para ese look de cristal) */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            inset: 0 as any,
-            backgroundColor: veilBg,
-            borderWidth: Platform.OS === "android" ? 0 : 1,
-            borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-          }}
-        />
-
-        {/* 3) Contenido: candado + (opcional) texto */}
-        <View style={contentPosStyle}>
-          <Svg
-            viewBox="0 0 24 24"
-            width={Number(size)}
-            height={Number(size)}
-            fill="none"
-            stroke="url(#lockGradient)"
-            strokeWidth={2.2}
-            accessibilityRole="image"
-            className={className}
-          >
-            <Defs>
-              <SvgLinearGradient id="lockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#00ff40" />
-                <Stop offset="50%" stopColor="#5ee69d" />
-                <Stop offset="100%" stopColor="#b200ff" />
-              </SvgLinearGradient>
-            </Defs>
-
-            <Path d="M8 10V7a4 4 0 1 1 8 0v3" strokeLinecap="round" strokeLinejoin="round" />
-            <Rect x="5" y="10" width="14" height="10" rx="2" />
-          </Svg>
-
-          {showTitle && (
-            <Text
-              style={{
-                marginTop: 6,
-                fontSize: typeof titleFontSize === "number" ? titleFontSize : undefined,
-                fontWeight: "600",
-                color: isDark ? "#e5e7eb" : "#0f172a",
-                opacity: 0.9,
-              }}
-            >
-              Premium
-            </Text>
-          )}
-        </View>
-      </Pressable>
-
-      {/* Modal Premium */}
-      <PremiumUpsell
-        isOpen={openUpsell}
-        onClose={() => setOpenUpsell(false)}
-        mode="modal"
-        price="€4,99/mes"
-        billingHint="Cancela cuando quieras"
-        ctaLabel="Obtener Premium"
-        benefits={[
-          { title: "Estadísticas completas de calorías" },
-          { title: "Ejercicios premium desbloqueados" },
-          { title: "IA avanzada para tus rutinas" },
-          { title: "Historial y progreso detallado" },
-        ]}
       />
-    </>
+
+      {/* 2) VELO BLANCO POR ENCIMA DEL BLUR */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: overlayWhite,
+        }}
+      />
+
+      {/* 3) CANDADO + TEXTO */}
+      <View style={contentPosStyle}>
+        <Svg
+          viewBox="0 0 24 24"
+          width={size}
+          height={size}
+          fill="none"
+          stroke="url(#lockGradient)"
+          strokeWidth={2.2}
+          accessibilityRole="image"
+        >
+          <Defs>
+            <SvgLinearGradient
+              id="lockGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <Stop offset="0%" stopColor="#00ff40" />
+              <Stop offset="50%" stopColor="#5ee69d" />
+              <Stop offset="100%" stopColor="#b200ff" />
+            </SvgLinearGradient>
+          </Defs>
+
+          <Path
+            d="M8 10V7a4 4 0 1 1 8 0v3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Rect x={5} y={10} width={14} height={10} rx={2} />
+        </Svg>
+
+        {showTitle && (
+          <Text
+            style={{
+              marginTop: 4,
+              fontSize: titleFontSize,
+              fontWeight: "600",
+              color: "#0f172a",
+              opacity: 0.9,
+            }}
+          >
+            Premium
+          </Text>
+        )}
+      </View>
+    </Pressable>
   );
 }

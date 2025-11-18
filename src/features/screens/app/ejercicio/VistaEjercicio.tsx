@@ -59,7 +59,7 @@ export default function VistaEjercicio() {
       repeticiones: s.repeticiones ?? 0,
     })) ?? [];
 
-  console.log(JSON.stringify(ejercicio, null, 2));
+  console.log('Desde [VistaEjercicio]');
 
 
   // ---------- Derivados para COMPUESTO ----------

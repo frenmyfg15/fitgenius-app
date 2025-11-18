@@ -1,20 +1,22 @@
+// src/features/premium/Extra.tsx
 import React, { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
-import { Flame, Medal, Dumbbell } from "lucide-react-native";
+import { Flame, Medal, Dumbbell, Lock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import CandadoPremium from "../ui/CandadoPremium";
+import { useNavigation } from "@react-navigation/native";
 import CaloriasModal from "./CaloriasModal";
 import ExperienciaModal from "./ExperienciaModal";
 import EjerciciosModal from "./EjerciciosModal";
 
 /* ---------------- Tipos ---------------- */
-type Props = { ejercicios: number; };
+type Props = { ejercicios: number };
 
 export default function Extra({ ejercicios }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const navigation = useNavigation<any>();
 
   const planActual = useUsuarioStore((s) => s.usuario?.planActual);
   const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
@@ -39,7 +41,15 @@ export default function Extra({ ejercicios }: Props) {
       label: "Calorías quemadas",
       dotColor: "#22c55e",
       locked: !isPremiumActive,
-      onPress: () => setShowCal(true),
+      onPress: () => {
+        if (!isPremiumActive) {
+           navigation.navigate("Perfil", {
+  screen: "PremiumPayment",
+}); 
+        } else {
+          setShowCal(true);
+        }
+      },
     },
     {
       key: "experiencia" as const,
@@ -77,53 +87,94 @@ export default function Extra({ ejercicios }: Props) {
               onPress={it.onPress}
               className={
                 "relative w-[110px] h-[130px] rounded-2xl items-center justify-center shadow-md " +
-                (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white border border-neutral-200")
+                (isDark
+                  ? "bg-[#0b1220] border border-white/10"
+                  : "bg-white border border-neutral-200")
               }
+              style={{
+                borderRadius: 16,
+              }}
             >
-              {/* Contenido principal */}
-              <View className="flex-1 items-center justify-center px-3 py-3">
-                <View
-                  className={
-                    "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
-                    (isDark ? "bg-white/5 border border-white/10" : "bg-white border border-neutral-200")
-                  }
-                >
-                  {it.icon}
+              {/* Si es calorías bloqueado → esqueleto con candado */}
+              {it.key === "calorias" && it.locked ? (
+                <View className="flex-1 items-center justify-center px-3 py-3">
+                  <View
+                    className={
+                      "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
+                      (isDark
+                        ? "bg-white/5 border border-white/10"
+                        : "bg-neutral-50 border border-neutral-200")
+                    }
+                  >
+                    <Lock
+                      size={22}
+                      color={isDark ? "#e5e7eb" : "#0f172a"}
+                      strokeWidth={2}
+                    />
+                  </View>
+
+                  <Text
+                    className={
+                      (isDark ? "text-white" : "text-slate-900") +
+                      " text-[14px] font-semibold text-center"
+                    }
+                  >
+                    Calorias
+                  </Text>
+                  <Text
+                    className={
+                      (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+                      " text-[11px] text-center mt-1 tracking-tight"
+                    }
+                  >
+                    Calorias
+                    {"\n"}
+                    quemadas este mes.
+                  </Text>
                 </View>
+              ) : (
+                // Contenido normal (experiencia, ejercicios o calorías si es premium)
+                <>
+                  <View className="flex-1 items-center justify-center px-3 py-3">
+                    <View
+                      className={
+                        "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
+                        (isDark
+                          ? "bg-white/5 border border-white/10"
+                          : "bg-white border border-neutral-200")
+                      }
+                    >
+                      {it.icon}
+                    </View>
 
-                <Text
-                  className={(isDark ? "text-white" : "text-slate-900") + " text-[28px] font-extrabold leading-none"}
-                >
-                  {nf.format(it.value)}
-                </Text>
+                    <Text
+                      className={
+                        (isDark ? "text-white" : "text-slate-900") +
+                        " text-[28px] font-extrabold leading-none"
+                      }
+                    >
+                      {nf.format(it.value)}
+                    </Text>
 
-                <Text
-                  className={(isDark ? "text-[#94a3b8]" : "text-neutral-600") + " text-[11px] text-center mt-1 tracking-tight"}
-                >
-                  {it.label}
-                </Text>
-              </View>
+                    <Text
+                      className={
+                        (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+                        " text-[11px] text-center mt-1 tracking-tight"
+                      }
+                    >
+                      {it.label}
+                    </Text>
+                  </View>
 
-              <View
-                className="absolute right-2 top-2 h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: it.dotColor,
-                  borderWidth: 2,
-                  borderColor: isDark ? "#0b1220" : "#ffffff",
-                }}
-              />
-
-              {it.locked && (
-                <View className="absolute inset-0" pointerEvents="none">
-                  <CandadoPremium
-                    size={40}
-                    showTitle
-                    blurLevel="backdrop-blur-sm"
-                    opacityLevel="bg-white/20"
-                    position="center"
-                    isDark={isDark}
+                  <View
+                    className="absolute right-2 top-2 h-2 w-2 rounded-full"
+                    style={{
+                      backgroundColor: it.dotColor,
+                      borderWidth: 2,
+                      borderColor: isDark ? "#0b1220" : "#ffffff",
+                    }}
                   />
-                </View>
+                </>
               )}
             </TouchableOpacity>
           </LinearGradient>
@@ -131,9 +182,21 @@ export default function Extra({ ejercicios }: Props) {
       </View>
 
       {/* Modales */}
-      <CaloriasModal visible={showCal} onClose={() => setShowCal(false)} value={calorias} />
-      <ExperienciaModal visible={showXP} onClose={() => setShowXP(false)} value={experiencia} />
-      <EjerciciosModal visible={showEj} onClose={() => setShowEj(false)} value={ejercicios} />
+      <CaloriasModal
+        visible={showCal}
+        onClose={() => setShowCal(false)}
+        value={calorias}
+      />
+      <ExperienciaModal
+        visible={showXP}
+        onClose={() => setShowXP(false)}
+        value={experiencia}
+      />
+      <EjerciciosModal
+        visible={showEj}
+        onClose={() => setShowEj(false)}
+        value={ejercicios}
+      />
     </>
   );
 }

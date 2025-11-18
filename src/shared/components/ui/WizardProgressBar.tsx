@@ -41,7 +41,7 @@ function WizardProgressBarBase({
     [anim]
   );
 
-  const bg    = isDark ? "#0b0b0c" : "#f6f7fb";
+  const bg    = isDark ? "#0b1220" : "#f6f7fb";
   const label = isDark ? "#e5e5e5" : "#404040";
   const track = isDark ? "#2a2a2e" : "#e5e5e5";
 
@@ -63,7 +63,7 @@ function WizardProgressBarBase({
       <View style={[styles.track, { height, backgroundColor: track }]}>
         <Animated.View style={[styles.fillWrapper, { width }]}>
           <LinearGradient
-            colors={["#4ade80", "#22c55e"]}
+            colors={["#4ade80", "rgb(178, 0, 255)"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.fill}

@@ -25,7 +25,10 @@ export const useLogin = () => {
 
   // Fondo según tema
   const bgGradient = useMemo(
-    () => (isDark ? ["#0b1220", "#101a33", "#0b1220"] : ["#f6f7fb", "#e9ecf5", "#f6f7fb"]),
+    () =>
+      isDark
+        ? ["#0b1220", "#101a33", "#0b1220"]
+        : ["#f6f7fb", "#e9ecf5", "#f6f7fb"],
     [isDark]
   );
 
@@ -44,7 +47,10 @@ export const useLogin = () => {
   }, []);
 
   // ——— Helpers ———
-  const getReadableError = (err: unknown, fallback = "Ocurrió un error. Inténtalo de nuevo.") => {
+  const getReadableError = (
+    err: unknown,
+    fallback = "Ocurrió un error. Inténtalo de nuevo."
+  ) => {
     if (axios.isAxiosError(err)) {
       if (err.request && !err.response) {
         return "No se pudo contactar al servidor. Revisa tu conexión.";
@@ -64,6 +70,16 @@ export const useLogin = () => {
     return fallback;
   };
 
+  const logWarning = (tag: string, err: unknown, userMsg: string) => {
+    console.warn(`⚠️ [${tag}]`, {
+      userMessage: userMsg,
+      isAxiosError: axios.isAxiosError(err),
+      status: axios.isAxiosError(err) ? err.response?.status : undefined,
+      serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
+      rawError: err,
+    });
+  };
+
   // ——— Acciones ———
   const submitLogin = useCallback(
     async (data: FormValues) => {
@@ -71,15 +87,10 @@ export const useLogin = () => {
       try {
         const res = await loginUsuario(data.correo, data.contrasena);
         setUsuario(res.usuario ?? res);
-
-        Toast.show({
-          type: "success",
-          text1: "Sesión iniciada",
-          text2: `¡Bienvenido${res?.usuario?.nombre ? `, ${res.usuario.nombre}` : ""}!`,
-        });
+        // Sin Toast de éxito: el propio flujo de navegación indica que entró correctamente
       } catch (err) {
         const msg = getReadableError(err, "No se pudo iniciar sesión.");
-        console.error("🔴 [LoginError]", err);
+        logWarning("LoginError", err, msg);
         Toast.show({
           type: "error",
           text1: "No se pudo iniciar sesión",
@@ -96,21 +107,16 @@ export const useLogin = () => {
   const startGoogleLogin = useCallback(async () => {
     setLoading(true);
     try {
-      const { token: firebaseIdToken, user } = await loginConGoogleNativo(); // token = Firebase ID token
+      const { token: firebaseIdToken } = await loginConGoogleNativo();
       const res = await loginUsuarioGoogle(firebaseIdToken);
       setUsuario(res?.usuario ?? res);
-
-      Toast.show({
-        type: "success",
-        text1: "Sesión con Google",
-        text2: `Has iniciado sesión${user?.nombre ? ` como ${user.nombre}` : ""}.`,
-      });
+      // Sin Toast de éxito
     } catch (err) {
       const msg = getReadableError(
         err,
         "No se pudo iniciar sesión con Google."
       );
-      console.error("🔴 [LoginGoogleError]", err);
+      logWarning("LoginGoogleNativeError", err, msg);
       Toast.show({
         type: "error",
         text1: "Error con Google",
@@ -128,14 +134,13 @@ export const useLogin = () => {
       try {
         const res = await loginUsuarioGoogle(token);
         setUsuario(res?.usuario ?? res);
-        Toast.show({
-          type: "success",
-          text1: "Sesión con Google",
-          text2: "Has iniciado sesión correctamente.",
-        });
+        // Sin Toast de éxito
       } catch (err) {
-        const msg = getReadableError(err, "No se pudo iniciar sesión con Google.");
-        console.error("🔴 [LoginGoogleError]", err);
+        const msg = getReadableError(
+          err,
+          "No se pudo iniciar sesión con Google."
+        );
+        logWarning("LoginGoogleTokenError", err, msg);
         Toast.show({
           type: "error",
           text1: "Error con Google",

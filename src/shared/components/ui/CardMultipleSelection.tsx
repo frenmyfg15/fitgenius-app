@@ -40,7 +40,7 @@ function CardSelectable({
         const selected = isSelected(item.id);
 
         const cardBase =
-          "relative rounded-2xl items-center justify-end shadow-md";
+          "relative rounded-2xl items-center justify-end shadow-md my-2";
         const cardSize = image ? "w-[160px] h-[160px] py-2" : "w-[31%] min-w-[100px]";
         const cardBg = image
           ? selected

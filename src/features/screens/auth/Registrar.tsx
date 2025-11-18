@@ -22,6 +22,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient";
 
 import ModernInput from "@/shared/components/ui/ModernInput";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
@@ -41,7 +42,9 @@ const schema = z.object({
   nombre: z.string().min(2, "Debe tener al menos 2 caracteres"),
   apellido: z.string().min(2, "Debe tener al menos 2 caracteres"),
   correo: z.string().email("Correo inválido"),
-  contrasena: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  contrasena: z
+    .string()
+    .min(6, "La contraseña debe tener al menos 6 caracteres"),
   acepta: z
     .boolean()
     .refine((v) => v === true, {
@@ -58,7 +61,7 @@ const LS_STEP_KEY = "registroStep";
 
 type AuthStack = {
   Registrar: undefined;
-  AuthSesion: undefined;
+  Sesion: undefined;
   FitRutina: undefined;
   Terminos: undefined;
   Privacidad: undefined;
@@ -239,7 +242,7 @@ export default function RegistrarScreen() {
     if (!payload) return; // ya se avisó con Alert
 
     setPayloadUsuario(payload);
-    enviarCodigo(payload.correo as unknown as string).catch(() => {});
+    enviarCodigo(payload.correo as unknown as string).catch(() => { });
   };
 
   // Google -> al registrar exitosamente, reiniciamos wizard + form
@@ -261,10 +264,7 @@ export default function RegistrarScreen() {
     setLoading(true);
     try {
       const { token } = await loginConGoogleNativo();
-      const res = await registrarUsuarioConGoogle(
-        token,
-        wizardUsuario
-      );
+      const res = await registrarUsuarioConGoogle(token, wizardUsuario);
 
       setUsuario(res.usuario);
       await resetRegistroState();
@@ -281,7 +281,7 @@ export default function RegistrarScreen() {
     }
   };
 
-  const goLogin = () => navigation.navigate("AuthSesion");
+  const goLogin = () => navigation.navigate("Sesion");
   const goTerminos = () => navigation.navigate("Terminos");
   const goPrivacidad = () => navigation.navigate("Privacidad");
 
@@ -337,195 +337,279 @@ export default function RegistrarScreen() {
         setLoading(false);
       }
     },
-    [getValues, navigation, payloadUsuario, resetRegistroState, setUsuario, wizardUsuario]
+    [
+      getValues,
+      navigation,
+      payloadUsuario,
+      resetRegistroState,
+      setUsuario,
+      wizardUsuario,
+    ]
   );
 
   return (
     <>
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-white"}
+        className={isDark ? "bg-[#020617]" : "bg-slate-50"}
         contentContainerStyle={{
           minHeight: "100%",
           paddingHorizontal: 16,
-          paddingVertical: 24,
+          paddingVertical: 30,
           justifyContent: "space-between",
+          paddingBottom: 50,
         }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 items-center justify-center">
-          <View
-            className={`w-full max-w-md rounded-2xl border p-8 shadow-sm ${
-              isDark ? "border-slate-700 bg-white/5" : "border-slate-200/70 bg-white/90"
-            } backdrop-blur`}
+          <LinearGradient
+            colors={
+              isDark
+                ? ["rgba(56,189,248,0.25)", "rgba(16,185,129,0.15)", "transparent"]
+                : ["rgba(56,189,248,0.12)", "rgba(16,185,129,0.08)", "transparent"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              borderRadius: 24,
+              padding: 1,
+            }}
           >
-            <Text
-              className={`text-2xl font-bold text-center mb-2 ${
-                isDark ? "text-white" : "text-slate-900"
-              }`}
+            <View
+              className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
+                  ? "border-slate-700 bg-slate-900/70"
+                  : "border-slate-200/80 bg-white"
+                } backdrop-blur`}
             >
-              Crear cuenta
-            </Text>
-            <Text
-              className={`text-sm text-center mb-6 ${
-                isDark ? "text-slate-300" : "text-slate-600"
-              }`}
-            >
-              Crea tu cuenta para comenzar tu viaje con nosotros.
-            </Text>
-
-            <FormProvider {...methods}>
-              <View className="space-y-5">
-                <Input
-                  label="Nombre"
-                  id="nombre"
-                  register={register}
-                  error={errors.nombre?.message}
-                />
-                <Input
-                  label="Apellido"
-                  id="apellido"
-                  register={register}
-                  error={errors.apellido?.message}
-                />
-                <Input
-                  label="Correo electrónico"
-                  id="correo"
-                  type="email"
-                  register={register}
-                  error={errors.correo?.message}
-                />
-                <Input
-                  label="Contraseña"
-                  id="contrasena"
-                  type="password"
-                  register={register}
-                  error={errors.contrasena?.message}
-                />
-
-                <View className="flex-row items-start gap-2">
-                  <Controller
-                    control={control}
-                    name="acepta"
-                    render={({ field: { value, onChange } }) => (
-                      <Switch
-                        value={!!value}
-                        onValueChange={onChange}
-                        thumbColor={isDark ? "#cbd5e1" : "#fff"}
-                        trackColor={{
-                          false: isDark ? "#334155" : "#cbd5e1",
-                          true: "#22c55e",
-                        }}
-                      />
-                    )}
-                  />
-                  <Text
-                    className={`flex-1 ${
-                      isDark ? "text-slate-300" : "text-slate-700"
+              <View className="items-center mb-3">
+                <View
+                  className={`mb-2 rounded-full px-3 py-1 ${isDark ? "bg-slate-800/80" : "bg-slate-100"
                     }`}
+                >
+                  <Text
+                    className={`text-[11px] font-semibold ${isDark ? "text-slate-200" : "text-slate-700"
+                      }`}
                   >
-                    Acepto los{" "}
-                    <Text onPress={goTerminos} className="text-green-600 font-semibold">
-                      Términos y Condiciones
-                    </Text>{" "}
-                    y la{" "}
-                    <Text
-                      onPress={goPrivacidad}
-                      className="text-green-600 font-semibold"
-                    >
-                      Política de Privacidad
-                    </Text>
-                    .
+                    Paso final · Crea tu acceso
                   </Text>
                 </View>
-                {errors.acepta && (
-                  <Text className="text-red-500 text-sm -mt-2">
-                    {errors.acepta.message}
-                  </Text>
-                )}
 
+                <Text
+                  className={`text-2xl font-bold text-center ${isDark ? "text-white" : "text-slate-900"
+                    }`}
+                >
+                  Crear cuenta
+                </Text>
+                <Text
+                  className={`text-sm text-center mt-1 ${isDark ? "text-slate-300" : "text-slate-600"
+                    }`}
+                >
+                  Usa tus datos del asistente para terminar el registro.
+                </Text>
+              </View>
+
+              <FormProvider {...methods}>
+                <View className="mt-4 space-y-5">
+                  <Input
+                    label="Nombre"
+                    id="nombre"
+                    register={register}
+                    error={errors.nombre?.message}
+                  />
+                  <Input
+                    label="Apellido"
+                    id="apellido"
+                    register={register}
+                    error={errors.apellido?.message}
+                  />
+                  <Input
+                    label="Correo electrónico"
+                    id="correo"
+                    type="email"
+                    register={register}
+                    error={errors.correo?.message}
+                  />
+                  <Input
+                    label="Contraseña"
+                    id="contrasena"
+                    type="password"
+                    register={register}
+                    error={errors.contrasena?.message}
+                  />
+
+                  <View className="flex-row items-start gap-2 mt-1">
+                    <Controller
+                      control={control}
+                      name="acepta"
+                      render={({ field: { value, onChange } }) => (
+                        <Switch
+                          value={!!value}
+                          onValueChange={onChange}
+                          thumbColor={isDark ? "#cbd5e1" : "#fff"}
+                          trackColor={{
+                            false: isDark ? "#334155" : "#cbd5e1",
+                            true: "#22c55e",
+                          }}
+                        />
+                      )}
+                    />
+                    <Text
+                      className={`flex-1 text-xs ${isDark ? "text-slate-300" : "text-slate-700"
+                        }`}
+                    >
+                      Acepto los{" "}
+                      <Text
+                        onPress={goTerminos}
+                        className="text-green-500 font-semibold"
+                      >
+                        Términos y Condiciones
+                      </Text>{" "}
+                      y la{" "}
+                      <Text
+                        onPress={goPrivacidad}
+                        className="text-green-500 font-semibold"
+                      >
+                        Política de Privacidad
+                      </Text>
+                      .
+                    </Text>
+                  </View>
+                  {errors.acepta && (
+                    <Text className="text-red-500 text-xs -mt-1">
+                      {errors.acepta.message}
+                    </Text>
+                  )}
+
+                  {/* Botón REGISTRARSE (mismo estilo que Iniciar sesión en Sesion.tsx) */}
+                  <Pressable
+                    disabled={loading}
+                    onPress={handleSubmit(onSubmit, onError)}
+                    className="w-full rounded-xl overflow-hidden mt-1"
+                    style={{
+                      shadowColor: "#0f172a",
+                      shadowOpacity: 0.15,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 4,
+                    }}
+                  >
+                    <LinearGradient
+                      colors={["#00FF40", "#5EE69D", "#B200FF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{ borderRadius: 12 }}
+                    >
+                      <View className="px-4 py-3 items-center justify-center">
+                        {loading ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <Text className="text-white font-bold tracking-wide">
+                            Registrarse
+                          </Text>
+                        )}
+                      </View>
+                    </LinearGradient>
+                  </Pressable>
+
+                </View>
+              </FormProvider>
+
+              {/* separador */}
+              <View className="relative my-6">
+                <View className="absolute inset-0 items-center justify-center">
+                  <View
+                    className={`w-full border-t ${isDark ? "border-slate-700/80" : "border-slate-200"
+                      }`}
+                  />
+                </View>
+                <View className="relative items-center">
+                  <View
+                    className={`px-3 py-0.5 rounded-full ${isDark ? "bg-slate-900/90" : "bg-white"
+                      }`}
+                  >
+                    <Text
+                      className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"
+                        }`}
+                    >
+                      o continúa con
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View className="gap-3">
                 <Pressable
-                  onPress={handleSubmit(onSubmit, onError)}
+                  onPress={handleGoogleLogin}
                   disabled={loading}
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neon-logo-gradient px-4 py-3"
+                  className={`flex-row items-center justify-center gap-3 w-full border py-3 rounded-xl ${isDark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"
+                    }`}
                   style={({ pressed }) => [
                     { opacity: loading ? 0.7 : pressed ? 0.9 : 1 },
                   ]}
                 >
-                  {loading && <ActivityIndicator size="small" color="#fff" />}
-                  <Text className="text-white font-semibold">
-                    {loading ? "Cargando…" : "Registrarse"}
+                  <View
+                    className={`h-8 w-8 rounded-full items-center justify-center ${isDark ? "bg-white" : "bg-white"
+                      }`}
+                  >
+                    <Text className="text-lg font-bold text-slate-900">G</Text>
+                  </View>
+                  <Text
+                    className={`text-sm ${isDark ? "text-white" : "text-slate-900"
+                      }`}
+                  >
+                    Continuar con Google
                   </Text>
                 </Pressable>
               </View>
-            </FormProvider>
 
-            {/* separador */}
-            <View className="relative my-6">
-              <View className="absolute inset-0 items-center justify-center">
-                <View
-                  className={`${
-                    isDark ? "border-slate-700" : "border-slate-200"
-                  } w-full border-t`}
-                />
-              </View>
-              <View className="relative items-center">
-                <Text
-                  className={`${
-                    isDark ? "text-slate-400" : "text-slate-500"
-                  } px-3 bg-transparent`}
-                >
-                  o
-                </Text>
-              </View>
-            </View>
-
-            <View className="gap-3">
-              <Pressable
-                onPress={handleGoogleLogin}
-                disabled={loading}
-                className={`flex-row items-center justify-center gap-3 w-full border py-3 rounded-xl ${
-                  isDark ? "border-slate-700 bg-transparent" : "border-slate-300 bg-white"
-                }`}
-                style={({ pressed }) => [
-                  { opacity: loading ? 0.7 : pressed ? 0.9 : 1 },
-                ]}
+              <Text
+                className={`text-sm text-center mt-6 ${isDark ? "text-slate-300" : "text-slate-700"
+                  }`}
               >
-                <Text className="text-xl">G</Text>
-                <Text className={isDark ? "text-white" : "text-slate-900"}>
-                  Continuar con Google
+                ¿Ya tienes una cuenta?{" "}
+                <Text
+                  onPress={goLogin}
+                  className="text-green-500 font-semibold"
+                >
+                  Inicia sesión
                 </Text>
-              </Pressable>
-            </View>
-
-            <Text
-              className={`text-sm text-center mt-6 ${
-                isDark ? "text-slate-300" : "text-slate-700"
-              }`}
-            >
-              ¿Ya tienes una cuenta?{" "}
-              <Text onPress={goLogin} className="text-green-600 font-semibold">
-                Inicia sesión
               </Text>
-            </Text>
-          </View>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Footer */}
         <View className="mt-8 items-center">
-          <Text className={isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"}>
-            © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
+          <Text
+            className={
+              isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"
+            }
+          >
+            © {new Date().getFullYear()} FitGenius. Todos los derechos
+            reservados.
           </Text>
           <View className="mt-2 flex-row items-center justify-center gap-3">
             <Text
               onPress={goTerminos}
-              className={isDark ? "text-slate-300 underline" : "text-slate-600 underline"}
+              className={
+                isDark
+                  ? "text-slate-300 underline"
+                  : "text-slate-600 underline"
+              }
             >
               Términos y Condiciones
             </Text>
-            <Text className={isDark ? "text-slate-400" : "text-slate-600"}>•</Text>
+            <Text className={isDark ? "text-slate-400" : "text-slate-600"}>
+              •
+            </Text>
             <Text
               onPress={goPrivacidad}
-              className={isDark ? "text-slate-300 underline" : "text-slate-600 underline"}
+              className={
+                isDark
+                  ? "text-slate-300 underline"
+                  : "text-slate-600 underline"
+              }
             >
               Política de Privacidad
             </Text>
@@ -539,9 +623,10 @@ export default function RegistrarScreen() {
           <EnterCodeVerify
             onComplete={completarRegistro}
             onResend={() => {
-              const correo = (payloadUsuario ?? {
-                correo: getValues("correo"),
-              } as any).correo as unknown as string;
+              const correo = (payloadUsuario ??
+                ({
+                  correo: getValues("correo"),
+                } as any)).correo as unknown as string;
               return enviarCodigo(correo);
             }}
             setComponentCode={setComponentCode}
@@ -579,9 +664,10 @@ function Input({
         render={({ field: { value, onChange } }) => (
           <ModernInput
             type={type}
-            className={`w-full p-3 rounded-xl border text-sm bg-white dark:bg-[#0b1220] backdrop-blur focus:border-green-400 ${
-              error ? "border-red-400" : "border-slate-300 dark:border-slate-700"
-            }`}
+            className={`w-full p-3 rounded-xl border text-sm bg-white dark:bg-[#020617] backdrop-blur focus:border-green-400 ${error
+                ? "border-red-400"
+                : "border-slate-300 dark:border-slate-700"
+              }`}
             value={value ?? ""}
             onChangeText={onChange}
             secureTextEntry={type === "password"}

@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import BtnAprobe from "@/shared/components/ui/BtnAprobe";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
 import WigthInput from "@/shared/components/ui/WigthInput"; // ✅ usa tu input
+import IMCVisual from "@/shared/components/ui/IMCVisual";   // ⬅️ añadido
 
 // Ajusta a tu stack real
 type RegistroStackParamList = {
@@ -61,7 +62,11 @@ export default function Peso() {
 
       <ScrollView
         className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center">
@@ -76,7 +81,8 @@ export default function Peso() {
             className={`text-center p-2 pb-4 text-sm ${isDark ? "text-neutral-300" : "text-neutral-600"
               }`}
           >
-            Tu peso es solo un número, no tu límite. Lo que importa es lo que haces con él
+            Tu peso es solo un número, no tu límite. Lo que importa es lo que
+            haces con él
           </Text>
         </View>
 
@@ -87,7 +93,13 @@ export default function Peso() {
             className={`px-5 py-1 rounded-tl-2xl rounded-bl-2xl ${medida === "KG" ? "bg-neon-400 shadow" : "bg-neutral-100"
               }`}
           >
-            <Text className={medida === "KG" ? "text-white font-semibold" : "text-black font-semibold"}>
+            <Text
+              className={
+                medida === "KG"
+                  ? "text-white font-semibold"
+                  : "text-black font-semibold"
+              }
+            >
               KG
             </Text>
           </Pressable>
@@ -97,7 +109,13 @@ export default function Peso() {
             className={`px-5 py-1 rounded-tr-2xl rounded-br-2xl ${medida === "LB" ? "bg-neon-400 shadow" : "bg-neutral-100"
               }`}
           >
-            <Text className={medida === "LB" ? "text-white font-semibold" : "text-black font-semibold"}>
+            <Text
+              className={
+                medida === "LB"
+                  ? "text-white font-semibold"
+                  : "text-black font-semibold"
+              }
+            >
               LB
             </Text>
           </Pressable>
@@ -106,14 +124,22 @@ export default function Peso() {
         {/* Input de peso (2 campos, siempre emite KG base) */}
         <View className="px-2 items-center">
           <WigthInput
-            unit={medida}               // "KG" | "LB"
-            valueKg={valueKg}           // ✅ valor controlado
+            unit={medida} // "KG" | "LB"
+            valueKg={valueKg} // ✅ valor controlado
             onChange={handleChangePeso} // devuelve KG base
             minKg={30}
             maxKg={200}
             label="Indica tu peso"
           />
         </View>
+
+        {/* IMC visual con datos del registro */}
+        {usuario?.peso > 0 && usuario?.altura > 0 && (
+          <View className="mt-6 items-center">
+            <IMCVisual peso={usuario.peso} altura={usuario.altura} />
+          </View>
+        )}
+
       </ScrollView>
     </>
   );

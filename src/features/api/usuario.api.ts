@@ -105,3 +105,13 @@ export const eliminarCuentaUsuario = async () => {
     throw new Error(error.response?.data?.error || 'Error al eliminar la cuenta');
   }
 };
+
+// ⭐ NUEVA API: Obtener datos del usuario autenticado
+export const getMe = async () => {
+  try {
+    const res = await api.get('/usuario/me/');
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || 'Error al obtener usuario');
+  }
+};

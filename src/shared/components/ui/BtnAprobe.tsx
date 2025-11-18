@@ -1,9 +1,10 @@
 // src/shared/components/ui/BtnAprobe.tsx
 import React from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Vibration } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient";
 
 type RegistroStackParamList = {
   Objetivo: undefined;
@@ -24,7 +25,7 @@ type RegistroStackParamList = {
 
 type Props = {
   step: keyof RegistroStackParamList;
-  placement?: "left" | "right"; // ← nuevo: permite elegir esquina
+  placement?: "left" | "right"; // permite elegir esquina
 };
 
 export default function BtnAprobe({ step, placement = "right" }: Props) {
@@ -32,28 +33,41 @@ export default function BtnAprobe({ step, placement = "right" }: Props) {
     useNavigation<NativeStackNavigationProp<RegistroStackParamList>>();
 
   const handleNext = () => {
-    setTimeout(() => navigation.navigate(step), 500);
+    // vibración corta al pulsar
+    Vibration.vibrate(40);
+    setTimeout(() => navigation.navigate(step), 300);
   };
 
   return (
     <Pressable
       onPress={handleNext}
-      className="absolute z-20 rounded-full"
+      className="absolute z-20 rounded-full active:opacity-80"
       style={{
-        bottom: 60, // fixed abajo
-        [placement]: 40 as number, // izquierda o derecha
-        backgroundColor: "#39FF14",
-        padding: 20,
+        bottom: 60, // misma posición
+        ...(placement === "right" ? { right: 40 } : { left: 40 }),
+
+        // sombra más suave y elegante
         shadowColor: "#000",
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
         shadowOffset: { width: 0, height: 4 },
-        elevation: 5,
+        elevation: 6,
       }}
     >
-      <View style={{ alignItems: "center", justifyContent: "center" }}>
-        <Feather name="check" size={28} color="#fff" />
-      </View>
+      <LinearGradient
+        colors={["#4ade80", "rgb(178, 0, 255)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{
+          borderRadius: 999,
+          padding: 14,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* icono un poco más pequeño */}
+        <Feather name="check" size={22} color="#fff" />
+      </LinearGradient>
     </Pressable>
   );
 }

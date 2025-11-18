@@ -1,9 +1,11 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
+import Toast from "react-native-toast-message";
+
 import { obtenerRutinas } from "@/features/api/rutinas.api";
 import { Rutina } from "@/features/type/rutinas";
-import Toast from "react-native-toast-message";
 import { useSyncStore } from "@/features/store/useSyncStore";
 import { useRutinasCache } from "@/features/store/useRutinasCache";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
@@ -36,10 +38,43 @@ export function useMisRutinas() {
   const lockedManual = totalManual >= maxManual;
 
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const setIfMounted = useCallback(<T,>(setter: (v: T) => void, v: T) => {
     if (mountedRef.current) setter(v);
   }, []);
+
+  const getReadableError = (err: unknown, fallback = "No se pudieron cargar tus rutinas.") => {
+    if (axios.isAxiosError(err)) {
+      if (err.request && !err.response) {
+        return "No se pudo contactar al servidor. Revisa tu conexión.";
+      }
+      const serverMsg =
+        (err.response?.data as any)?.error ??
+        (err.response?.data as any)?.message ??
+        (err.response?.data as any)?.msg;
+      if (serverMsg) return serverMsg;
+      if (err.response?.status === 401) return "No estás autorizado para ver estas rutinas.";
+      if (err.response?.status === 404) return "No se encontraron rutinas.";
+      if (err.response?.status === 500) return "Fallo interno del servidor al cargar rutinas.";
+      return err.message || fallback;
+    }
+    if (err instanceof Error) return err.message || fallback;
+    return fallback;
+  };
+
+  const logWarning = (tag: string, err: unknown, userMsg: string) => {
+    console.warn(`⚠️ [${tag}]`, {
+      userMessage: userMsg,
+      isAxiosError: axios.isAxiosError(err),
+      status: axios.isAxiosError(err) ? err.response?.status : undefined,
+      serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
+      rawError: err,
+    });
+  };
 
   const mostrar = useCallback((id: number) => {
     setIdMostrar(id);
@@ -52,31 +87,22 @@ export function useMisRutinas() {
   }, []);
 
   const fetchRutinas = useCallback(async () => {
-
-    setLoading(true);
-
+    setIfMounted(setLoading, true);
     try {
       const res = await obtenerRutinas();
       const list: Rutina[] = res?.data?.rutinas ?? [];
       setIfMounted(setRutinas, list);
       cacheSetRef.current?.(list);
-      setLoading(false)
-    } catch (err: any) {
-      console.error("🔴 [MisRutinas] Error al cargar rutinas", err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "No se pudieron cargar tus rutinas";
-
-      // ✅ Uso correcto de react-native-toast-message
+    } catch (err) {
+      const msg = getReadableError(err);
+      logWarning("MisRutinasFetchError", err, msg);
       Toast.show({
         type: "error",
         text1: "Error al cargar rutinas",
         text2: msg,
       });
     } finally {
-      setLoading(false);
+      setIfMounted(setLoading, false);
     }
   }, [setIfMounted]);
 

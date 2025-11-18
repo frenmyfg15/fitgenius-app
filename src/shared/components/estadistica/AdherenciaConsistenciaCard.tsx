@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
@@ -13,13 +13,14 @@ import Svg, {
   FeMergeNode,
   Text as SvgText,
 } from "react-native-svg";
-import CandadoPremium from "@/shared/components/ui/CandadoPremium";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { Lock } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 
 type Props = {
   planificadas: number;
   completadas: number;
-  adherencia: number;   // 0–100
+  adherencia: number; // 0–100
   consistencia: number; // 0–100
 };
 
@@ -32,7 +33,12 @@ export default function AdherenciaConsistenciaCard({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { usuario } = useUsuarioStore();
-  const locked = usuario?.planActual === "GRATUITO";
+  const navigation = useNavigation<any>();
+
+  const planActual = usuario?.planActual;
+  const haPagado = usuario?.haPagado ?? false;
+  const isPremiumActive = planActual === "PREMIUM" && haPagado;
+  const locked = !isPremiumActive;
 
   // 🎨 Paleta & glass consistente
   const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
@@ -42,23 +48,42 @@ export default function AdherenciaConsistenciaCard({
   const textPrimaryDark = "#e5e7eb";
   const textSecondaryDark = "#94a3b8";
 
-  const clamp = (v: number) => Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
+  const clamp = (v: number) =>
+    Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
   const adhe = clamp(adherencia);
   const cons = clamp(consistencia);
 
   const kpis = useMemo(
     () => [
-      { label: "Sesiones planificadas", value: planificadas, accent: "green" as const },
-      { label: "Sesiones completadas", value: completadas, accent: "purple" as const },
+      {
+        label: "Sesiones planificadas",
+        value: planificadas,
+        accent: "green" as const,
+      },
+      {
+        label: "Sesiones completadas",
+        value: completadas,
+        accent: "purple" as const,
+      },
     ],
     [planificadas, completadas]
   );
+
+  const handleGoPremium = () => {
+     navigation.navigate("Perfil", {
+  screen: "PremiumPayment",
+}); 
+  };
 
   return (
     <View className="w-full max-w-[520px]">
       {/* Marco degradado (borde) */}
       <LinearGradient
-        colors={isDark ? (marcoGradient as any) : ["#39ff14", "#14ff80", "#22c55e"]}
+        colors={
+          isDark
+            ? (marcoGradient as any)
+            : (["#39ff14", "#14ff80", "#22c55e"] as any)
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
@@ -76,16 +101,18 @@ export default function AdherenciaConsistenciaCard({
               overflow: "hidden",
             }}
           >
-            <CardBody
-              isDark
-              locked={locked}
-              kpis={kpis}
-              adhe={adhe}
-              cons={cons}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-            {locked ? <CandadoPremium size={56} /> : null}
+            {locked ? (
+              <LockedBody isDark={true} onPress={handleGoPremium} />
+            ) : (
+              <CardBody
+                isDark
+                kpis={kpis}
+                adhe={adhe}
+                cons={cons}
+                textPrimaryDark={textPrimaryDark}
+                textSecondaryDark={textSecondaryDark}
+              />
+            )}
           </LinearGradient>
         ) : (
           <View
@@ -97,16 +124,18 @@ export default function AdherenciaConsistenciaCard({
               overflow: "hidden",
             }}
           >
-            <CardBody
-              isDark={false}
-              locked={locked}
-              kpis={kpis}
-              adhe={adhe}
-              cons={cons}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-            {locked ? <CandadoPremium size={56} /> : null}
+            {locked ? (
+              <LockedBody isDark={false} onPress={handleGoPremium} />
+            ) : (
+              <CardBody
+                isDark={false}
+                kpis={kpis}
+                adhe={adhe}
+                cons={cons}
+                textPrimaryDark={textPrimaryDark}
+                textSecondaryDark={textSecondaryDark}
+              />
+            )}
           </View>
         )}
       </LinearGradient>
@@ -114,10 +143,9 @@ export default function AdherenciaConsistenciaCard({
   );
 }
 
-/* ----------------- Cuerpo reusable ----------------- */
+/* ----------------- Cuerpo reusable (desbloqueado) ----------------- */
 function CardBody({
   isDark,
-  locked,
   kpis,
   adhe,
   cons,
@@ -125,7 +153,6 @@ function CardBody({
   textSecondaryDark,
 }: {
   isDark: boolean;
-  locked: boolean;
   kpis: { label: string; value: number; accent: "green" | "purple" }[];
   adhe: number;
   cons: number;
@@ -133,7 +160,7 @@ function CardBody({
   textSecondaryDark: string;
 }) {
   return (
-    <View className={`relative rounded-2xl ${locked ? "opacity-60" : ""}`} pointerEvents={locked ? "none" : "auto"}>
+    <View className="relative rounded-2xl">
       {/* Header */}
       <View className="p-5 pb-3 flex-row items-center justify-between">
         <View>
@@ -151,8 +178,16 @@ function CardBody({
           </Text>
         </View>
         <View className="hidden sm:flex flex-row items-center gap-2">
-          <View className="h-2 w-2 rounded-full" style={{ backgroundColor: isDark ? "#22c55e" : "#10b981" }} />
-          <Text className="text-xs" style={{ color: isDark ? "#cbd5e1" : "#475569" }}>
+          <View
+            className="h-2 w-2 rounded-full"
+            style={{
+              backgroundColor: isDark ? "#22c55e" : "#10b981",
+            }}
+          />
+          <Text
+            className="text-xs"
+            style={{ color: isDark ? "#cbd5e1" : "#475569" }}
+          >
             Actualizado
           </Text>
         </View>
@@ -161,7 +196,13 @@ function CardBody({
       {/* KPIs */}
       <View className="px-5 pb-2 grid grid-cols-2 gap-4">
         {kpis.map((k) => (
-          <Metric key={k.label} label={k.label} value={k.value} accent={k.accent} isDark={isDark} />
+          <Metric
+            key={k.label}
+            label={k.label}
+            value={k.value}
+            accent={k.accent}
+            isDark={isDark}
+          />
         ))}
       </View>
 
@@ -190,6 +231,66 @@ function CardBody({
   );
 }
 
+/* ----------------- Cuerpo bloqueado (no Premium) ----------------- */
+function LockedBody({
+  isDark,
+  onPress,
+}: {
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      className="rounded-2xl"
+    >
+      <View className="p-5 flex-row items-center gap-4">
+        <View
+          className={
+            "h-12 w-12 rounded-2xl items-center justify-center " +
+            (isDark ? "bg-white/5" : "bg-neutral-50")
+          }
+        >
+          <Lock
+            size={26}
+            color={isDark ? "#e5e7eb" : "#0f172a"}
+            strokeWidth={2}
+          />
+        </View>
+
+        <View className="flex-1">
+          <Text
+            className={
+              (isDark ? "text-white" : "text-slate-900") +
+              " text-[15px] font-semibold"
+            }
+          >
+            Progreso general Premium
+          </Text>
+          <Text
+            className={
+              (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+              " text-[12px] mt-1"
+            }
+          >
+            Hazte Premium para ver tu adherencia y consistencia en detalle y
+            asegurarte de que mantienes el ritmo de tus rutinas.
+          </Text>
+          <Text
+            className={
+              "mt-2 text-[12px] font-semibold " +
+              (isDark ? "text-emerald-300" : "text-emerald-600")
+            }
+          >
+            Toca para activar fitgenius Premium →
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 /* ----------------- Subcomponentes ----------------- */
 
 function Metric({
@@ -209,14 +310,16 @@ function Metric({
         ? "text-emerald-400"
         : "text-emerald-600"
       : isDark
-        ? "text-purple-400"
-        : "text-purple-600";
+      ? "text-purple-400"
+      : "text-purple-600";
 
   return (
     <View
       className="rounded-xl px-4 py-3 border"
       style={{
-        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)",
+        backgroundColor: isDark
+          ? "rgba(255,255,255,0.05)"
+          : "rgba(255,255,255,0.7)",
         borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
       }}
     >
@@ -226,7 +329,9 @@ function Metric({
       >
         {label}
       </Text>
-      <Text className={`mt-1 text-3xl font-extrabold leading-tight ${colorNum}`}>
+      <Text
+        className={`mt-1 text-3xl font-extrabold leading-tight ${colorNum}`}
+      >
         {value}
       </Text>
     </View>
@@ -264,7 +369,9 @@ function Gauge({
     <View
       className="rounded-xl px-4 py-4 border"
       style={{
-        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)",
+        backgroundColor: isDark
+          ? "rgba(255,255,255,0.05)"
+          : "rgba(255,255,255,0.7)",
         borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
         overflow: "hidden", // recorta el glow
       }}
@@ -301,7 +408,13 @@ function Gauge({
             </SvgLinearGradient>
 
             {/* Glow suave */}
-            <Filter id="gauge-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <Filter
+              id="gauge-glow"
+              x="-50%"
+              y="-50%"
+              width="200%"
+              height="200%"
+            >
               <FeGaussianBlur stdDeviation="2.2" result="b" />
               <FeMerge>
                 <FeMergeNode in="b" />
@@ -311,7 +424,14 @@ function Gauge({
           </Defs>
 
           {/* Pista */}
-          <SvgCircle cx={cx} cy={cy} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+          <SvgCircle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={track}
+            strokeWidth={stroke}
+          />
 
           {/* Progreso */}
           <SvgCircle

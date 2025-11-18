@@ -1,23 +1,34 @@
+// src/features/premium/CaloriasQuemadasCard.tsx
 import React, { useMemo, useState, useCallback } from "react";
-import { View, Text, LayoutChangeEvent } from "react-native";
+import { View, Text, LayoutChangeEvent, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-chart-kit";
-import CandadoPremium from "@/shared/components/ui/CandadoPremium";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { Lock } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 
 // -------------------------------- Types --------------------------------
 type Props = {
   total: number;
-  promedio: number; // se mantiene para el header/KPIs, pero NO se dibuja
+  promedio: number; // se mantiene para el header/KPIs, pero NO se dibuja como media en la línea
   detalle: { fecha: string; calorias: number }[];
 };
 
-export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props) {
+export default function CaloriasQuemadasCard({
+  total,
+  promedio,
+  detalle,
+}: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { usuario } = useUsuarioStore();
-  const locked = usuario?.planActual === "GRATUITO";
+  const navigation = useNavigation<any>();
+
+  const planActual = usuario?.planActual;
+  const haPagado = usuario?.haPagado ?? false;
+  const isPremiumActive = planActual === "PREMIUM" && haPagado;
+  const locked = !isPremiumActive;
 
   // 🎨 Paleta y glass como ActividadRecienteCard
   const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
@@ -44,7 +55,9 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
       const nombre = dt
         .toLocaleDateString("es-ES", { weekday: "short" })
         .replace(/\.$/, "");
-      L.push((nombre.charAt(0).toUpperCase() + nombre.slice(1)).substring(0, 3));
+      L.push(
+        (nombre.charAt(0).toUpperCase() + nombre.slice(1)).substring(0, 3)
+      );
       V.push(Math.max(0, d.calorias ?? 0));
     }
     return { labels: L, values: V };
@@ -59,7 +72,9 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
     color: (opacity = 1) =>
       isDark ? `rgba(34,197,94,${opacity})` : `rgba(22,163,74,${opacity})`,
     labelColor: (opacity = 1) =>
-      isDark ? `rgba(148,163,184,${opacity})` : `rgba(100,116,139,${opacity})`,
+      isDark
+        ? `rgba(148,163,184,${opacity})`
+        : `rgba(100,116,139,${opacity})`,
     propsForDots: { r: "4" },
     propsForBackgroundLines: {
       stroke: isDark ? "#1f2937" : "#e5e7eb",
@@ -69,11 +84,17 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
     fillShadowGradientOpacity: isDark ? 0.25 : 0.15,
   } as const;
 
+  const handleGoPremium = () => {
+     navigation.navigate("Perfil", {
+  screen: "PremiumPayment",
+}); 
+  };
+
   return (
     <View className="w-full max-w-[520px]">
       {/* Marco degradado (borde) */}
       <LinearGradient
-        colors={(marcoGradient as any)}
+        colors={marcoGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
@@ -92,19 +113,22 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
             }}
             onLayout={onLayout}
           >
-            <CardContents
-              isDark
-              locked={locked}
-              labels={labels}
-              values={values}
-              total={total}
-              promedio={promedio}
-              chartConfig={chartConfig}
-              innerWidth={innerWidth}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-            {locked ? <CandadoPremium size={56} /> : null}
+            {locked ? (
+              <LockedBody isDark={true} onPress={handleGoPremium} />
+            ) : (
+              <CardContents
+                isDark
+                labels={labels}
+                values={values}
+                total={total}
+                promedio={promedio}
+                chartConfig={chartConfig}
+                innerWidth={innerWidth}
+                textPrimaryDark={textPrimaryDark}
+                textSecondaryDark={textSecondaryDark}
+                hasData={hasData}
+              />
+            )}
           </LinearGradient>
         ) : (
           <View
@@ -117,19 +141,22 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
             }}
             onLayout={onLayout}
           >
-            <CardContents
-              isDark={false}
-              locked={locked}
-              labels={labels}
-              values={values}
-              total={total}
-              promedio={promedio}
-              chartConfig={chartConfig}
-              innerWidth={innerWidth}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-            {locked ? <CandadoPremium size={56} /> : null}
+            {locked ? (
+              <LockedBody isDark={false} onPress={handleGoPremium} />
+            ) : (
+              <CardContents
+                isDark={false}
+                labels={labels}
+                values={values}
+                total={total}
+                promedio={promedio}
+                chartConfig={chartConfig}
+                innerWidth={innerWidth}
+                textPrimaryDark={textPrimaryDark}
+                textSecondaryDark={textSecondaryDark}
+                hasData={hasData}
+              />
+            )}
           </View>
         )}
       </LinearGradient>
@@ -137,10 +164,9 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
   );
 }
 
-/* ------------------------------ Cuerpo reutilizable ------------------------------ */
+/* ------------------------------ Cuerpo desbloqueado ------------------------------ */
 function CardContents({
   isDark,
-  locked,
   labels,
   values,
   total,
@@ -149,9 +175,9 @@ function CardContents({
   innerWidth,
   textPrimaryDark,
   textSecondaryDark,
+  hasData,
 }: {
   isDark: boolean;
-  locked: boolean;
   labels: string[];
   values: number[];
   total: number;
@@ -160,10 +186,10 @@ function CardContents({
   innerWidth: number;
   textPrimaryDark: string;
   textSecondaryDark: string;
+  hasData: boolean;
 }) {
-  const hasData = values.length > 0 && total > 0;
   return (
-    <View className={`relative rounded-2xl ${locked ? "opacity-60" : ""}`} pointerEvents={locked ? "none" : "auto"}>
+    <View className="relative rounded-2xl">
       {/* Header */}
       <View className="p-5 pb-3 flex-row items-center justify-between">
         <View>
@@ -184,14 +210,24 @@ function CardContents({
         {/* KPIs (desktop/tablet) */}
         <View className="hidden sm:flex flex-row items-center gap-4">
           <KpiMini title="Total" value={total} suffix="kcal" isDark={isDark} />
-          <KpiMini title="Promedio" value={promedio} suffix="kcal" isDark={isDark} />
+          <KpiMini
+            title="Promedio"
+            value={promedio}
+            suffix="kcal"
+            isDark={isDark}
+          />
         </View>
       </View>
 
       {/* KPIs (mobile) */}
       <View className="px-5 pb-3 grid grid-cols-2 gap-3 sm:hidden">
         <Kpi title="Total" value={total} suffix="kcal" isDark={isDark} />
-        <Kpi title="Promedio" value={promedio} suffix="kcal" isDark={isDark} />
+        <Kpi
+          title="Promedio"
+          value={promedio}
+          suffix="kcal"
+          isDark={isDark}
+        />
       </View>
 
       {/* Chart (igual al de ActividadRecienteCard) */}
@@ -231,6 +267,66 @@ function CardContents({
   );
 }
 
+/* ------------------------------ Cuerpo bloqueado (no Premium) ------------------------------ */
+function LockedBody({
+  isDark,
+  onPress,
+}: {
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      className="rounded-2xl"
+    >
+      <View className="p-5 flex-row items-center gap-4">
+        <View
+          className={
+            "h-12 w-12 rounded-2xl items-center justify-center " +
+            (isDark ? "bg-white/5" : "bg-neutral-50")
+          }
+        >
+          <Lock
+            size={26}
+            color={isDark ? "#e5e7eb" : "#0f172a"}
+            strokeWidth={2}
+          />
+        </View>
+
+        <View className="flex-1">
+          <Text
+            className={
+              (isDark ? "text-white" : "text-slate-900") +
+              " text-[15px] font-semibold"
+            }
+          >
+            Calorías quemadas Premium
+          </Text>
+          <Text
+            className={
+              (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+              " text-[12px] mt-1"
+            }
+          >
+            Hazte Premium para ver tu histórico de calorías quemadas y cómo
+            evoluciona tu gasto energético.
+          </Text>
+          <Text
+            className={
+              "mt-2 text-[12px] font-semibold " +
+              (isDark ? "text-emerald-300" : "text-emerald-600")
+            }
+          >
+            Toca para activar fitgenius Premium →
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 /* ------------------------------ Subcomponentes ------------------------------ */
 function KpiMini({
   title,
@@ -256,7 +352,11 @@ function KpiMini({
         style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
       >
         {value}{" "}
-        {suffix ? <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>{suffix}</Text> : null}
+        {suffix ? (
+          <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
+            {suffix}
+          </Text>
+        ) : null}
       </Text>
     </View>
   );
@@ -277,7 +377,9 @@ function Kpi({
     <View
       className="rounded-xl border px-4 py-3 text-center"
       style={{
-        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)",
+        backgroundColor: isDark
+          ? "rgba(255,255,255,0.05)"
+          : "rgba(255,255,255,0.7)",
         borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
       }}
     >
@@ -292,7 +394,11 @@ function Kpi({
         style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
       >
         {value}{" "}
-        {suffix ? <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>{suffix}</Text> : null}
+        {suffix ? (
+          <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
+            {suffix}
+          </Text>
+        ) : null}
       </Text>
     </View>
   );
@@ -302,11 +408,19 @@ function EmptyState({ isDark }: { isDark: boolean }) {
   return (
     <View
       className="items-center justify-center py-12 border-t"
-      style={{ borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.60)" }}
+      style={{
+        borderColor: isDark
+          ? "rgba(255,255,255,0.10)"
+          : "rgba(255,255,255,0.60)",
+      }}
     >
       <View
         className="h-12 w-12 rounded-xl mb-3 items-center justify-center"
-        style={{ backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0" }}
+        style={{
+          backgroundColor: isDark
+            ? "rgba(255,255,255,0.10)"
+            : "#e2e8f0",
+        }}
       >
         <Text style={{ color: isDark ? "#e5e7eb" : "#94a3b8" }}>📊</Text>
       </View>
