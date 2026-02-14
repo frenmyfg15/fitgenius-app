@@ -99,18 +99,26 @@ export default function Cuenta() {
         actividadInicial={(usuario as any)?.actividadDiaria}
       />
 
-      <PesoIdeal peso={usuario?.peso} altura={usuario?.altura} />
+      <PesoIdeal
+        peso={usuario?.peso}
+        altura={usuario?.altura}
+        medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
+        medidaAltura={usuario?.medidaAltura as "CM" | "FT"}
+      />
 
       <TasaMetabolicaBasal
         peso={usuario?.peso}
         altura={usuario?.altura}
         edad={usuario?.edad}
         sexo={usuario?.sexo}
+        medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
+        medidaAltura={usuario?.medidaAltura as "CM" | "FT"}
       />
 
       <PesoObjetivoProgreso
         peso={usuario?.peso}
         objetivo={usuario?.pesoObjetivo}
+        medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
       />
 
       {/* Acciones (móvil) */}

@@ -2,10 +2,9 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
-import { Flame, Medal, Dumbbell, Lock } from "lucide-react-native";
+import { Flame, Medal, Dumbbell } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import { useNavigation } from "@react-navigation/native";
 import CaloriasModal from "./CaloriasModal";
 import ExperienciaModal from "./ExperienciaModal";
 import EjerciciosModal from "./EjerciciosModal";
@@ -13,18 +12,50 @@ import EjerciciosModal from "./EjerciciosModal";
 /* ---------------- Tipos ---------------- */
 type Props = { ejercicios: number };
 
+/** Compacta números para evitar overflow (1k, 1.2k, 1M, 2.5M...) */
+function formatCompactES(value: number) {
+  const n = Number(value ?? 0);
+
+  // fallback
+  if (!Number.isFinite(n)) return "0";
+
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+
+  // < 1000 -> normal
+  if (abs < 1000) return new Intl.NumberFormat("es-ES").format(n);
+
+  // k
+  if (abs < 1_000_000) {
+    const v = abs / 1000;
+    const decimals = v < 10 ? 1 : 0; // 1.2k, 12k
+    // en es-ES el decimal es coma, pero aquí quieres "1k" estilo compacto.
+    // Usamos punto como en tu ejemplo "1k" (sin decimales) y "1.2k" con punto.
+    const str = v.toFixed(decimals).replace(/\.0$/, "");
+    return `${sign}${str}k`;
+  }
+
+  // M
+  if (abs < 1_000_000_000) {
+    const v = abs / 1_000_000;
+    const decimals = v < 10 ? 1 : 0;
+    const str = v.toFixed(decimals).replace(/\.0$/, "");
+    return `${sign}${str}M`;
+  }
+
+  // B (miles de millones)
+  const v = abs / 1_000_000_000;
+  const decimals = v < 10 ? 1 : 0;
+  const str = v.toFixed(decimals).replace(/\.0$/, "");
+  return `${sign}${str}B`;
+}
+
 export default function Extra({ ejercicios }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const navigation = useNavigation<any>();
 
-  const planActual = useUsuarioStore((s) => s.usuario?.planActual);
-  const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
   const calorias = useUsuarioStore((s) => s.usuario?.caloriasMes ?? 0);
   const experiencia = useUsuarioStore((s) => s.usuario?.experiencia ?? 0);
-
-  const nf = useMemo(() => new Intl.NumberFormat("es-ES"), []);
-  const isPremiumActive = planActual === "PREMIUM" && haPagado;
 
   // Estados de modales
   const [showCal, setShowCal] = useState(false);
@@ -40,16 +71,7 @@ export default function Extra({ ejercicios }: Props) {
       value: calorias,
       label: "Calorías quemadas",
       dotColor: "#22c55e",
-      locked: !isPremiumActive,
-      onPress: () => {
-        if (!isPremiumActive) {
-           navigation.navigate("Perfil", {
-  screen: "PremiumPayment",
-}); 
-        } else {
-          setShowCal(true);
-        }
-      },
+      onPress: () => setShowCal(true),
     },
     {
       key: "experiencia" as const,
@@ -57,7 +79,6 @@ export default function Extra({ ejercicios }: Props) {
       value: experiencia,
       label: "Puntos de experiencia",
       dotColor: "#a855f7",
-      locked: false,
       onPress: () => setShowXP(true),
     },
     {
@@ -66,7 +87,6 @@ export default function Extra({ ejercicios }: Props) {
       value: ejercicios,
       label: "Ejercicios totales hoy",
       dotColor: "#10b981",
-      locked: false,
       onPress: () => setShowEj(true),
     },
   ] as const;
@@ -91,91 +111,50 @@ export default function Extra({ ejercicios }: Props) {
                   ? "bg-[#0b1220] border border-white/10"
                   : "bg-white border border-neutral-200")
               }
-              style={{
-                borderRadius: 16,
-              }}
+              style={{ borderRadius: 16 }}
             >
-              {/* Si es calorías bloqueado → esqueleto con candado */}
-              {it.key === "calorias" && it.locked ? (
-                <View className="flex-1 items-center justify-center px-3 py-3">
-                  <View
-                    className={
-                      "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
-                      (isDark
-                        ? "bg-white/5 border border-white/10"
-                        : "bg-neutral-50 border border-neutral-200")
-                    }
-                  >
-                    <Lock
-                      size={22}
-                      color={isDark ? "#e5e7eb" : "#0f172a"}
-                      strokeWidth={2}
-                    />
-                  </View>
-
-                  <Text
-                    className={
-                      (isDark ? "text-white" : "text-slate-900") +
-                      " text-[14px] font-semibold text-center"
-                    }
-                  >
-                    Calorias
-                  </Text>
-                  <Text
-                    className={
-                      (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
-                      " text-[11px] text-center mt-1 tracking-tight"
-                    }
-                  >
-                    Calorias
-                    {"\n"}
-                    quemadas este mes.
-                  </Text>
+              <View className="flex-1 items-center justify-center px-3 py-3">
+                <View
+                  className={
+                    "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
+                    (isDark
+                      ? "bg-white/5 border border-white/10"
+                      : "bg-white border border-neutral-200")
+                  }
+                >
+                  {it.icon}
                 </View>
-              ) : (
-                // Contenido normal (experiencia, ejercicios o calorías si es premium)
-                <>
-                  <View className="flex-1 items-center justify-center px-3 py-3">
-                    <View
-                      className={
-                        "mb-2 h-9 w-9 rounded-xl items-center justify-center " +
-                        (isDark
-                          ? "bg-white/5 border border-white/10"
-                          : "bg-white border border-neutral-200")
-                      }
-                    >
-                      {it.icon}
-                    </View>
 
-                    <Text
-                      className={
-                        (isDark ? "text-white" : "text-slate-900") +
-                        " text-[28px] font-extrabold leading-none"
-                      }
-                    >
-                      {nf.format(it.value)}
-                    </Text>
+                <Text
+                  className={
+                    (isDark ? "text-white" : "text-slate-900") +
+                    " text-[28px] font-extrabold leading-none"
+                  }
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
+                  {formatCompactES(it.value)}
+                </Text>
 
-                    <Text
-                      className={
-                        (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
-                        " text-[11px] text-center mt-1 tracking-tight"
-                      }
-                    >
-                      {it.label}
-                    </Text>
-                  </View>
+                <Text
+                  className={
+                    (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
+                    " text-[11px] text-center mt-1 tracking-tight"
+                  }
+                >
+                  {it.label}
+                </Text>
+              </View>
 
-                  <View
-                    className="absolute right-2 top-2 h-2 w-2 rounded-full"
-                    style={{
-                      backgroundColor: it.dotColor,
-                      borderWidth: 2,
-                      borderColor: isDark ? "#0b1220" : "#ffffff",
-                    }}
-                  />
-                </>
-              )}
+              <View
+                className="absolute right-2 top-2 h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: it.dotColor,
+                  borderWidth: 2,
+                  borderColor: isDark ? "#0b1220" : "#ffffff",
+                }}
+              />
             </TouchableOpacity>
           </LinearGradient>
         ))}

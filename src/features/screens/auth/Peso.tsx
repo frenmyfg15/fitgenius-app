@@ -1,67 +1,100 @@
 // app/features/registro/PesoScreen.tsx
-import React, { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 
 import BtnAprobe from "@/shared/components/ui/BtnAprobe";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
-import WigthInput from "@/shared/components/ui/WigthInput"; // ✅ usa tu input
-import IMCVisual from "@/shared/components/ui/IMCVisual";   // ⬅️ añadido
+import WeightRulerPicker, { UnidadPeso } from "@/shared/components/ui/WeightRulerPicker";
+// import IMCVisual from "@/shared/components/ui/IMCVisual"; // (lo puedes volver a activar si quieres)
 
-// Ajusta a tu stack real
-type RegistroStackParamList = {
-  Peso: undefined;
-  PesoObjetivo: undefined;
-};
+function normalizePesoKg(input: number, min = 30, max = 200) {
+  if (typeof input !== "number" || !Number.isFinite(input)) return 70;
+  const rounded = Math.round(input);
+  return Math.max(min, Math.min(max, rounded));
+}
 
-type UnidadPeso = "KG" | "LB";
-
-export default function Peso() {
+export default function PesoScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RegistroStackParamList>>();
 
-  // Store registro
   const usuario = useRegistroStore((s) => s.usuario);
   const setField = useRegistroStore((s) => s.setField);
 
-  // Unidad local (persistida en store)
-  const [medida, setMedida] = useState<UnidadPeso>(
-    (usuario?.medidaPeso as UnidadPeso) || "KG"
-  );
+  // ✅ unidad directamente del store (igual que altura)
+  const unidad: UnidadPeso = (usuario?.medidaPeso as UnidadPeso) || "KG";
 
-  // Cambiar unidad y reflejarla en store
+  // valor inicial desde store (pero no lo mutamos en cada tick)
+  const storeKg = typeof usuario?.peso === "number" && usuario.peso >= 30 ? usuario.peso : 70;
+
+  // ✅ estado local para el picker (fluido)
+  const [localKg, setLocalKg] = useState<number>(() => normalizePesoKg(storeKg));
+
+  // guardamos en ref para tener siempre el último valor al salir
+  const lastLocalKgRef = useRef(localKg);
+  useEffect(() => {
+    lastLocalKgRef.current = localKg;
+  }, [localKg]);
+
+  // si viene un cambio “externo real” (ej: cargar perfil), sincronizamos local
+  useEffect(() => {
+    const next = normalizePesoKg(storeKg);
+    setLocalKg(next);
+  }, [storeKg]);
+
+  // ✅ cambiar unidad (solo store) igual que altura
   const onPressUnidad = useCallback(
     (u: UnidadPeso) => {
-      setMedida(u);
       setField("medidaPeso", u);
     },
     [setField]
   );
 
-  // El input emite siempre KG base
-  const handleChangePeso = useCallback(
-    (kgBase: number) => {
-      setField("peso", kgBase);
-      setField("medidaPeso", medida);
-    },
-    [setField, medida]
+  // ✅ Live mientras arrastras (solo UI local)
+  const handleChangePeso = useCallback((kgBase: number) => {
+    setLocalKg(normalizePesoKg(kgBase));
+  }, []);
+
+  // ✅ Final al soltar (también actualiza local; NO store)
+  const handleChangePesoEnd = useCallback((kgBase: number) => {
+    setLocalKg(normalizePesoKg(kgBase));
+  }, []);
+
+  // ✅ guardar cuando se sale de la pantalla (igual que altura)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const finalKg = normalizePesoKg(lastLocalKgRef.current);
+        const currentStore = typeof usuario?.peso === "number" ? usuario.peso : 0;
+
+        if (currentStore !== finalKg) {
+          setField("peso", finalKg);
+        }
+      };
+      // Nota: dejamos usuario fuera a propósito para no recrear cleanup constantemente.
+    }, [setField])
   );
 
-  const pesoValido = (usuario?.peso ?? 0) > 30; // en KG base
+  const pesoValido = localKg > 30;
 
-  const valueKg = typeof usuario?.peso === "number" ? usuario.peso : 50;
+  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const bg = { backgroundColor: bgColor };
+
+  const textMain = { color: isDark ? "#ffffff" : "#111827" };
+  const textSub = { color: isDark ? "#d1d5db" : "#4b5563" };
+
+  const selectedBg = "#22c55e";
+  const unselectedBg = isDark ? "#1f2937" : "#e5e7eb";
+  const selectedText = "#ffffff";
+  const unselectedText = isDark ? "#ffffff" : "#000000";
 
   return (
     <>
-      {/* Botón fijo abajo-izquierda cuando hay un valor válido */}
       {pesoValido && <BtnAprobe step="PesoObjetivo" placement="left" />}
 
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+        style={bg}
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 24,
@@ -69,78 +102,126 @@ export default function Peso() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center">
-          <Text
-            className={`text-center text-lg font-semibold p-3 ${isDark ? "text-white" : "text-neutral-900"
-              }`}
-          >
-            ¿Cuánto pesas?
-          </Text>
-
-          <Text
-            className={`text-center p-2 pb-4 text-sm ${isDark ? "text-neutral-300" : "text-neutral-600"
-              }`}
-          >
-            Tu peso es solo un número, no tu límite. Lo que importa es lo que
-            haces con él
+        <View style={{ alignItems: "center" }}>
+          <Text style={[styles.h1, textMain]}>¿Cuánto pesas?</Text>
+          <Text style={[styles.sub, textSub]}>
+            Tu peso es solo un número, no tu límite. Lo que importa es lo que haces con él
           </Text>
         </View>
 
-        {/* Selector de unidad */}
-        <View className="flex-row justify-center pb-3">
-          <Pressable
-            onPress={() => onPressUnidad("KG")}
-            className={`px-5 py-1 rounded-tl-2xl rounded-bl-2xl ${medida === "KG" ? "bg-neon-400 shadow" : "bg-neutral-100"
-              }`}
-          >
-            <Text
-              className={
-                medida === "KG"
-                  ? "text-white font-semibold"
-                  : "text-black font-semibold"
-              }
+        {/* Selector KG / LB (igual estructura que CM/FT) */}
+        <View style={{ flexDirection: "row", justifyContent: "center", paddingBottom: 12 }}>
+          <Pressable onPress={() => onPressUnidad("KG")}>
+            <View
+              style={[
+                styles.toggleBtnLeft,
+                { backgroundColor: unidad === "KG" ? selectedBg : unselectedBg },
+              ]}
             >
-              KG
-            </Text>
+              <Text
+                style={{
+                  color: unidad === "KG" ? selectedText : unselectedText,
+                  fontWeight: "600",
+                }}
+              >
+                KG
+              </Text>
+            </View>
           </Pressable>
 
-          <Pressable
-            onPress={() => onPressUnidad("LB")}
-            className={`px-5 py-1 rounded-tr-2xl rounded-br-2xl ${medida === "LB" ? "bg-neon-400 shadow" : "bg-neutral-100"
-              }`}
-          >
-            <Text
-              className={
-                medida === "LB"
-                  ? "text-white font-semibold"
-                  : "text-black font-semibold"
-              }
+          <Pressable onPress={() => onPressUnidad("LB")}>
+            <View
+              style={[
+                styles.toggleBtnRight,
+                { backgroundColor: unidad === "LB" ? selectedBg : unselectedBg },
+              ]}
             >
-              LB
-            </Text>
+              <Text
+                style={{
+                  color: unidad === "LB" ? selectedText : unselectedText,
+                  fontWeight: "600",
+                }}
+              >
+                LB
+              </Text>
+            </View>
           </Pressable>
         </View>
 
-        {/* Input de peso (2 campos, siempre emite KG base) */}
-        <View className="px-2 items-center">
-          <WigthInput
-            unit={medida} // "KG" | "LB"
-            valueKg={valueKg} // ✅ valor controlado
-            onChange={handleChangePeso} // devuelve KG base
-            minKg={30}
-            maxKg={200}
-            label="Indica tu peso"
-          />
+        {/* Picker a todo el ancho */}
+        <View style={styles.pickerSection}>
+          <View style={[styles.rulerCard, { backgroundColor: bgColor }]}>
+            <Text
+              style={{
+                textAlign: "center",
+                marginTop: 6,
+                marginBottom: 4,
+                color: isDark ? "#e5e7eb" : "#111827",
+                fontWeight: "700",
+              }}
+            >
+              Indica tu peso
+            </Text>
+
+            <View style={styles.pickerWrap}>
+              <WeightRulerPicker
+                unit={unidad}
+                valueKg={localKg}
+                minKg={30}
+                maxKg={200}
+                stepKg={1}
+                onChange={handleChangePeso}
+                onChangeEnd={handleChangePesoEnd}
+                rulerStyle={{ width: "100%", backgroundColor: bgColor }}
+                containerStyle={{ width: "100%" }}
+                labelColor={isDark ? "#E5E7EB" : "#111827"}
+                hintColor={isDark ? "#9CA3AF" : "#6B7280"}
+                indicatorColor="#22C55E"
+              />
+            </View>
+          </View>
         </View>
 
-        {/* IMC visual con datos del registro */}
-        {usuario?.peso > 0 && usuario?.altura > 0 && (
-          <View className="mt-6 items-center">
-            <IMCVisual peso={usuario.peso} altura={usuario.altura} />
+        {/* IMC visual (si quieres, vuelve a activarlo) */}
+        {false && localKg > 0 && (usuario?.altura ?? 0) > 0 && (
+          <View style={{ marginTop: 24, alignItems: "center" }}>
+            {/* <IMCVisual peso={localKg} altura={usuario.altura} /> */}
           </View>
         )}
-
       </ScrollView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  h1: { textAlign: "center", fontSize: 18, fontWeight: "700", padding: 12 },
+  sub: { textAlign: "center", fontSize: 13, paddingHorizontal: 8, paddingBottom: 16 },
+
+  toggleBtnLeft: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  toggleBtnRight: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+
+  pickerSection: {
+    paddingTop: 18,
+  },
+
+  rulerCard: {
+    width: "100%",
+    borderRadius: 18,
+    paddingBottom: 8,
+  },
+
+  pickerWrap: {
+    width: "100%",
+    paddingBottom: 10,
+  },
+});

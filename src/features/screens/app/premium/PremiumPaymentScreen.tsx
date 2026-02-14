@@ -9,37 +9,70 @@ import {
   Image,
   ScrollView,
   useColorScheme,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { CardField, useStripe } from "@stripe/stripe-react-native";
 import Toast from "react-native-toast-message";
+
 import {
   createPremiumSubscription,
   CreatePremiumSubscriptionResponse,
 } from "@/features/api/stripe.api";
-import { useNavigation } from "@react-navigation/native";
-import { ShieldCheck, Star, Lock, X } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useUsuarioStore, UsuarioLogin } from "@/features/store/useUsuarioStore";
 
-const PRICE = "4,99 €/mes";
+import { useNavigation } from "@react-navigation/native";
+import { X, XCircle } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  useUsuarioStore,
+  UsuarioLogin,
+} from "@/features/store/useUsuarioStore";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+const PRICE = "4,99 €";
 const BILLING_HINT = "Cancela cuando quieras";
+
+// 🎨 Tema premium adaptable
+const getPremiumTheme = (isDark: boolean) => ({
+  background: isDark ? "#020617" : "#F8FAFC",
+
+  cardBg: isDark ? "rgba(15,23,42,0.96)" : "#FFFFFF",
+  cardSoftBg: isDark ? "rgba(15,23,42,0.86)" : "#FFFFFF",
+  cardBorder: isDark ? "rgba(148,163,184,0.28)" : "rgba(15,23,42,0.06)",
+
+  textPrimary: isDark ? "#F9FAFB" : "#0F172A",
+  textSecondary: isDark ? "#9CA3AF" : "#475569",
+  textSoft: isDark ? "#6B7280" : "#94A3B8",
+
+  badgeMutedText: isDark ? "#9CA3AF" : "#64748B",
+  badgePositiveBg: isDark
+    ? "rgba(34,197,94,0.20)"
+    : "rgba(22,163,74,0.12)",
+  badgePositiveText: isDark ? "#4ADE80" : "#16A34A",
+
+  heroLabel: isDark ? "#A5B4FC" : "#6366F1",
+
+  gradientPrimary: ["#22C55E", "#A855F7"],
+  gradientHero: ["#22C55E", "#A855F7", "#FACC15"],
+});
 
 export default function PremiumPaymentScreen() {
   const { confirmPayment } = useStripe();
   const navigation = useNavigation<any>();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+
+  const isDark = useColorScheme() === "dark";
+  const theme = getPremiumTheme(isDark);
 
   const { usuario, setUsuario } = useUsuarioStore();
 
   const [cardComplete, setCardComplete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showPayModal, setShowPayModal] = useState(false);
 
-  const background = isDark ? "#020617" : "#F9FAFB";
-  const textPrimary = isDark ? "#F9FAFB" : "#020617";
-  const textSecondary = isDark ? "#9CA3AF" : "#4B5563";
-  const subtleText = isDark ? "#6B7280" : "#9CA3AF";
+  /* ========= PAGO ========= */
 
   const handlePay = async () => {
     if (!cardComplete) {
@@ -57,82 +90,76 @@ export default function PremiumPaymentScreen() {
     setErrorMsg(null);
 
     try {
-      // 1) Pedimos al backend el PaymentIntent para el primer mes
       const data: CreatePremiumSubscriptionResponse =
         await createPremiumSubscription();
 
       const { clientSecret } = data;
 
       if (!clientSecret) {
-        const msg = "Respuesta incompleta del servidor (falta clientSecret).";
+        const msg = "Error: no se recibió clientSecret del servidor.";
         setErrorMsg(msg);
         Toast.show({
           type: "error",
-          text1: "Error en la respuesta del pago",
+          text1: "Error del servidor",
           text2: msg,
         });
         return;
       }
 
-      // 2) Confirmamos el pago (PaymentIntent) en el móvil
       const { error, paymentIntent } = await confirmPayment(clientSecret, {
         paymentMethodType: "Card",
       });
 
       if (error) {
-        const msg =
-          error.message ?? "No se pudo completar el pago con la tarjeta.";
+        const msg = error.message ?? "Error con la tarjeta.";
         setErrorMsg(msg);
         Toast.show({
           type: "error",
-          text1: "Error al procesar el pago",
+          text1: "Pago fallido",
           text2: msg,
         });
         return;
       }
 
-      const status = paymentIntent?.status?.toLowerCase?.();
-      const successStatuses = new Set(["succeeded", "processing"]);
-
-      if (!successStatuses.has(status as any)) {
-        const msg = `El pago no se ha completado correctamente (estado: ${
-          status ?? "desconocido"
-        }).`;
+      const status = paymentIntent?.status?.toLowerCase();
+      if (!["succeeded", "processing"].includes(status as string)) {
+        const msg = `Pago no completado (estado: ${status}).`;
         setErrorMsg(msg);
         Toast.show({
           type: "error",
-          text1: "Pago no completado",
+          text1: "Pago pendiente",
           text2: msg,
         });
         return;
       }
 
-      // 3) Pago OK → UX rápida: marcamos Premium en el store local
+      // Actualizar usuario
       if (usuario) {
-        const usuarioActualizado: UsuarioLogin = {
+        const u: UsuarioLogin = {
           ...usuario,
           planActual: "PREMIUM",
           haPagado: true,
         };
-        setUsuario(usuarioActualizado);
+        setUsuario(u);
       }
 
       Toast.show({
         type: "success",
         text1: "Pago completado",
-        text2: "Tu suscripción Premium se activará en unos instantes.",
+        text2: "Tu suscripción Premium se activará en segundos.",
       });
 
+      setShowPayModal(false);
       navigation.goBack();
     } catch (e: any) {
       const msg =
         e?.response?.data?.error ||
         e?.message ||
-        "No se pudo iniciar el pago. Inténtalo de nuevo.";
+        "Error inesperado. Inténtalo de nuevo.";
       setErrorMsg(msg);
       Toast.show({
         type: "error",
-        text1: "Error en el pago",
+        text1: "Error al procesar",
         text2: msg,
       });
     } finally {
@@ -140,370 +167,634 @@ export default function PremiumPaymentScreen() {
     }
   };
 
+  /* ========= UI ========= */
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: background }]}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* TOP BAR */}
+        {/* HEADER */}
         <View style={styles.topBar}>
           <View style={styles.headerLeft}>
-            <Image
-              source={require("../../../../../assets/logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View
+              style={[
+                styles.logoWrap,
+                {
+                  borderColor: isDark
+                    ? "rgba(148,163,184,0.5)"
+                    : "rgba(148,163,184,0.3)",
+                },
+              ]}
+            >
+              <Image
+                source={require("../../../../../assets/logo.png")}
+                style={styles.logo}
+              />
+            </View>
+
             <View>
-              <Text style={[styles.appName, { color: textPrimary }]}>
+              <Text
+                style={[
+                  styles.appName,
+                  { color: theme.textPrimary },
+                ]}
+              >
                 fitgenius
               </Text>
-              <Text style={[styles.appTagline, { color: textSecondary }]}>
-                Entrena mejor, progresa de verdad
+              <Text
+                style={[
+                  styles.appTagline,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Plan Premium
               </Text>
             </View>
           </View>
 
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <X size={20} color={textSecondary} />
+            <X size={22} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* HERO */}
-        <View style={styles.hero}>
-          <Text style={[styles.heroLabel, { color: textSecondary }]}>
-            Premium
-          </Text>
-          <Text style={[styles.title, { color: textPrimary }]}>
-            Desbloquea todo fitgenius
-          </Text>
-
-          <View style={styles.priceRow}>
-            <View>
-              <Text style={[styles.price, { color: textPrimary }]}>{PRICE}</Text>
-              <Text style={[styles.billingHint, { color: subtleText }]}>
-                {BILLING_HINT} · Sin permanencia
-              </Text>
-            </View>
-
-            <View style={styles.ratingBlock}>
-              <Star size={16} color={isDark ? "#FDE047" : "#F59E0B"} />
-              <Text style={[styles.ratingText, { color: textSecondary }]}>
-                4,9/5 valoración media
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* BENEFICIOS */}
-        <View className="mb-6" style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textPrimary }]}>
-            Qué incluye Premium
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: textSecondary }]}>
-            Pensado para usuarios que entrenan de forma constante y quieren
-            resultados medibles.
-          </Text>
-
-          <View style={styles.benefitsList}>
-            <BenefitLine
-              title="Rutinas ilimitadas"
-              desc="Crea y guarda todas las rutinas que necesites."
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
-            />
-            <BenefitLine
-              title="Catálogo completo"
-              desc="Acceso a todos los ejercicios y variaciones."
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
-            />
-            <BenefitLine
-              title="IA avanzada"
-              desc="Planes generados según tu nivel, tiempo y objetivo."
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
-            />
-            <BenefitLine
-              title="Historial y progreso"
-              desc="Evolución de cargas, volumen y marcas personales."
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
-            />
-          </View>
-        </View>
-
-        {/* PAGO */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textPrimary }]}>
-            Método de pago
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: textSecondary }]}>
-            Añade tu tarjeta. Cobraremos {PRICE} cada mes y podrás cancelar
-            cuando quieras desde tu perfil.
-          </Text>
-
-          <View style={{ marginTop: 8, marginBottom: 10 }}>
-            <CardField
-              postalCodeEnabled={false}
-              placeholders={{
-                number: "1234 1234 1234 1234",
-              }}
-              cardStyle={{
-                backgroundColor: isDark ? "#020617" : "#FFFFFF",
-                textColor: isDark ? "#E5E7EB" : "#111827",
-                placeholderColor: "#9CA3AF",
-              }}
-              style={{
-                width: "100%",
-                height: 50,
-              }}
-              onCardChange={(details) => {
-                setCardComplete(details.complete);
-                if (errorMsg) setErrorMsg(null);
-              }}
-            />
-          </View>
-
-          {!!errorMsg && (
-            <Text
-              style={[
-                styles.errorText,
-                { color: isDark ? "#FCA5A5" : "#B91C1C" },
-              ]}
-            >
-              {errorMsg}
-            </Text>
-          )}
-
-          <TouchableOpacity
-            onPress={handlePay}
-            disabled={loading || !cardComplete}
+        {/* HERO - NUEVO PREMIUM */}
+        <LinearGradient
+          colors={theme.gradientHero as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
+        >
+          <View
             style={[
-              styles.button,
+              styles.heroCard,
               {
-                backgroundColor: "#22C55E",
-                opacity: loading || !cardComplete ? 0.7 : 1,
+                backgroundColor: theme.cardBg,
+                borderColor: theme.cardBorder,
               },
             ]}
           >
-            {loading ? (
-              <>
-                <ActivityIndicator
-                  color={isDark ? "#020617" : "#F9FAFB"}
-                  style={{ marginRight: 8 }}
-                />
+            <Text
+              style={[
+                styles.heroLabel,
+                { color: theme.heroLabel },
+              ]}
+            >
+              Suscripción mensual
+            </Text>
+
+            <View style={styles.heroBottomRow}>
+              <View>
+                <View style={styles.priceRow}>
+                  <Text
+                    style={[
+                      styles.price,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    {PRICE}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.priceUnit,
+                      { color: theme.textSoft },
+                    ]}
+                  >
+                    / mes
+                  </Text>
+                </View>
+
                 <Text
                   style={[
-                    styles.buttonText,
-                    { color: isDark ? "#020617" : "#0F172A" },
+                    styles.billingHint,
+                    { color: theme.textSoft },
                   ]}
                 >
-                  Procesando…
+                  {BILLING_HINT}. Sin permanencia.
                 </Text>
-              </>
-            ) : (
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: isDark ? "#020617" : "#0F172A" },
-                ]}
-              >
-                Guardar tarjeta y activar Premium
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* COMPARATIVA FREE VS PREMIUM */}
+        <View
+          style={[
+            styles.cardSoft,
+            {
+              backgroundColor: theme.cardSoftBg,
+              borderColor: theme.cardBorder,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitleSmall,
+              { color: theme.textPrimary },
+            ]}
+          >
+            Qué incluye cada plan
+          </Text>
+
+          {/* Sesiones */}
+          <CompareRow
+            label="Registrar sesiones"
+            free="Sí (con anuncio)"
+            premium="Sí, sin anuncios"
+          />
+
+          {/* Rutinas manuales */}
+          <CompareRow
+            label="Crear rutinas manuales"
+            free="Sí (con anuncio al guardar)"
+            premium="Sí, sin anuncios"
+          />
+
+          <CompareRow
+            label="Guardar y editar rutinas"
+            free="Sí (con anuncio al guardar)"
+            premium="Sí, sin anuncios"
+          />
+
+          {/* Exploración ejercicios */}
+          <CompareRow
+            label="Buscar ejercicios y compuestos"
+            free="Sí"
+            premium="Sí"
+          />
+
+          {/* Rutinas IA */}
+          <CompareRow
+            label="Rutinas con IA"
+            free="1 rutina gratis"
+            premium="Ilimitadas"
+          />
+
+          {/* Coach */}
+          <CompareRow
+            label="Coach inteligente (revisión de sesión)"
+            free="No"
+            premium="Sí"
+          />
+
+          {/* Preguntas IA */}
+          <CompareRow
+            label="Preguntas sobre ejercicios con IA"
+            free="No"
+            premium="Sí"
+          />
+
+          {/* Estadísticas */}
+          <CompareRow
+            label="Estadísticas de entreno"
+            free="Todas (con anuncio diario)"
+            premium="Todas, sin anuncios"
+          />
+
+          {/* Informes */}
+          <CompareRow
+            label="Informes de progreso"
+            free="Algunos básicos"
+            premium="Todos los informes avanzados"
+          />
+        </View>
+
+
+        {/* CTA */}
+        <View style={{ marginTop: 20 }}>
+          <TouchableOpacity
+            onPress={() => setShowPayModal(true)}
+            activeOpacity={0.9}
+            style={styles.ctaWrapper}
+          >
+            <LinearGradient
+              colors={theme.gradientPrimary as any}
+              style={styles.ctaGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={[styles.buttonText, { color: "#020617" }]}>
+                Activar Premium
               </Text>
-            )}
+            </LinearGradient>
           </TouchableOpacity>
 
-          <Text style={[styles.securityNote, { color: subtleText }]}>
-            🔒 fitgenius no almacena los datos completos de tu tarjeta. Los
-            pagos se procesan cumpliendo el estándar PCI-DSS.
+          <Text
+            style={[
+              styles.securityNote,
+              { color: theme.textSoft },
+            ]}
+          >
+            {PRICE}/mes · Cancela cuando quieras desde tu perfil.
           </Text>
         </View>
       </ScrollView>
+
+      {/* ============ PAYMENT MODAL ============ */}
+      <Modal
+        visible={showPayModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPayModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+        >
+          <View style={styles.modalBackdrop}>
+            <View
+              style={[
+                styles.modalSheet,
+                {
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
+                },
+              ]}
+            >
+              <View style={styles.sheetHandle} />
+
+              <View style={styles.modalHeaderRow}>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  Activar Premium
+                </Text>
+
+                <TouchableOpacity onPress={() => setShowPayModal(false)}>
+                  <X size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text
+                style={[
+                  styles.modalSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Cobraremos {PRICE} cada mes. Puedes cancelar en cualquier
+                momento.
+              </Text>
+
+              {/* TARJETA */}
+              <View style={{ marginTop: 14, marginBottom: 16 }}>
+                <CardField
+                  postalCodeEnabled={false}
+                  placeholders={{
+                    number: "1234 1234 1234 1234",
+                  }}
+                  cardStyle={{
+                    backgroundColor: isDark ? "#020617" : "#FFFFFF",
+                    textColor: isDark ? "#E5E7EB" : "#0F172A",
+                    placeholderColor: theme.textSoft,
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 52,
+                  }}
+                  onCardChange={(d) => {
+                    setCardComplete(d.complete);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                />
+              </View>
+
+              {/* ERROR */}
+              {!!errorMsg && (
+                <View style={styles.errorRow}>
+                  <XCircle
+                    size={14}
+                    color={isDark ? "#FCA5A5" : "#B91C1C"}
+                  />
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { color: isDark ? "#FCA5A5" : "#B91C1C" },
+                    ]}
+                  >
+                    {errorMsg}
+                  </Text>
+                </View>
+              )}
+
+              {/* BOTÓN PAGO */}
+              <TouchableOpacity
+                onPress={handlePay}
+                disabled={loading || !cardComplete}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={["#22C55E", "#FACC15"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[
+                    styles.ctaGradient,
+                    {
+                      opacity: loading || !cardComplete ? 0.7 : 1,
+                      marginTop: 6,
+                    },
+                  ]}
+                >
+                  {loading ? (
+                    <>
+                      <ActivityIndicator
+                        color="#020617"
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={[styles.buttonText, { color: "#020617" }]}>
+                        Procesando…
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={[styles.buttonText, { color: "#020617" }]}>
+                      Guardar tarjeta y activar
+                    </Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <Text
+                style={[
+                  styles.securityNote,
+                  { color: theme.textSoft },
+                ]}
+              >
+                Pagos seguros con Stripe. No almacenamos datos de tarjeta.
+              </Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-/* ====== Subcomponentes ====== */
+/* ============ Subcomponentes ============ */
 
-function BenefitLine({
-  title,
-  desc,
-  textPrimary,
-  textSecondary,
+function CompareRow({
+  label,
+  free,
+  premium,
 }: {
-  title: string;
-  desc: string;
-  textPrimary: string;
-  textSecondary: string;
+  label: string;
+  free: string;
+  premium: string;
 }) {
+  const isDark = useColorScheme() === "dark";
+  const theme = getPremiumTheme(isDark);
+
   return (
-    <View style={styles.benefitLine}>
-      <View style={styles.benefitBullet} />
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.benefitTitle, { color: textPrimary }]}>
-          {title}
+    <View style={styles.simpleRow}>
+      <Text
+        style={[
+          styles.simpleLabel,
+          { color: theme.textPrimary },
+        ]}
+      >
+        {label}
+      </Text>
+
+      {/* FREE */}
+      <View style={styles.badgeMuted}>
+        <Text
+          style={[
+            styles.badgeMutedText,
+            { color: theme.badgeMutedText },
+          ]}
+        >
+          {free}
         </Text>
-        <Text style={[styles.benefitDesc, { color: textSecondary }]}>
-          {desc}
+      </View>
+
+      {/* PREMIUM */}
+      <View
+        style={[
+          styles.badgePositive,
+          { backgroundColor: theme.badgePositiveBg },
+        ]}
+      >
+        <Text
+          style={[
+            styles.badgePositiveText,
+            { color: theme.badgePositiveText },
+          ]}
+        >
+          {premium}
         </Text>
       </View>
     </View>
   );
 }
 
-function TrustItem({
-  icon,
-  label,
-  textPrimary,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  textPrimary: string;
-}) {
-  return (
-    <View style={styles.trustItem}>
-      {icon}
-      <Text style={[styles.trustText, { color: textPrimary }]}>{label}</Text>
-    </View>
-  );
-}
-
-/* ===================== STYLES ===================== */
+/* ===================== Styles ===================== */
 
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
   container: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    paddingTop: 10,
   },
+
+  /* Header */
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    columnGap: 12,
+    columnGap: 10,
+  },
+  logoWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "#020617",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   logo: {
-    width: 40,
-    height: 40,
+    width: 22,
+    height: 22,
+    tintColor: "#FFFFFF",
   },
   appName: {
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.4,
+    fontSize: 15,
+    fontWeight: "700",
     textTransform: "uppercase",
   },
   appTagline: {
     fontSize: 12,
-    marginTop: 2,
   },
-  hero: {
-    marginBottom: 24,
+
+  /* Hero */
+  heroGradient: {
+    borderRadius: 22,
+    padding: 2,
+    marginBottom: 18,
+  },
+  heroCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   heroLabel: {
-    fontSize: 12,
+    fontSize: 11,
     textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 6,
+    letterSpacing: 0.8,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  priceRow: {
+  heroBottomRow: {
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
   price: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  priceUnit: {
+    fontSize: 12,
+    marginLeft: 4,
   },
   billingHint: {
     fontSize: 12,
     marginTop: 4,
   },
-  ratingBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-    columnGap: 6,
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
   },
-  ratingText: {
-    fontSize: 12,
+  pillText: {
+    fontSize: 11,
     fontWeight: "500",
   },
-  section: {
-    marginBottom: 24,
+
+  /* Comparativa */
+  cardSoft: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+    borderWidth: 1,
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    marginBottom: 14,
-  },
-  benefitsList: {
-    rowGap: 10,
-  },
-  benefitLine: {
-    flexDirection: "row",
-    columnGap: 10,
-  },
-  benefitBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-    marginTop: 7,
-    backgroundColor: "#22C55E",
-  },
-  benefitTitle: {
+  sectionTitleSmall: {
     fontSize: 13,
     fontWeight: "600",
-  },
-  benefitDesc: {
-    fontSize: 12,
-  },
-  trustRow: {
-    rowGap: 10,
-  },
-  trustItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    columnGap: 8,
-  },
-  trustText: {
-    fontSize: 13,
-    flex: 1,
-  },
-  errorText: {
-    fontSize: 13,
     marginBottom: 8,
   },
-  button: {
-    marginTop: 8,
-    borderRadius: 999,
-    paddingVertical: 13,
-    alignItems: "center",
-    justifyContent: "center",
+  simpleRow: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 7,
+  },
+  simpleLabel: {
+    flex: 1.4,
+    fontSize: 12,
+  },
+  badgeMuted: {
+    flex: 0.9,
+    alignItems: "center",
+  },
+  badgeMutedText: {
+    fontSize: 11,
+  },
+  badgePositive: {
+    flex: 0.9,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    alignItems: "center",
+  },
+  badgePositiveText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  /* CTA */
+  ctaWrapper: {
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  ctaGradient: {
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: "center",
   },
   buttonText: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   securityNote: {
     fontSize: 11,
     marginTop: 10,
+    textAlign: "center",
+  },
+
+  /* Modal */
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingBottom: 0,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 22,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(148,163,184,0.7)",
+    marginBottom: 12,
+  },
+  modalHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 6,
+    marginBottom: 6,
+  },
+  errorText: {
+    fontSize: 12,
   },
 });

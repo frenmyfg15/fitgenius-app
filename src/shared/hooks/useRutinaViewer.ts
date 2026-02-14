@@ -94,11 +94,6 @@ export function useRutinaViewer({ rutinas, setVer, onDelete }: Params) {
     } catch (err) {
       const msg = getReadableError(err, "No se pudo preparar la rutina para editar.");
       logWarning("RutinaEditarError", err, msg);
-      Toast.show({
-        type: "error",
-        text1: "No se pudo abrir el editor",
-        text2: msg,
-      });
     }
   }, [nav, rutinas, setVer, usuario?.id]);
 
@@ -114,11 +109,6 @@ export function useRutinaViewer({ rutinas, setVer, onDelete }: Params) {
     } catch (err) {
       const msg = getReadableError(err, "Error al activar la rutina.");
       logWarning("RutinaActivarError", err, msg);
-      Toast.show({
-        type: "error",
-        text1: "No se pudo activar la rutina",
-        text2: msg,
-      });
     } finally {
       setLoading(false);
     }
@@ -139,11 +129,6 @@ export function useRutinaViewer({ rutinas, setVer, onDelete }: Params) {
     } catch (err) {
       const msg = getReadableError(err, "Error al eliminar la rutina.");
       logWarning("RutinaEliminarError", err, msg);
-      Toast.show({
-        type: "error",
-        text1: "No se pudo eliminar la rutina",
-        text2: msg,
-      });
     } finally {
       setConfirmDelete(false);
       setLoading(false);

@@ -35,11 +35,6 @@ export function usePremiumPayment() {
           "Respuesta incompleta del servidor (falta clientSecret o datos de cliente).";
         console.warn("⚠️ [PremiumPayment] Datos incompletos", { data });
         setErrorMsg(msg);
-        Toast.show({
-          type: "error",
-          text1: "No se pudo iniciar el pago",
-          text2: msg,
-        });
         return;
       }
 
@@ -82,11 +77,6 @@ export function usePremiumPayment() {
           raw: initError,
         });
         setErrorMsg(msg);
-        Toast.show({
-          type: "error",
-          text1: "Error al mostrar el pago",
-          text2: msg,
-        });
         return;
       }
 
@@ -101,11 +91,6 @@ export function usePremiumPayment() {
           raw: presentError,
         });
         setErrorMsg(msg);
-        Toast.show({
-          type: "error",
-          text1: "Pago no completado",
-          text2: msg,
-        });
         return;
       }
 
@@ -121,11 +106,6 @@ export function usePremiumPayment() {
         raw: err,
       });
       setErrorMsg(msg);
-      Toast.show({
-        type: "error",
-        text1: "No se pudo iniciar el pago",
-        text2: msg,
-      });
     } finally {
       setLoading(false);
     }

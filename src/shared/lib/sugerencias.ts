@@ -1,13 +1,14 @@
 // lib/sugerencias.ts
+
 /* ---------------- Tipos ---------------- */
 export type Serie = {
   pesoKg: number | null;
-  repeticiones: number | null;
+  repeticiones: number | null; // en cardio = segundos
 };
 
-export type Sug = { 
-  cat: "Carga" | "Volumen" | "Técnica" | "Recuperación" | "Progresión"; 
-  text: string 
+export type Sug = {
+  cat: "Carga" | "Volumen" | "Técnica" | "Recuperación" | "Progresión";
+  text: string;
 };
 
 export type Metrics = {
@@ -18,15 +19,15 @@ export type Metrics = {
   weightArr: number[];
 
   // métricas base
-  totalReps: number;
-  totalVol: number;
-  avgReps: number;
-  avgWPerRep: number;
+  totalReps: number;      // fuerza: reps totales, cardio: segundos totales
+  totalVol: number;       // tonelaje (peso*reps)
+  avgReps: number;        // fuerza: reps/serie, cardio: seg/serie
+  avgWPerRep: number;     // peso medio por rep
   maxW: number;
   minW: number;
   firstReps: number;
   lastReps: number;
-  fatigueDrop: number; // 0–1
+  fatigueDrop: number;    // 0–1
 
   // variabilidad
   repsStd: number;
@@ -44,8 +45,10 @@ export type Metrics = {
 export type ByCat = Record<Sug["cat"], string[]>;
 
 /* ---------------- Utils puros ---------------- */
-export function sanitizeSets(detallesSeries: Serie[] | null | undefined): Serie[] {
-  return (detallesSeries?.filter(Boolean) ?? []).map(s => ({
+export function sanitizeSets(
+  detallesSeries: Serie[] | null | undefined
+): Serie[] {
+  return (detallesSeries?.filter(Boolean) ?? []).map((s) => ({
     pesoKg: s?.pesoKg ?? 0,
     repeticiones: s?.repeticiones ?? 0,
   }));
@@ -59,15 +62,22 @@ function std(arr: number[]): number {
 }
 
 /* ---------------- Cálculo de métricas ---------------- */
-export function computeMetrics(detallesSeries: Serie[] | null | undefined): Metrics {
+export function computeMetrics(
+  detallesSeries: Serie[] | null | undefined
+): Metrics {
   const sets = sanitizeSets(detallesSeries);
   const n = sets.length;
 
-  const repsArr = sets.map(s => Number(s.repeticiones ?? 0));
-  const weightArr = sets.map(s => Number(s.pesoKg ?? 0));
+  const repsArr = sets.map((s) => Number(s.repeticiones ?? 0));
+  const weightArr = sets.map((s) => Number(s.pesoKg ?? 0));
 
   const totalReps = repsArr.reduce((a, b) => a + b, 0);
-  const totalVol = sets.reduce((sum, s) => sum + Number(s.pesoKg ?? 0) * Number(s.repeticiones ?? 0), 0);
+  const totalVol = sets.reduce(
+    (sum, s) =>
+      sum +
+      Number(s.pesoKg ?? 0) * Number(s.repeticiones ?? 0),
+    0
+  );
 
   const avgReps = n ? totalReps / n : 0;
   const avgWPerRep = totalReps ? totalVol / totalReps : 0;
@@ -89,7 +99,8 @@ export function computeMetrics(detallesSeries: Serie[] | null | undefined): Metr
     const y = weightArr;
     const xm = x.reduce((a, b) => a + b, 0) / n;
     const ym = y.reduce((a, b) => a + b, 0) / n;
-    let num = 0, den = 0;
+    let num = 0,
+      den = 0;
     for (let i = 0; i < n; i++) {
       num += (x[i] - xm) * (y[i] - ym);
       den += (x[i] - xm) ** 2;
@@ -97,18 +108,138 @@ export function computeMetrics(detallesSeries: Serie[] | null | undefined): Metr
     slopeW = den ? num / den : 0;
   }
 
-  const zone: Metrics["zone"] = avgReps < 6 ? "fuerza" : avgReps <= 12 ? "hipertrofia" : "resistencia";
+  const zone: Metrics["zone"] =
+    avgReps < 6 ? "fuerza" : avgReps <= 12 ? "hipertrofia" : "resistencia";
 
   return {
-    n, sets, repsArr, weightArr,
-    totalReps, totalVol, avgReps, avgWPerRep, maxW, minW, firstReps, lastReps, fatigueDrop,
-    repsStd, weightStd, cvReps, cvWeight,
-    slopeW, zone
+    n,
+    sets,
+    repsArr,
+    weightArr,
+    totalReps,
+    totalVol,
+    avgReps,
+    avgWPerRep,
+    maxW,
+    minW,
+    firstReps,
+    lastReps,
+    fatigueDrop,
+    repsStd,
+    weightStd,
+    cvReps,
+    cvWeight,
+    slopeW,
+    zone,
   };
 }
 
-/* ---------------- Generador de sugerencias ---------------- */
-export function generateSuggestions(m: Metrics): Sug[] {
+/* ---------------- Sugerencias cardio ---------------- */
+export function generateCardioSuggestions(m: Metrics): Sug[] {
+  const sugs: Sug[] = [];
+
+  const totalTime = m.totalReps;    // segundos totales
+  const avgTime = m.avgReps;        // segundos por serie
+  const n = m.n;
+
+  // Volumen / tiempo total
+  if (totalTime < 60) {
+    sugs.push({
+      cat: "Volumen",
+      text: "Sesión muy corta. Si tu objetivo es resistencia, intenta acumular al menos 60–120 segundos totales de trabajo en este ejercicio.",
+    });
+  } else if (totalTime > 600) {
+    sugs.push({
+      cat: "Volumen",
+      text: "Tiempo total muy alto. Valora dividir el trabajo en bloques más cortos o alternar intensidades para evitar fatiga excesiva.",
+    });
+  } else {
+    sugs.push({
+      cat: "Volumen",
+      text: "Buen tiempo total de trabajo. Mantén una progresión suave (+10–20 s por sesión) para seguir mejorando la capacidad aeróbica.",
+    });
+  }
+
+  // Duración media de las series
+  if (avgTime < 20) {
+    sugs.push({
+      cat: "Progresión",
+      text: "Bloques muy cortos. Mantén la intensidad y prueba a extender gradualmente las series hacia 20–40 segundos de esfuerzo continuo.",
+    });
+  } else if (avgTime <= 45) {
+    sugs.push({
+      cat: "Progresión",
+      text: "Buen rango de trabajo por serie (20–45 s). Puedes progresar sumando 5–10 s en la última serie cuando sientas margen.",
+    });
+  } else {
+    sugs.push({
+      cat: "Progresión",
+      text: "Series bastante largas. Si notas caída de ritmo, prueba a dividirlas en 2 bloques más cortos manteniendo la intensidad de cada uno.",
+    });
+  }
+
+  // Fatiga entre primera y última serie
+  if (m.fatigueDrop > 0.35 && n >= 3) {
+    sugs.push({
+      cat: "Recuperación",
+      text: "La duración por serie cae bastante del inicio al final. Aumenta el descanso entre series o reduce ligeramente la intensidad para sostener el ritmo.",
+    });
+  } else if (m.fatigueDrop < 0.15 && n >= 3) {
+    sugs.push({
+      cat: "Progresión",
+      text: "Ritmo estable entre series. Tienes margen para progresar: añade unos segundos a la última serie o acorta un poco los descansos.",
+    });
+  }
+
+  // Variabilidad del tiempo de las series
+  if (m.cvReps > 0.25) {
+    sugs.push({
+      cat: "Técnica",
+      text: "Gran variación en el tiempo de las series. Intenta marcar un objetivo claro (ej. 30 s por serie) y mantenerlo para medir mejor el progreso.",
+    });
+  } else {
+    sugs.push({
+      cat: "Técnica",
+      text: "Buen control del tiempo por serie. Mantén un ritmo respiratorio constante y un esfuerzo similar en cada bloque.",
+    });
+  }
+
+  // Si hay carga además del componente cardiometabólico
+  if (m.totalVol > 0 && m.avgWPerRep > 0) {
+    sugs.push({
+      cat: "Carga",
+      text: "Estás combinando cardio con carga. Asegúrate de que la técnica no se deteriora al final de las series y prioriza una progresión lenta en el peso.",
+    });
+  }
+
+  // Recomendación general (siempre)
+  sugs.push(
+    {
+      cat: "Recuperación",
+      text: "Incluye 3–5 minutos de calentamiento progresivo antes (ej. caminata rápida o bici suave) para preparar el sistema cardiovascular.",
+    },
+    {
+      cat: "Técnica",
+      text: "Concéntrate en una respiración rítmica (ej. 2–3 pasos por inhalación/exhalación) para sostener mejor el esfuerzo.",
+    },
+    {
+      cat: "Progresión",
+      text: "Regla sencilla: cuando completes todas las series con sensación de margen, añade +5–10 s a la última serie de la próxima sesión.",
+    }
+  );
+
+  return sugs;
+}
+
+/* ---------------- Generador de sugerencias (fuerza por defecto) ---------------- */
+export function generateSuggestions(
+  m: Metrics,
+  opts?: { esCardio?: boolean }
+): Sug[] {
+  if (opts?.esCardio) {
+    return generateCardioSuggestions(m);
+  }
+
   const sugs: Sug[] = [];
 
   // Volumen
@@ -222,9 +353,18 @@ export function generateSuggestions(m: Metrics): Sug[] {
 
   // Sugerencias extra (siempre)
   sugs.push(
-    { cat: "Técnica", text: "Pista técnica: fija escápulas, controla el excéntrico y evita rebotes para proteger articulaciones." },
-    { cat: "Recuperación", text: "Incluye 5–10 min de movilidad/activación previa y 5 min de descarga al final para acelerar recuperación." },
-    { cat: "Progresión", text: "Plan rápido próxima sesión: +1–2 reps en el último set o +2.5% en el primero si finalizas con RIR≥2." }
+    {
+      cat: "Técnica",
+      text: "Pista técnica: fija escápulas, controla el excéntrico y evita rebotes para proteger articulaciones.",
+    },
+    {
+      cat: "Recuperación",
+      text: "Incluye 5–10 min de movilidad/activación previa y 5 min de descarga al final para acelerar recuperación.",
+    },
+    {
+      cat: "Progresión",
+      text: "Plan rápido próxima sesión: +1–2 reps en el último set o +2.5% en el primero si finalizas con RIR≥2.",
+    }
   );
 
   return sugs;
@@ -243,10 +383,20 @@ export function buildNextSessionPlan(zone: Metrics["zone"]) {
   return {
     warmup: "2 sets de aproximación (40% y 60% de la carga objetivo).",
     workRange: `3–4 en rango ${
-      zone === "hipertrofia" ? "8–12" : zone === "fuerza" ? "3–6" : "12–15+"
+      zone === "hipertrofia"
+        ? "8–12"
+        : zone === "fuerza"
+        ? "3–6"
+        : "12–15+"
     } reps.`,
-    progression: "Si terminas con RIR ≥ 2, añade +1–2 reps o +2.5% carga al primer set.",
-    rest: zone === "fuerza" ? "2–3 min" : zone === "hipertrofia" ? "90–120 s" : "60–90 s",
+    progression:
+      "Si terminas con RIR ≥ 2, añade +1–2 reps o +2.5% carga al primer set.",
+    rest:
+      zone === "fuerza"
+        ? "2–3 min"
+        : zone === "hipertrofia"
+        ? "90–120 s"
+        : "60–90 s",
     notes: "Registra tempo y rango para evaluar consistencia la próxima vez.",
   };
 }

@@ -1,13 +1,21 @@
 // app/features/registro/EdadScreen.tsx
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, ScrollView, Keyboard } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
+import { useFocusEffect } from "@react-navigation/native";
+
 import BtnAprobe from "@/shared/components/ui/BtnAprobe";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
-import ModernInput from "@/shared/components/ui/ModernInput";
+import AgeRulerPicker from "@/shared/components/ui/AgeRulerPicker";
 
 const MIN_EDAD = 14;
-const MAX_EDAD = 100; // ajusta si quieres otro máximo
+const MAX_EDAD = 100;
+
+const normalizeEdad = (n: number) => {
+  if (typeof n !== "number" || !Number.isFinite(n)) return 20;
+  const r = Math.round(n);
+  return Math.max(MIN_EDAD, Math.min(MAX_EDAD, r));
+};
 
 export default function Edad() {
   const { colorScheme } = useColorScheme();
@@ -16,96 +24,92 @@ export default function Edad() {
   const usuario = useRegistroStore((s) => s.usuario);
   const setField = useRegistroStore((s) => s.setField);
 
-  // Texto local para edición suave
-  const [text, setText] = useState<string>("");
+  const storeEdad = typeof usuario?.edad === "number" ? usuario.edad : 20;
 
-  // Sincroniza el texto cuando cambie edad en store
+  // local fluido
+  const [localEdad, setLocalEdad] = useState<number>(() => normalizeEdad(storeEdad));
+
+  const lastRef = useRef(localEdad);
   useEffect(() => {
-    if (typeof usuario?.edad === "number" && Number.isFinite(usuario.edad)) {
-      setText(String(usuario.edad));
-    } else {
-      setText("");
-    }
-  }, [usuario?.edad]);
+    lastRef.current = localEdad;
+  }, [localEdad]);
 
-  const handleChangeEdad = useCallback(
-    (t: string) => {
-      // Solo dígitos
-      const cleaned = t.replace(/[^\d]/g, "");
-      setText(cleaned);
+  // sync externo real
+  useEffect(() => {
+    setLocalEdad(normalizeEdad(storeEdad));
+  }, [storeEdad]);
 
-      if (cleaned === "") return; // no guardamos nada aún
-
-      const n = parseInt(cleaned, 10);
-      if (!Number.isFinite(n)) return;
-
-      const clamped = Math.min(Math.max(n, MIN_EDAD), MAX_EDAD);
-      setField("edad", clamped);
-    },
-    [setField]
+  // guardar al salir (igual que altura/peso)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const final = normalizeEdad(lastRef.current);
+        const current = typeof usuario?.edad === "number" ? usuario.edad : 0;
+        if (current !== final) setField("edad", final);
+      };
+    }, [setField])
   );
 
-  const edadValida = (usuario?.edad ?? 0) >= MIN_EDAD;
+  const edadValida = localEdad >= MIN_EDAD;
 
-  const onSubmit = () => {
-    if (edadValida) Keyboard.dismiss();
-  };
+  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const textMain = { color: isDark ? "#ffffff" : "#111827" };
+  const textSub = { color: isDark ? "#d1d5db" : "#4b5563" };
 
   return (
     <>
       {edadValida && <BtnAprobe step="Dias" placement="left" />}
 
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: 24,
-          paddingBottom: 32,
-        }}
+        style={{ backgroundColor: bgColor }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center">
-          <Text
-            className={`text-center text-lg font-semibold p-3 ${
-              isDark ? "text-white" : "text-neutral-900"
-            }`}
-          >
-            ¿Cuántos años tienes?
-          </Text>
-          <Text
-            className={`text-center p-2 pb-4 text-sm ${
-              isDark ? "text-neutral-300" : "text-neutral-600"
-            }`}
-          >
+        <View style={{ alignItems: "center" }}>
+          <Text style={[styles.h1, textMain]}>¿Cuántos años tienes?</Text>
+          <Text style={[styles.sub, textSub]}>
             La edad no define tus límites, ¡solo marca el punto desde donde comienzas!
           </Text>
         </View>
 
-        <View className="px-6 pt-6 items-center">
-          <ModernInput
-            type="number"
-            placeholder={`(Edad mínima ${MIN_EDAD}). Ej: 20`}
-            value={text}
-            onChangeText={handleChangeEdad}
-            onSubmit={onSubmit}
-            maxLength={3}
-          />
-
-          <Text
-            className={`text-xs font-medium opacity-70 text-center mt-2 ${
-              isDark ? "text-slate-300" : "text-slate-600"
-            }`}
-          >
-            Edad
-          </Text>
-
-          {!edadValida && text !== "" && (
-            <Text className="mt-2 text-sm text-rose-500">
-              La edad debe ser al menos {MIN_EDAD}.
+        <View style={{ paddingTop: 18 }}>
+          <View style={[styles.rulerCard, { backgroundColor: bgColor }]}>
+            <Text
+              style={{
+                textAlign: "center",
+                marginTop: 6,
+                marginBottom: 4,
+                color: isDark ? "#e5e7eb" : "#111827",
+                fontWeight: "700",
+              }}
+            >
+              Indica tu edad
             </Text>
-          )}
+
+            <View style={styles.pickerWrap}>
+              <AgeRulerPicker
+                value={localEdad}
+                min={MIN_EDAD}
+                max={MAX_EDAD}
+                step={1}
+                onChange={(v) => setLocalEdad(normalizeEdad(v))}
+                onChangeEnd={(v) => setLocalEdad(normalizeEdad(v))}
+                rulerStyle={{ width: "100%", backgroundColor: bgColor }}
+                labelColor={isDark ? "#E5E7EB" : "#111827"}
+                hintColor={isDark ? "#9CA3AF" : "#6B7280"}
+                indicatorColor="#22C55E"
+              />
+            </View>
+          </View>
         </View>
       </ScrollView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  h1: { textAlign: "center", fontSize: 18, fontWeight: "700", padding: 12 },
+  sub: { textAlign: "center", fontSize: 13, paddingHorizontal: 8, paddingBottom: 16 },
+  rulerCard: { width: "100%", borderRadius: 18, paddingBottom: 8 },
+  pickerWrap: { width: "100%", paddingBottom: 10 },
+});

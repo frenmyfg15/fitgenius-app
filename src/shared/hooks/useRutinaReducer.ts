@@ -5,7 +5,7 @@ import {
   CrearRutinaRequest,
   EjercicioAsignadoInput,
   Action as BaseAction,
-} from '@/features/type/crearRutina';
+} from "@/features/type/crearRutina";
 
 const STORAGE_KEY = "crearRutinaState";
 
@@ -47,14 +47,35 @@ const initialState: State = {
 
 /** Helper: clonar profundo ejercicios (incluye compuestos) */
 function cloneEjercicios(list: EjercicioAsignadoInput[]): EjercicioAsignadoInput[] {
-  // json deep clone suficiente aquí
   return JSON.parse(JSON.stringify(list)) as EjercicioAsignadoInput[];
+}
+
+/**
+ * ✅ Reordena y reasigna orden minimizando clones:
+ * - Si el orden ya coincide, reutiliza el objeto.
+ * - Solo crea objeto nuevo cuando `orden` cambia.
+ */
+function normalizeOrdenMinClone<T extends { orden: number }>(arr: T[]): T[] {
+  let changed = false;
+
+  const out = arr.map((e, idx) => {
+    const nextOrden = idx + 1;
+    if (e.orden === nextOrden) return e;
+    changed = true;
+    return { ...(e as any), orden: nextOrden } as T;
+  });
+
+  return changed ? out : arr;
+}
+
+/** Comparación rápida por referencia + key simple de orden */
+function sameRefArray(a: any[] | undefined, b: any[] | undefined) {
+  return a === b;
 }
 
 function rutinaReducer(state: State, action: Action): State {
   switch (action.type) {
     case "HYDRATE":
-      // Reemplaza todo el estado por el del storage
       return { ...state, ...action.payload };
 
     case "SET_NOMBRE":
@@ -74,17 +95,22 @@ function rutinaReducer(state: State, action: Action): State {
       if (diaIndex === -1) {
         return {
           ...state,
-          dias: [...newDias, { diaSemana, ejercicios: [{ ...ejercicio, orden: 1 }] }],
+          dias: [...newDias, { diaSemana, ejercicios: [{ ...(ejercicio as any), orden: 1 }] }],
         };
       }
 
-      const ejerciciosActuales = [...state.dias[diaIndex].ejercicios];
+      const ejerciciosActuales = state.dias[diaIndex].ejercicios ?? [];
       const maxOrden =
-        ejerciciosActuales.length > 0 ? Math.max(...ejerciciosActuales.map((e) => e.orden)) : 0;
+        ejerciciosActuales.length > 0
+          ? Math.max(...ejerciciosActuales.map((e) => e.orden))
+          : 0;
+
+      const nextEjercicios = [...ejerciciosActuales, { ...(ejercicio as any), orden: maxOrden + 1 }];
 
       newDias[diaIndex] = {
+        ...newDias[diaIndex],
         diaSemana,
-        ejercicios: [...ejerciciosActuales, { ...ejercicio, orden: maxOrden + 1 }],
+        ejercicios: nextEjercicios,
       };
 
       return { ...state, dias: newDias };
@@ -99,7 +125,11 @@ function rutinaReducer(state: State, action: Action): State {
             ? {
                 ...dia,
                 ejercicios: dia.ejercicios.map((e) =>
-                  "compuesto" in e ? e : e.orden === ejercicio.orden ? { ...e, ...ejercicio } : e
+                  "compuesto" in (e as any)
+                    ? e
+                    : e.orden === ejercicio.orden
+                      ? ({ ...(e as any), ...(ejercicio as any) } as any)
+                      : e
                 ),
               }
             : dia
@@ -113,9 +143,11 @@ function rutinaReducer(state: State, action: Action): State {
         ...state,
         dias: state.dias.map((dia) => ({
           ...dia,
-          ejercicios: dia.ejercicios.map((ej) =>
+          ejercicios: dia.ejercicios.map((ej: any) =>
             "compuesto" in ej &&
-            ej.ejerciciosCompuestos?.some((ec) => ec.ejercicioCompuestoId === compuestoId)
+            ej.ejerciciosCompuestos?.some(
+              (ec: any) => ec.ejercicioCompuestoId === compuestoId
+            )
               ? {
                   ...ej,
                   nombreCompuesto: nombre,
@@ -128,53 +160,81 @@ function rutinaReducer(state: State, action: Action): State {
       };
     }
 
+    /**
+     * ✅ OPTIMIZADO: REORDER_EJERCICIOS
+     * - Si el array ya es el mismo, no cambies el state (0 re-render).
+     * - Normaliza orden minimizando clones.
+     * - Si tras normalizar no cambia nada, reusa referencias.
+     */
     case "REORDER_EJERCICIOS": {
       const { diaSemana, ejercicios } = action.payload;
-      return {
-        ...state,
-        dias: state.dias.map((dia) => (dia.diaSemana === diaSemana ? { ...dia, ejercicios } : dia)),
-      };
+
+      let changedDias = false;
+
+      const nextDias = state.dias.map((dia) => {
+        if (dia.diaSemana !== diaSemana) return dia;
+
+        // si no hay cambios reales por referencia, no tocar
+        if (sameRefArray(dia.ejercicios as any, ejercicios as any)) {
+          return dia;
+        }
+
+        const normalized = normalizeOrdenMinClone(ejercicios as any);
+
+        // si tras normalizar, la referencia es igual a la actual, no tocar
+        if (sameRefArray(dia.ejercicios as any, normalized as any)) {
+          return dia;
+        }
+
+        changedDias = true;
+        return { ...dia, ejercicios: normalized as any };
+      });
+
+      if (!changedDias) return state;
+      return { ...state, dias: nextDias };
     }
 
     case "REMOVE_EJERCICIO": {
       const { diaSemana, orden, compuestoId } = action.payload;
-      return {
-        ...state,
-        dias: state.dias.map((dia) => {
-          if (dia.diaSemana !== diaSemana) return dia;
 
-          let nuevaLista = dia.ejercicios;
+      let changedDias = false;
 
-          if (compuestoId) {
-            nuevaLista = dia.ejercicios.filter(
-              (ej) =>
-                !(
-                  "compuesto" in ej &&
-                  ej.compuesto &&
-                  Array.isArray(ej.ejerciciosCompuestos) &&
-                  ej.ejerciciosCompuestos.length > 0 &&
-                  ej.ejerciciosCompuestos[0].ejercicioCompuestoId === compuestoId
-                )
-            );
-          } else if (typeof orden === "number") {
-            nuevaLista = dia.ejercicios.filter((ej) => ej.orden !== orden);
-          }
+      const nextDias = state.dias.map((dia) => {
+        if (dia.diaSemana !== diaSemana) return dia;
 
-          const reordenados = nuevaLista.map((ej, idx) => ({
-            ...ej,
-            orden: idx + 1,
-          }));
+        const original = dia.ejercicios ?? [];
+        let filtered = original;
 
-          return { ...dia, ejercicios: reordenados };
-        }),
-      };
+        if (compuestoId) {
+          filtered = original.filter((ej: any) => {
+            if (!("compuesto" in ej) || !ej.compuesto) return true;
+            const ecs = ej.ejerciciosCompuestos;
+            if (!Array.isArray(ecs) || ecs.length === 0) return true;
+            return ecs[0].ejercicioCompuestoId !== compuestoId;
+          });
+        } else if (typeof orden === "number") {
+          filtered = original.filter((ej: any) => ej.orden !== orden);
+        }
+
+        // si no cambió nada, reusar
+        if (filtered === original) return dia;
+        if (filtered.length === original.length) return dia;
+
+        const normalized = normalizeOrdenMinClone(filtered as any);
+        changedDias = true;
+        return { ...dia, ejercicios: normalized as any };
+      });
+
+      if (!changedDias) return state;
+      return { ...state, dias: nextDias };
     }
 
     case "ADD_EJERCICIO_COMPUESTO": {
       const { diaSemana, ejercicios, descansoSeg, nombre, tipo, compuestoId } = action.payload;
       const diaIndex = state.dias.findIndex((d) => d.diaSemana === diaSemana);
       const newDias = [...state.dias];
-      const maxOrden = newDias[diaIndex]?.ejercicios.length || 0;
+
+      const maxOrden = newDias[diaIndex]?.ejercicios?.length || 0;
 
       const compuesto: EjercicioAsignadoInput = {
         orden: maxOrden + 1,
@@ -184,24 +244,25 @@ function rutinaReducer(state: State, action: Action): State {
         tipoCompuesto: tipo,
         descansoCompuesto: descansoSeg,
         ejercicioCompuestoId: compuestoId,
-      };
+      } as any;
 
       if (diaIndex === -1) {
         return {
           ...state,
-          dias: [...state.dias, { diaSemana, ejercicios: [compuesto] }],
+          dias: [...state.dias, { diaSemana, ejercicios: [compuesto] as any }],
         };
       }
 
+      const prevDia = newDias[diaIndex];
+      const prevList = prevDia.ejercicios ?? [];
       newDias[diaIndex] = {
-        ...newDias[diaIndex],
-        ejercicios: [...newDias[diaIndex].ejercicios, compuesto],
+        ...prevDia,
+        ejercicios: [...prevList, compuesto] as any,
       };
 
       return { ...state, dias: newDias };
     }
 
-    /** --- NUEVO: copiar todos los ejercicios de un día --- */
     case "COPY_DIA": {
       const { diaSemana } = action.payload;
       const dia = state.dias.find((d) => d.diaSemana === diaSemana);
@@ -209,11 +270,10 @@ function rutinaReducer(state: State, action: Action): State {
 
       return {
         ...state,
-        clipboard: cloneEjercicios(dia.ejercicios),
+        clipboard: cloneEjercicios(dia.ejercicios as any),
       };
     }
 
-    /** --- NUEVO: pegar en un día con 2 modos (replace | append) --- */
     case "PASTE_DIA": {
       const { diaSemana, mode } = action.payload;
       if (!state.clipboard || state.clipboard.length === 0) return state;
@@ -224,14 +284,10 @@ function rutinaReducer(state: State, action: Action): State {
       const newDias = [...state.dias];
 
       if (diaIndex === -1) {
-        // crear día destino
-        const reordenados = ejerciciosCopiados.map((ej, idx) => ({
-          ...ej,
-          orden: idx + 1,
-        }));
+        const reordenados = normalizeOrdenMinClone(ejerciciosCopiados as any);
         return {
           ...state,
-          //@ts-ignore
+          // @ts-ignore
           dias: [...newDias, { diaSemana, ejercicios: reordenados }],
         };
       }
@@ -239,28 +295,23 @@ function rutinaReducer(state: State, action: Action): State {
       const destino = newDias[diaIndex];
 
       if (mode === "replace") {
-        // sustituir por completo
-        const reordenados = ejerciciosCopiados.map((ej, idx) => ({
-          ...ej,
-          orden: idx + 1,
-        }));
+        const reordenados = normalizeOrdenMinClone(ejerciciosCopiados as any);
         newDias[diaIndex] = {
           ...destino,
-          ejercicios: reordenados,
+          ejercicios: reordenados as any,
         };
       } else {
-        // append: agregar al final respetando orden existente
-        const base = destino.ejercicios ?? [];
+        const base = (destino.ejercicios ?? []) as any[];
         const maxOrden = base.length > 0 ? Math.max(...base.map((e) => e.orden)) : 0;
 
-        const reordenados = ejerciciosCopiados.map((ej, i) => ({
-          ...ej,
-          orden: maxOrden + i + 1,
-        }));
+        const appended = ejerciciosCopiados.map((ej, i) => {
+          const nextOrden = maxOrden + i + 1;
+          return (ej as any).orden === nextOrden ? (ej as any) : ({ ...(ej as any), orden: nextOrden } as any);
+        });
 
         newDias[diaIndex] = {
           ...destino,
-          ejercicios: [...base, ...reordenados],
+          ejercicios: [...base, ...appended] as any,
         };
       }
 
@@ -286,7 +337,6 @@ export function useRutinaReducer() {
   const [hydrated, setHydrated] = useState(false);
   const savingRef = useRef(false);
 
-  // HIDRATAR desde AsyncStorage al montar
   useEffect(() => {
     let cancelled = false;
 
@@ -305,7 +355,7 @@ export function useRutinaReducer() {
             nombre: base?.nombre ?? "",
             descripcion: base?.descripcion ?? "",
             usuarioId: typeof base?.usuarioId === "number" ? base.usuarioId : 1,
-            dias: Array.isArray(base?.dias) ? base!.dias : [],
+            dias: Array.isArray(base?.dias) ? (base!.dias as any) : [],
             clipboard: Array.isArray((base as any)?.clipboard)
               ? ((base as any).clipboard as EjercicioAsignadoInput[])
               : undefined,
@@ -319,7 +369,7 @@ export function useRutinaReducer() {
           setHydrated(true);
         }
       } catch {
-        if (!cancelled) setHydrated(true); // continúa sin persistencia
+        if (!cancelled) setHydrated(true);
       }
     })();
 
@@ -328,7 +378,6 @@ export function useRutinaReducer() {
     };
   }, []);
 
-  // GUARDAR en AsyncStorage cuando cambie el estado (solo tras hidratar)
   useEffect(() => {
     if (!hydrated) return;
     if (savingRef.current) return;
@@ -336,7 +385,7 @@ export function useRutinaReducer() {
     savingRef.current = true;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state))
       .catch(() => {
-        // noop: evita romper la app si falla el guardado
+        // noop
       })
       .finally(() => {
         savingRef.current = false;

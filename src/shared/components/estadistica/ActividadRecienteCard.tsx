@@ -4,7 +4,6 @@ import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-chart-kit";
 
-// ------------------ Tipos ------------------
 type SesionDia = {
   fecha: string;
   sesiones: number;
@@ -24,18 +23,14 @@ export default function ActividadRecienteCard({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  // 🟣 Paleta y glass para dark (inspirado en IMCVisual)
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"]; // borde vibrante
+  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
   const cardBorderDark = "rgba(255,255,255,0.08)";
   const textPrimaryDark = "#e5e7eb";
   const textSecondaryDark = "#94a3b8";
 
-  // Medición del ancho real del contenedor
   const [cardWidth, setCardWidth] = useState(0);
-  // Ancho del chart = ancho contenedor - padding horizontal del wrapper (px-3 = 12*2)
   const chartWidth = Math.max(0, cardWidth - 24);
 
-  // Normalizar últimos 7 días
   const normalized = useMemo(() => {
     const map = new Map<string, number>();
     for (const d of detallePorDia ?? []) {
@@ -63,27 +58,32 @@ export default function ActividadRecienteCard({
     () => normalized.map((d) => d.nombreDia.substring(0, 3)),
     [normalized]
   );
-  const values = useMemo(() => normalized.map((d) => d.sesiones || 0), [normalized]);
+  const values = useMemo(
+    () => normalized.map((d) => d.sesiones || 0),
+    [normalized]
+  );
 
   const noData = values.every((v) => v === 0);
 
   if (noData) {
     return (
       <View
-        className={`w-full max-w-[520px]`}
+        className="w-full max-w-[520px]"
         onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
       >
-        {/* Marco degradado distinto para dark / light */}
         <LinearGradient
-          colors={(marcoGradient as any)}
+          colors={marcoGradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
         >
-          {/* Fondo degradado en dark (glassy); en light, blanco */}
           {isDark ? (
             <LinearGradient
-              colors={["rgba(20,28,44,0.85)", "rgba(9,14,24,0.9)", "rgba(20,28,44,0.85)"]}
+              colors={[
+                "rgba(20,28,44,0.85)",
+                "rgba(9,14,24,0.9)",
+                "rgba(20,28,44,0.85)",
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -113,7 +113,6 @@ export default function ActividadRecienteCard({
     );
   }
 
-  // Config del chart
   const chartConfig = {
     backgroundColor: isDark ? "#0b1220" : "#ffffff",
     backgroundGradientFrom: isDark ? "#111a2b" : "#ffffff",
@@ -137,17 +136,19 @@ export default function ActividadRecienteCard({
       className="w-full max-w-[520px]"
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
     >
-      {/* Marco degradado */}
       <LinearGradient
-        colors={(marcoGradient as any)}
+        colors={marcoGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
       >
-        {/* Fondo degradado (dark) / blanco (light) */}
         {isDark ? (
           <LinearGradient
-            colors={["rgba(20,28,44,0.85)", "rgba(9,14,24,0.9)", "rgba(20,28,44,0.85)"]}
+            colors={[
+              "rgba(20,28,44,0.85)",
+              "rgba(9,14,24,0.9)",
+              "rgba(20,28,44,0.85)",
+            ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -197,7 +198,6 @@ export default function ActividadRecienteCard({
   );
 }
 
-/* ---------- Cuerpo de la card (reutilizable para dark/light) ---------- */
 function CardBody({
   isDark,
   labels,
@@ -220,8 +220,7 @@ function CardBody({
   textSecondaryDark: string;
 }) {
   return (
-    <View className={`rounded-2xl ${isDark ? "" : ""}`}>
-      {/* Header */}
+    <View className="rounded-2xl">
       <View className="flex-row justify-between items-center px-4 pt-5 pb-3">
         <View>
           <Text
@@ -244,7 +243,6 @@ function CardBody({
         </View>
       </View>
 
-      {/* Gráfico */}
       <View className="px-3 pb-6">
         <LineChart
           data={{
@@ -261,12 +259,11 @@ function CardBody({
           withDots
           bezier
           chartConfig={chartConfig}
-          formatYLabel={() => ""} // ocultar Y
+          formatYLabel={() => ""}
           segments={4}
         />
       </View>
 
-      {/* Footer compacto */}
       <View className="flex-row justify-between px-5 pb-4">
         <Kpi label="Días activos" value={diasActivos} />
         <Kpi label="Total sesiones" value={totalSesiones} />
@@ -275,18 +272,14 @@ function CardBody({
   );
 }
 
-/* ---------- Subcomponentes ---------- */
 function EmptyState({ isDark }: { isDark: boolean }) {
   return (
     <View
-      className={`rounded-2xl items-center justify-center p-8`}
+      className="rounded-2xl items-center justify-center p-8"
       style={{
         backgroundColor: isDark ? "transparent" : "rgba(255,255,255,0.9)",
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 16,
-        borderWidth: 0, // ya hay borde en el wrapper
+        borderRadius: 16,
+        borderWidth: 0,
       }}
     >
       <View
@@ -301,7 +294,10 @@ function EmptyState({ isDark }: { isDark: boolean }) {
       >
         Faltan datos
       </Text>
-      <Text className="text-xs mt-1" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
+      <Text
+        className="text-xs mt-1"
+        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
+      >
         Cuando registres sesiones, verás tu progreso aquí.
       </Text>
     </View>

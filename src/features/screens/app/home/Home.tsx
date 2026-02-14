@@ -1,10 +1,8 @@
 // Home.tsx
-// Añade recarga deslizando hacia abajo sin romper tu deduplicación ni la caché.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { View, ScrollView, RefreshControl } from "react-native";
 import { useColorScheme } from "nativewind";
-import Toast from "react-native-toast-message";
 
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useSyncStore } from "@/features/store/useSyncStore";
@@ -36,6 +34,9 @@ type RutinaDia = {
 
 type RutinaResp = {
   dias?: RutinaDia[];
+
+  /** 🔥 NUEVO: fechas completadas reales (YYYY-MM-DD) */
+  fechasCompletadas?: string[];
 };
 
 /* ---------- Utils ---------- */
@@ -62,16 +63,8 @@ const toMadridYMD = (() => {
     month: "2-digit",
     day: "2-digit",
   });
-  return (d: Date) => fmt.format(d);
+  return (d: Date) => fmt.format(d); // YYYY-MM-DD
 })();
-
-const inicioSemanaActual = (base: Date) => {
-  const d = new Date(base);
-  const off = (d.getDay() + 6) % 7; // lunes=0
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - off);
-  return d;
-};
 
 /* ---------- Screen ---------- */
 export default function Home() {
@@ -88,13 +81,19 @@ export default function Home() {
   const [dia, setDia] = useState<DiaNombre>(getDiaActualEnum());
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Pull-to-refresh
+  // ✅ NUEVO: fecha seleccionada (Madrid) para que TarjetaHome pinte ejercicios por fecha
+  const [selectedYMD, setSelectedYMD] = useState<string>(() =>
+    toMadridYMD(new Date())
+  );
+
   const [refreshing, setRefreshing] = useState(false);
 
-  // Deduplicador por clave (id|routineRev|workoutRev)
   const lastKeyRef = useRef<string | null>(null);
   const inflightRef = useRef<Promise<any> | null>(null);
 
+  /* ============================================================
+     🔥 FETCH RUTINA + CACHE
+  ============================================================ */
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
@@ -105,36 +104,30 @@ export default function Home() {
 
       const key = `${id}|${routineRev}|${workoutRev}`;
 
-      if (!force && lastKeyRef.current === key) {
-        return; // ya atendido
-      }
+      if (!force && lastKeyRef.current === key) return;
       lastKeyRef.current = key;
 
       const cached = rutinaCache.get(id);
       if (cached && !force) {
         setRutina(cached);
-        // si no quieres refrescar en background, retorna aquí
-        // return;
       }
 
-      // evita carreras
       if (inflightRef.current) {
-        // dejamos terminar la actual
+        // deja que termine la actual
       }
 
       try {
         if (!force) setLoading(true);
+
         const p = obtenerRutina(id)
-          .then((res) => {
-            setRutina(res.data);
-            rutinaCache.set(id, res.data);
+          .then((data) => {
+            const rutinaResp = (data ?? null) as RutinaResp | null;
+
+            setRutina(rutinaResp);
+            if (rutinaResp) rutinaCache.set(id, rutinaResp);
           })
           .catch((err) => {
             console.error("[Home] obtenerRutina error", err);
-            Toast.show({
-              type: "error",
-              text1: cached ? "No se pudo actualizar la rutina." : "Error al cargar la rutina activa.",
-            });
           })
           .finally(() => {
             inflightRef.current = null;
@@ -143,9 +136,7 @@ export default function Home() {
 
         inflightRef.current = p;
         await p;
-      } catch {
-        // ya gestionado en el then/catch de p
-      }
+      } catch {}
     },
     [usuario?.rutinaActivaId, routineRev, workoutRev, rutinaCache]
   );
@@ -157,49 +148,59 @@ export default function Home() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Forzamos ir a red y no usar la clave deduplicada
       await fetchRutina(true);
     } finally {
       setRefreshing(false);
     }
   }, [fetchRutina]);
 
-  const devolver = useCallback((_d: string, diaNombre: string) => {
+  /* ============================================================
+     Cambiar día seleccionado (Calendar)
+  ============================================================ */
+  const devolver = useCallback((d: string, diaNombre: string) => {
     setDia(normalizeEnum(diaNombre));
+
+    // d debería venir como "YYYY-MM-DD" desde Calendar
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setSelectedYMD(d);
+    } else {
+      // fallback seguro (por si Calendar manda otro formato)
+      setSelectedYMD(toMadridYMD(new Date()));
+    }
   }, []);
 
+  /* ============================================================
+     Total ejercicios del día
+  ============================================================ */
   const totalEjercicios = useMemo(() => {
-    return rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
+    return (
+      rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0
+    );
   }, [rutina, dia]);
 
+  /* ============================================================
+     🔥 FIX: COMPLETADAS POR FECHA REAL (persistente)
+  ============================================================ */
   const completadasMap = useMemo(() => {
-    if (!rutina?.dias) return {};
-    const base = inicioSemanaActual(new Date());
-    const orden: DiaNombre[] = [
-      "LUNES",
-      "MARTES",
-      "MIERCOLES",
-      "JUEVES",
-      "VIERNES",
-      "SABADO",
-      "DOMINGO",
-    ];
+    if (!rutina?.fechasCompletadas) return {};
+
     const map: Record<string, boolean> = {};
-    for (let i = 0; i < 7; i++) {
-      const fecha = new Date(base);
-      fecha.setDate(base.getDate() + i);
-      const ymd = toMadridYMD(fecha);
-      const diaEnum = orden[i];
-      const diaRutina = rutina.dias.find((d) => d.diaSemana === diaEnum);
-      if (diaRutina?.completadoHoy) map[ymd] = true;
+    for (const ymd of rutina.fechasCompletadas) {
+      map[ymd] = true;
     }
     return map;
-  }, [rutina?.dias, usuario?.rutinaActivaId, routineRev, workoutRev, rutinaCache]);
+  }, [rutina?.fechasCompletadas]);
 
+  /* ============================================================
+     Loading
+  ============================================================ */
   if (loading && !rutina) {
     return <HomeSkeleton />;
   }
 
+  /* ============================================================
+     RENDER
+  ============================================================ */
   return (
     <ScrollView
       contentContainerStyle={{
@@ -219,21 +220,29 @@ export default function Home() {
         />
       }
     >
+      {/* Calendario */}
       <View className="w-full items-center">
         <Calendar devolverDato={devolver} completadas={completadasMap} />
       </View>
 
+      {/* Resumen */}
       {rutina ? <Extra ejercicios={totalEjercicios} /> : null}
 
+      {/* Tarjeta del Día */}
       <View className="w-full items-center">
-        <TarjetaHome rutina={rutina as any} dia={dia} />
+        <TarjetaHome
+          rutina={rutina as any}
+          dia={dia}
+          selectedYMD={selectedYMD}
+        />
       </View>
 
+      {/* Estado vacío */}
       {!usuario?.rutinaActivaId && (
         <>
           <MensajeVacio
             titulo="Aún no tienes una rutina"
-            descripcion="No hemos encontrado una rutina activa para ti. Puedes generar una personalizada según tus objetivos y equipos disponibles."
+            descripcion="No hemos encontrado una rutina activa para ti. Puedes generar una personalizada."
             textoBoton="Crear mi rutina"
             rutaDestino="/crear-rutina"
             nombreImagen="rutinas"

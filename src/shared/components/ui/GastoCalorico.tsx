@@ -1,11 +1,14 @@
 // src/features/fit/components/GastoCalorico.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { View, Text } from "react-native";
-import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
-import { Picker } from "@react-native-picker/picker";
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 const FACTORES: Record<string, number> = {
   sedentario: 1.2,
@@ -22,8 +25,42 @@ type GastoCaloricoProps = {
   altura?: number | string | null;
   edad?: number | string | null;
   sexo?: string | null;
-  actividadInicial?: string | null; // p.ej. "sedentario", "ligero", "moderado", "muy activo"
+  actividadInicial?: string | null; // ahora puede venir como SEDENTARIO, LIGERAMENTE_ACTIVO...
 };
+
+// 🔁 Helper para mapear el valor crudo a key + label legible
+function mapActividad(actividadInicial?: string | null):
+  | { key: keyof typeof FACTORES; label: string }
+  | null {
+  if (!actividadInicial) return null;
+
+  const rawTrim = actividadInicial.trim();
+  const upper = rawTrim.toUpperCase();
+
+  // Nuevos enums
+  switch (upper) {
+    case "SEDENTARIO":
+      return { key: "sedentario", label: "Sedentario" };
+    case "LIGERAMENTE_ACTIVO":
+      return { key: "ligero", label: "Ligeramente activo" };
+    case "MODERADAMENTE_ACTIVO":
+      return { key: "moderado", label: "Moderadamente activo" };
+    case "MUY_ACTIVO":
+      return { key: "muy activo", label: "Muy activo" };
+  }
+
+  // Soporte para valores antiguos tipo "sedentario", "ligero", "muy activo"...
+  const lower = rawTrim.toLowerCase() as keyof typeof FACTORES;
+  if (FACTORES[lower] != null) {
+    const label = lower
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    return { key: lower, label };
+  }
+
+  return null;
+}
 
 export default function GastoCalorico({
   peso,
@@ -34,20 +71,18 @@ export default function GastoCalorico({
 }: GastoCaloricoProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { usuario } = useUsuarioStore();
 
-  const [actividad, setActividad] = useState<string | null>(
-    actividadInicial ? actividadInicial.toLowerCase() : null
+  const actividad = useMemo(
+    () => mapActividad(actividadInicial),
+    [actividadInicial]
   );
 
-  useEffect(() => {
-    if (actividadInicial) {
-      setActividad(actividadInicial.toLowerCase());
-    }
-  }, [actividadInicial]);
-
   // 🎛️ Paleta glass en dark
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
+  const marcoGradient = [
+    "rgb(0,255,64)",
+    "rgb(94,230,157)",
+    "rgb(178,0,255)",
+  ];
   const cardBgDark = "rgba(20, 28, 44, 0.6)"; // un poco más claro que #0b1220
   const cardBorderDark = "rgba(255,255,255,0.08)";
   const chipBgDark = "rgba(148,163,184,0.16)";
@@ -55,85 +90,7 @@ export default function GastoCalorico({
   const textPrimaryDark = "#e5e7eb";
   const textSecondaryDark = "#94a3b8";
 
-  const planActual = usuario?.planActual;
-  const haPagado = usuario?.haPagado ?? false;
-  const isPremiumActive = planActual === "PREMIUM" && haPagado;
-  const locked = !isPremiumActive;
-
-  // --------- Paywall premium basado en plan ----------
-  if (locked) {
-    return (
-      <View className="w-full max-w-[520px]">
-        <LinearGradient
-          colors={marcoGradient as any}
-          className="rounded-2xl p-[1px]"
-          style={{ borderRadius: 15, overflow: "hidden" }}
-        >
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: isDark ? cardBgDark : "#ffffff",
-              borderWidth: 1,
-              borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-              padding: 20,
-            }}
-          >
-            <View className="flex-row items-center justify-between">
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
-                Gasto calórico diario
-              </Text>
-              <View
-                style={{
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  backgroundColor: isDark ? chipBgDark : "#f5f5f5",
-                  borderWidth: 1,
-                  borderColor: isDark ? chipRingDark : "#e5e7eb",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: isDark ? textSecondaryDark : "#334155",
-                  }}
-                >
-                  Función premium
-                </Text>
-              </View>
-            </View>
-
-            <Text
-              style={{
-                marginTop: 12,
-                fontSize: 13,
-                color: isDark ? textSecondaryDark : "#475569",
-              }}
-            >
-              Desbloquea esta estimación de{" "}
-              <Text
-                style={{
-                  fontWeight: "700",
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
-                gasto calórico diario
-              </Text>{" "}
-              activando el acceso premium.
-            </Text>
-          </View>
-        </LinearGradient>
-      </View>
-    );
-  }
-
-  // TMB Mifflin–St Jeor
+  // TMB Mifflin–St Jeor (asume métricas)
   const tmb = useMemo(() => {
     if (!peso || !altura || !edad || !sexo) return null;
     const base =
@@ -144,7 +101,7 @@ export default function GastoCalorico({
   }, [peso, altura, edad, sexo]);
 
   const factor = useMemo(
-    () => (actividad ? FACTORES[actividad] ?? 1.2 : null),
+    () => (actividad ? FACTORES[actividad.key] ?? 1.2 : null),
     [actividad]
   );
 
@@ -221,10 +178,9 @@ export default function GastoCalorico({
                   color: isDark ? textPrimaryDark : "#0f172a",
                 }}
               >
-                peso, altura, edad y sexo
-              </Text>
-              , y selecciona tu nivel de actividad para estimar tu gasto
-              calórico.
+                peso, altura, edad, sexo y nivel de actividad
+              </Text>{" "}
+              para estimar tu gasto calórico diario.
             </Text>
           </View>
         </LinearGradient>
@@ -262,42 +218,45 @@ export default function GastoCalorico({
               Gasto calórico diario
             </Text>
 
-            {/* Selector de actividad minimalista */}
+            {/* Chip solo lectura con la actividad actual */}
             <View
               style={{
                 borderRadius: 8,
                 borderWidth: 1,
                 borderColor: isDark ? chipRingDark : "#e5e7eb",
-                backgroundColor: isDark ? "rgba(20,28,44,0.55)" : "#ffffff",
-                paddingHorizontal: 4,
+                backgroundColor: isDark
+                  ? "rgba(20,28,44,0.55)"
+                  : "#f5f5f5",
+                paddingHorizontal: 10,
+                paddingVertical: 6,
               }}
             >
-              <Picker
-                selectedValue={actividad}
-                onValueChange={(v) => setActividad(v)}
-                dropdownIconColor={isDark ? textSecondaryDark : "#334155"}
-                mode="dropdown"
+              <Text
                 style={{
-                  height: 34,
-                  width: 180,
-                  color: isDark ? textPrimaryDark : "#0f172a",
+                  fontSize: 11,
+                  color: isDark ? textSecondaryDark : "#334155",
                 }}
               >
-                {Object.keys(FACTORES).map((k) => (
-                  <Picker.Item
-                    key={k}
-                    label={capitalize(k)}
-                    value={k}
-                    color={isDark ? textPrimaryDark : "#0f172a"}
-                  />
-                ))}
-              </Picker>
+                Actividad:{" "}
+                <Text
+                  style={{
+                    fontWeight: "600",
+                    color: isDark ? textPrimaryDark : "#0f172a",
+                  }}
+                >
+                  {actividad.label}
+                </Text>
+              </Text>
             </View>
           </View>
 
           {/* Métricas rápidas */}
           <View className="mt-3 grid grid-cols-2 gap-3">
-            <Metric label="Tasa basal (TMB)" value={`${tmb} kcal`} isDark={isDark} />
+            <Metric
+              label="Tasa basal (TMB)"
+              value={`${tmb} kcal`}
+              isDark={isDark}
+            />
             <Metric
               label="Factor actividad"
               value={`× ${stripTrailingZeros(factor!)}`}
@@ -398,7 +357,7 @@ export default function GastoCalorico({
                 >
                   gasta a diario
                 </Text>{" "}
-                según tu nivel de actividad.
+                según tu nivel actual de actividad.
               </Text>
 
               {/* Chips de referencia */}
@@ -472,12 +431,10 @@ export default function GastoCalorico({
 }
 
 /* ---------- utils ---------- */
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 function stripTrailingZeros(n: number) {
-  return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace(/\.?0+$/, "");
+  return Number.isInteger(n)
+    ? n.toString()
+    : n.toFixed(3).replace(/\.?0+$/, "");
 }
 
 /* ---------- subcomponentes ---------- */

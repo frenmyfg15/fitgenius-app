@@ -1,10 +1,9 @@
+// src/shared/components/ejercicio/PanelEstadisticas.tsx
 import React from "react";
 import { View, TouchableOpacity, ScrollView, Text } from "react-native";
 import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 
-// ⬅️ CORREGIDO: este import era la causa habitual del “displayName of undefined”.
-// Asegúrate de que la ruta exista. Si tu MensajeVacio está en otra carpeta, ajusta aquí.
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 
 import GraficoPesoPorSerie from "./GraficoPesoPorSerie";
@@ -21,16 +20,28 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   detallesSeries?: DetalleSerie[];
+  // 👇 NUEVO: si el ejercicio es de CARDIO
+  esCardio?: boolean;
 };
 
-export default function PanelEstadisticas({ visible, onClose, detallesSeries }: Props) {
+export default function PanelEstadisticas({
+  visible,
+  onClose,
+  detallesSeries,
+  esCardio,
+}: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   if (!visible) return null;
 
-  // Pequeña verificación defensiva: si algún import viniera undefined, avisamos.
-  if (!GraficoPesoPorSerie || !EstadisticasRendimiento || !VisualizacionesSugeridas || !MensajeVacio) {
+  // Verificación defensiva
+  if (
+    !GraficoPesoPorSerie ||
+    !EstadisticasRendimiento ||
+    !VisualizacionesSugeridas ||
+    !MensajeVacio
+  ) {
     console.warn(
       "[PanelEstadisticas] Alguno de los componentes importados es undefined. Revisa las rutas de import."
     );
@@ -88,9 +99,20 @@ export default function PanelEstadisticas({ visible, onClose, detallesSeries }: 
         >
           {detallesSeries && detallesSeries.length > 0 ? (
             <View className="flex-col gap-3">
-              <GraficoPesoPorSerie series={detallesSeries} />
-              <EstadisticasRendimiento detallesSeries={detallesSeries} />
-              <VisualizacionesSugeridas detallesSeries={detallesSeries} />
+              {/* 👇 Le pasamos esCardio al gráfico */}
+              <GraficoPesoPorSerie
+                series={detallesSeries}
+                esCardio={esCardio}
+              />
+              {/* Más adelante puedes usar esCardio en estos dos si lo necesitas */}
+              <EstadisticasRendimiento
+                detallesSeries={detallesSeries}
+                esCardio={esCardio}
+              />
+              <VisualizacionesSugeridas
+                detallesSeries={detallesSeries}
+                esCardio={esCardio}
+              />
             </View>
           ) : (
             <MensajeVacio

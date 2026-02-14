@@ -1,7 +1,6 @@
 // src/features/cuenta/hooks/useCuenta.ts
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
-import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
@@ -44,16 +43,19 @@ export function useCuenta() {
     []
   );
 
-  const logWarning = useCallback((tag: string, err: unknown, userMsg: string) => {
-    console.warn(`⚠️ [${tag}]`, {
-      userMessage: userMsg,
-      isAxiosError: axios.isAxiosError(err),
-      status: axios.isAxiosError(err) ? err.response?.status : undefined,
-      serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-      rawError: err,
-      userId: usuario?.id,
-    });
-  }, [usuario?.id]);
+  const logWarning = useCallback(
+    (tag: string, err: unknown, userMsg: string) => {
+      console.warn(`⚠️ [${tag}]`, {
+        userMessage: userMsg,
+        isAxiosError: axios.isAxiosError(err),
+        status: axios.isAxiosError(err) ? err.response?.status : undefined,
+        serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
+        rawError: err,
+        userId: usuario?.id,
+      });
+    },
+    [usuario?.id]
+  );
 
   const go = useCallback(
     (name: string) => {
@@ -72,11 +74,6 @@ export function useCuenta() {
     } catch (err) {
       const msg = getReadableError(err);
       logWarning("LogoutError", err, msg);
-      Toast.show({
-        type: "error",
-        text1: "No se pudo cerrar sesión",
-        text2: msg,
-      });
     } finally {
       setClosing(false);
     }

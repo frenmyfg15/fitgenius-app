@@ -6,7 +6,6 @@ import { useNavigation } from "@react-navigation/native";
 
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import { Lock } from "lucide-react-native";
 
 /* ---------------- Tipos ---------------- */
 type GrupoMuscular =
@@ -34,7 +33,14 @@ interface EjercicioCompuesto {
 interface EjercicioDia {
   id?: string | number;
   orden?: number;
+
+  // ✅ OJO: ya NO dependemos de completadoHoy para pintar días no-hoy
   completadoHoy?: boolean;
+
+  // ✅ historial que devuelve tu backend
+  fechasCompletadasAsignacion?: string[];
+  ultimaFechaCompletado?: string | null;
+
   ejercicio?: EjercicioSimple;
   ejercicioCompuesto?: EjercicioCompuesto | null;
   seriesSugeridas?: number;
@@ -49,7 +55,7 @@ interface DiaRutina {
 interface Rutina {
   dias?: DiaRutina[];
 }
-type Props = { rutina?: Rutina | null; dia?: string };
+type Props = { rutina?: Rutina | null; dia?: string; selectedYMD?: string };
 
 /* ---------------- Utils de imagen ---------------- */
 const brazos = require("../../../../assets/fit/rutina/brazos.png");
@@ -82,10 +88,7 @@ const imagenPorGrupo = (grupo?: string) => {
   return isGrupoMuscular(key) ? IMAGENES_GRUPO[key] : undefined;
 };
 
-const formateaDetalles = (
-  i: EjercicioDia,
-  medidaPeso: MedidaPeso = "kg"
-): string => {
+const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
   if (i.ejercicioCompuesto) {
     const descanso = i.descansoSeg ?? 0;
     return `${descanso} s descanso`;
@@ -96,11 +99,18 @@ const formateaDetalles = (
   return `${sets} series · ${reps} reps · ${peso} ${medidaPeso}`;
 };
 
+const toMadridYMD = (() => {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return (d: Date) => fmt.format(d);
+})();
+
 /** Devuelve el routeName y params para React Navigation */
-const routeForEjercicio = (e: EjercicioDia): {
-  routeName: string;
-  params: Record<string, any>;
-} => {
+const routeForEjercicio = (e: EjercicioDia) => {
   const asignadoId = e.id != null ? String(e.id) : undefined;
   const nombre =
     e.ejercicioCompuesto?.nombre ?? e.ejercicio?.nombre ?? "ejercicio";
@@ -128,18 +138,30 @@ const routeForEjercicio = (e: EjercicioDia): {
   };
 };
 
+// ✅ completado por fecha seleccionada (histórico)
+const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
+  if (!selectedYMD) return Boolean(ej.completadoHoy);
+
+  const fechas = ej.fechasCompletadasAsignacion ?? [];
+  if (Array.isArray(fechas) && fechas.includes(selectedYMD)) return true;
+
+  // fallback: si estamos viendo HOY y backend marcó completadoHoy
+  const hoy = toMadridYMD(new Date());
+  if (selectedYMD === hoy) return Boolean(ej.completadoHoy);
+
+  return false;
+};
+
 /* ---------------- Tarjeta ---------------- */
 const TarjetaEjercicio = memo(function TarjetaEjercicio({
   ejercicio,
   medidaPeso = "kg",
-  locked = false,
-  onLockedClick,
+  selectedYMD,
   onPressNavegar,
 }: {
   ejercicio: EjercicioDia;
   medidaPeso?: MedidaPeso;
-  locked?: boolean;
-  onLockedClick?: () => void;
+  selectedYMD?: string;
   onPressNavegar?: (routeName: string, params?: Record<string, any>) => void;
 }) {
   const { colorScheme } = useColorScheme();
@@ -159,13 +181,15 @@ const TarjetaEjercicio = memo(function TarjetaEjercicio({
     : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
 
   const detalles = formateaDetalles(ejercicio, medidaPeso);
-  const completado = Boolean(ejercicio.completadoHoy);
+
+  // ✅ aquí está el cambio importante
+  const completado = isCompletedOnDate(ejercicio, selectedYMD);
+
   const { routeName, params } = routeForEjercicio(ejercicio);
 
-  const marcoGradient =
-    completado && !locked
-      ? (["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as any)
-      : null;
+  const marcoGradient = completado
+    ? (["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as any)
+    : null;
 
   const CardInner = (
     <ContenidoTarjeta
@@ -174,22 +198,21 @@ const TarjetaEjercicio = memo(function TarjetaEjercicio({
       tagSuperior={tagSuperior}
       detalles={detalles}
       completado={completado}
-      locked={locked}
+      completedLabel={
+        selectedYMD
+          ? `Completado (${selectedYMD})`
+          : "Completado"
+      }
     />
   );
 
   const Card = (
     <TouchableOpacity
       activeOpacity={0.9}
-      onPress={() =>
-        locked
-          ? onLockedClick?.()
-          : onPressNavegar?.(routeName, params)
-      }
+      onPress={() => onPressNavegar?.(routeName, params)}
       accessibilityRole="button"
       accessibilityState={{ disabled: false }}
-      accessibilityLabel={`${locked ? "Bloqueado — ejercicio extra Premium" : ""
-        } ${isCompuesto ? "compuesto" : "ejercicio"} ${nombre}`}
+      accessibilityLabel={`${isCompuesto ? "compuesto" : "ejercicio"} ${nombre}`}
       className="w-full"
     >
       {CardInner}
@@ -237,91 +260,24 @@ function ContenidoTarjeta({
   tagSuperior,
   detalles,
   completado,
-  locked,
+  completedLabel,
 }: {
   img?: any;
   nombre: string;
   tagSuperior: string;
   detalles: string;
   completado: boolean;
-  locked: boolean;
+  completedLabel: string;
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  if (locked) {
-    return (
-      <View className="flex-row items-center gap-4">
-        <View
-          className={
-            "h-16 w-16 rounded-xl border items-center justify-center " +
-            (isDark
-              ? "border-white/20 bg-white/5"
-              : "border-neutral-200 bg-neutral-50")
-          }
-        >
-          <Lock
-            size={24}
-            color={isDark ? "#e5e7eb" : "#0f172a"}
-            strokeWidth={2}
-          />
-        </View>
-
-        <View className="min-w-0 flex-1">
-          <View className="mb-1">
-            <View
-              className={
-                "self-start rounded-md px-2 py-0.5 ring-1 " +
-                (isDark
-                  ? "bg-white/5 ring-white/15"
-                  : "bg-neutral-100 ring-neutral-200")
-              }
-            >
-              <Text
-                className={
-                  "text-[11px] font-medium " +
-                  (isDark ? "text-[#94a3b8]" : "text-neutral-700")
-                }
-                numberOfLines={1}
-              >
-                Ejercicio extra Premium
-              </Text>
-            </View>
-          </View>
-
-          <Text
-            className={
-              (isDark ? "text-white" : "text-slate-900") +
-              " font-semibold"
-            }
-            numberOfLines={2}
-          >
-            Desbloquea el último ejercicio de la sesión
-          </Text>
-
-          <Text
-            className={
-              (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
-              " text-[12px]"
-            }
-            numberOfLines={2}
-          >
-            Hazte Premium para completar la rutina al 100% y acceder a todos
-            los ejercicios del día.
-          </Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View className="flex-row items-center gap-4">
       <View
         className={
           "h-16 w-16 rounded-xl border grid place-items-center overflow-hidden " +
-          (isDark
-            ? "border-white/60 bg-white/10"
-            : "border-neutral-200 bg-white")
+          (isDark ? "border-white/60 bg-white/10" : "border-neutral-200 bg-white")
         }
       >
         {img ? (
@@ -336,9 +292,7 @@ function ContenidoTarjeta({
           <View
             className={
               "self-start rounded-md px-2 py-0.5 ring-1 " +
-              (isDark
-                ? "bg-white/5 ring-white/15"
-                : "bg-neutral-100 ring-neutral-200")
+              (isDark ? "bg-white/5 ring-white/15" : "bg-neutral-100 ring-neutral-200")
             }
           >
             <Text
@@ -354,9 +308,7 @@ function ContenidoTarjeta({
         </View>
 
         <Text
-          className={
-            (isDark ? "text-white" : "text-slate-900") + " font-semibold"
-          }
+          className={(isDark ? "text-white" : "text-slate-900") + " font-semibold"}
           numberOfLines={1}
         >
           {nombre}
@@ -364,8 +316,7 @@ function ContenidoTarjeta({
 
         <Text
           className={
-            (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
-            " text-[12px]"
+            (isDark ? "text-[#94a3b8]" : "text-neutral-600") + " text-[12px]"
           }
           numberOfLines={2}
         >
@@ -377,11 +328,9 @@ function ContenidoTarjeta({
         <View
           className={
             "ml-auto h-6 w-6 rounded-full items-center justify-center " +
-            (isDark
-              ? "bg-white/10 ring-1 ring-white/15"
-              : "bg-white ring-1 ring-neutral-200")
+            (isDark ? "bg-white/10 ring-1 ring-white/15" : "bg-white ring-1 ring-neutral-200")
           }
-          accessibilityLabel="Completado hoy"
+          accessibilityLabel={completedLabel}
         >
           <Text className="text-[12px]">✓</Text>
         </View>
@@ -391,14 +340,10 @@ function ContenidoTarjeta({
 }
 
 /* ---------------- Principal ---------------- */
-export default function TarjetaHome({ rutina, dia }: Props) {
+export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
   const navigation = useNavigation();
-  const planActual = useUsuarioStore((s) => s.usuario?.planActual);
-  const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
   const rutinaActivaId = useUsuarioStore((s) => s.usuario?.rutinaActivaId);
-  const medidaPeso = useUsuarioStore(
-    (s) => s.usuario?.medidaPeso ?? "kg"
-  );
+  const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso ?? "kg");
 
   const hasRutinaActiva = Boolean(rutinaActivaId);
 
@@ -427,8 +372,6 @@ export default function TarjetaHome({ rutina, dia }: Props) {
 
   if (!rutinaDia) return null;
 
-  const isPremiumActive = planActual === "PREMIUM" && haPagado;
-
   return (
     <View className="w-full px-2">
       <View style={{ gap: 12 }}>
@@ -439,21 +382,12 @@ export default function TarjetaHome({ rutina, dia }: Props) {
               `${item.ejercicio?.nombre}-${item.orden ?? "x"}-${index}`
           );
 
-          const locked =
-            !isPremiumActive && index === ejercicios.length - 1;
-
           return (
             <View key={key}>
               <TarjetaEjercicio
                 ejercicio={item}
                 medidaPeso={medidaPeso}
-                locked={locked}
-                onLockedClick={() => {
-                  // @ts-ignore
-                  navigation.navigate("Perfil", {
-                    screen: "PremiumPayment",
-                  });
-                }}
+                selectedYMD={selectedYMD}
                 onPressNavegar={(routeName, params) =>
                   // @ts-ignore
                   (navigation as any).navigate(routeName, params)

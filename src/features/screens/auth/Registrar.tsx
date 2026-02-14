@@ -1,356 +1,57 @@
 // app/features/auth/RegistrarScreen.tsx
-import React, { useCallback, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
-  Alert,
   ActivityIndicator,
   Switch,
 } from "react-native";
-import { useColorScheme } from "nativewind";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  useForm,
   FormProvider,
   useFormContext,
   Controller,
   type UseFormRegister,
 } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 
 import ModernInput from "@/shared/components/ui/ModernInput";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import { loginConGoogleNativo } from "@/firebase/loginConGoogleNative";
-import {
-  enviarVerifiacionCorreo,
-  registrarUsuario,
-  registrarUsuarioConGoogle,
-} from "@/features/api/usuario.api";
 import Toast from "react-native-toast-message";
-import { useRegistroStore } from "@/features/store/useRegistroStore";
 import EnterCodeVerify from "@/shared/components/auth/EnterCodeVerify";
-import { Usuario } from "@/features/type/register";
+import GoogleSignInButton from "@/shared/components/ui/GoogleSignInButton";
+import { FormUsuario, useRegistrar } from "@/shared/hooks/useRegistrar";
+import { useNavigation } from "@react-navigation/native";
 
-/* ---------------- Schema (formulario local) ---------------- */
-const schema = z.object({
-  nombre: z.string().min(2, "Debe tener al menos 2 caracteres"),
-  apellido: z.string().min(2, "Debe tener al menos 2 caracteres"),
-  correo: z.string().email("Correo inválido"),
-  contrasena: z
-    .string()
-    .min(6, "La contraseña debe tener al menos 6 caracteres"),
-  acepta: z
-    .boolean()
-    .refine((v) => v === true, {
-      message:
-        "Debes aceptar los Términos y Condiciones y la Política de Privacidad",
-    }),
-});
-
-type FormUsuario = z.infer<typeof schema>;
-
-/* ---------------- Constantes ---------------- */
-const LS_USUARIO_KEY = "registroUsuario";
-const LS_STEP_KEY = "registroStep";
-
-type AuthStack = {
-  Registrar: undefined;
-  Sesion: undefined;
-  FitRutina: undefined;
-  Terminos: undefined;
-  Privacidad: undefined;
-};
-
-/* ---------------- Helpers de merge/validación ---------------- */
-function construirUsuarioPayload(
-  form: Pick<FormUsuario, "nombre" | "apellido" | "correo" | "contrasena">,
-  wizard: Partial<Usuario> | null | undefined
-): Usuario | null {
-  if (!wizard) return null;
-
-  // Campos del wizard que consideramos críticos para poder registrar
-  const faltantes: string[] = [];
-  const requeridos: Array<keyof Usuario> = [
-    "objetivo",
-    "sexo",
-    "nivel",
-    "actividad",
-    "lugar",
-    "altura",
-    "medidaAltura",
-    "peso",
-    "medidaPeso",
-    "pesoObjetivo",
-    "edad",
-    "duracion",
-  ];
-
-  for (const k of requeridos) {
-    if (
-      wizard[k] === null ||
-      wizard[k] === undefined ||
-      (typeof wizard[k] === "string" && wizard[k] === "")
-    ) {
-      faltantes.push(String(k));
-    }
-  }
-
-  if (faltantes.length > 0) {
-    Alert.alert(
-      "Faltan datos",
-      `Completa tu perfil antes de registrarte: ${faltantes.join(", ")}`
-    );
-    return null;
-  }
-
-  // Construimos el payload garantizando arrays
-  const payload: Usuario = {
-    nombre: form.nombre as Usuario["nombre"],
-    apellido: form.apellido as Usuario["apellido"],
-    correo: form.correo as Usuario["correo"],
-    contrasena: form.contrasena as Usuario["contrasena"],
-    objetivo: wizard.objetivo as Usuario["objetivo"],
-    sexo: wizard.sexo as Usuario["sexo"],
-    enfoque: (wizard.enfoque ?? []) as Usuario["enfoque"],
-    nivel: wizard.nivel as Usuario["nivel"],
-    actividad: wizard.actividad as Usuario["actividad"],
-    lugar: wizard.lugar as Usuario["lugar"],
-    equipamiento: (wizard.equipamiento ?? []) as Usuario["equipamiento"],
-    altura: wizard.altura as Usuario["altura"],
-    medidaAltura: wizard.medidaAltura as Usuario["medidaAltura"],
-    peso: wizard.peso as Usuario["peso"],
-    medidaPeso: wizard.medidaPeso as Usuario["medidaPeso"],
-    pesoObjetivo: wizard.pesoObjetivo as Usuario["pesoObjetivo"],
-    edad: wizard.edad as Usuario["edad"],
-    dias: (wizard.dias ?? []) as Usuario["dias"],
-    duracion: wizard.duracion as Usuario["duracion"],
-    limitaciones: (wizard.limitaciones ?? []) as Usuario["limitaciones"],
-  };
-
-  return payload;
-}
-
-/* ---------------- Pantalla ---------------- */
 export default function RegistrarScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStack>>();
-  const wizardUsuario = useRegistroStore((s) => s.usuario); // datos del wizard
-
-  const methods = useForm<FormUsuario>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      nombre: (wizardUsuario as any)?.nombre ?? "",
-      apellido: (wizardUsuario as any)?.apellido ?? "",
-      correo: (wizardUsuario as any)?.correo ?? "",
-      contrasena: "",
-      acepta: false,
-    },
-    mode: "onChange",
-  });
+  const navigation = useNavigation();
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setError,
-    setFocus,
-    getValues,
-    reset: resetForm,
-    control,
-  } = methods;
+    isDark,
+    methods,
+    loading,
+    componentCode,
+    setComponentCode,
+    onSubmit,
+    onError,
+    handleGoogleLogin,
+    completarRegistro,
+    resendCodigo,
+    goLogin,
+    // ❌ ya no usamos: goTerminos, goPrivacidad
+  } = useRegistrar();
 
-  const { setUsuario } = useUsuarioStore();
-  const [loading, setLoading] = useState(false);
-  const [componentCode, setComponentCode] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = methods;
 
-  // Guardamos el payload listo para registrar entre "enviar código" y "confirmar código"
-  const [payloadUsuario, setPayloadUsuario] = useState<Usuario | null>(null);
-
-  /* ---------- Helpers ---------- */
-  const resetRegistroState = useCallback(async () => {
-    try {
-      await AsyncStorage.multiRemove([LS_USUARIO_KEY, LS_STEP_KEY]);
-    } catch {
-      /* no-op */
-    }
-    resetForm({
-      nombre: "",
-      apellido: "",
-      correo: "",
-      contrasena: "",
-      acepta: false,
-    });
-  }, [resetForm]);
-
-  const onError = (errs: typeof errors) => {
-    const firstKey = Object.keys(errs)[0] as keyof FormUsuario | undefined;
-    if (firstKey) {
-      setFocus(firstKey);
-      const msg =
-        (errs[firstKey]?.message as string) ||
-        "Revisa los campos del formulario.";
-      Alert.alert("Formulario", msg);
-    }
+  const openPrivacidad = () => {
+    // @ts-ignore
+    navigation.navigate("Legal", { initialTab: "privacidad" });
   };
-
-  const enviarCodigo = useCallback(async (correo: string) => {
-    try {
-      await enviarVerifiacionCorreo(correo);
-      Toast.show({
-        type: "success",
-        text1: "Verificación enviada",
-        text2: "Revisa tu bandeja de entrada 📬",
-        position: "bottom",
-      });
-      setComponentCode(true);
-    } catch (err: any) {
-      console.error("🔴 [SendCodeError]", err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "No se pudo enviar el código";
-      Toast.show({
-        type: "error",
-        text1: "Error al enviar código",
-        text2: msg,
-        position: "bottom",
-      });
-    }
-  }, []);
-
-  // Email + contraseña -> fusionamos con wizard y enviamos código
-  const onSubmit = (formUsuario: FormUsuario) => {
-    const payload = construirUsuarioPayload(
-      {
-        nombre: formUsuario.nombre,
-        apellido: formUsuario.apellido,
-        correo: formUsuario.correo,
-        contrasena: formUsuario.contrasena,
-      },
-      wizardUsuario as Partial<Usuario>
-    );
-
-    if (!payload) return; // ya se avisó con Alert
-
-    setPayloadUsuario(payload);
-    enviarCodigo(payload.correo as unknown as string).catch(() => { });
-  };
-
-  // Google -> al registrar exitosamente, reiniciamos wizard + form
-  const handleGoogleLogin = async () => {
-    if (!getValues("acepta")) {
-      setError("acepta", {
-        type: "manual",
-        message:
-          "Debes aceptar los Términos y Condiciones y la Política de Privacidad",
-      });
-      setFocus("acepta");
-      Alert.alert(
-        "Aviso",
-        "Debes aceptar los Términos y Condiciones y la Política de Privacidad"
-      );
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { token } = await loginConGoogleNativo();
-      const res = await registrarUsuarioConGoogle(token, wizardUsuario);
-
-      setUsuario(res.usuario);
-      await resetRegistroState();
-      navigation.navigate("FitRutina");
-    } catch (err: any) {
-      console.error("Error al iniciar sesión con Google:", err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        "No se pudo iniciar sesión con Google. Intenta de nuevo.";
-      Alert.alert("Google", msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const goLogin = () => navigation.navigate("Sesion");
-  const goTerminos = () => navigation.navigate("Terminos");
-  const goPrivacidad = () => navigation.navigate("Privacidad");
-
-  const completarRegistro = useCallback(
-    async (codigo: string) => {
-      const payload =
-        payloadUsuario ??
-        construirUsuarioPayload(
-          {
-            nombre: getValues("nombre"),
-            apellido: getValues("apellido"),
-            correo: getValues("correo"),
-            contrasena: getValues("contrasena"),
-          },
-          wizardUsuario as Partial<Usuario>
-        );
-
-      if (!payload) return;
-
-      setLoading(true);
-      try {
-        const res = await registrarUsuario(payload, codigo);
-
-        const usuarioFinal = (res as any).usuarioSinContrasena ?? res.usuario;
-        setUsuario(usuarioFinal);
-
-        await AsyncStorage.multiRemove([LS_USUARIO_KEY, LS_STEP_KEY]);
-
-        Toast.show({
-          type: "success",
-          text1: "Registro completado",
-          text2: "¡Bienvenido!",
-          position: "bottom",
-        });
-
-        setComponentCode(false);
-        await resetRegistroState();
-        navigation.navigate("FitRutina");
-      } catch (err: any) {
-        console.error("🔴 [RegisterError]", err);
-        const msg =
-          err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "No se pudo completar el registro";
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: msg,
-          position: "bottom",
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      getValues,
-      navigation,
-      payloadUsuario,
-      resetRegistroState,
-      setUsuario,
-      wizardUsuario,
-    ]
-  );
 
   return (
     <>
       <ScrollView
-        className={isDark ? "bg-[#020617]" : "bg-slate-50"}
+        className={isDark ? "bg-[#0b1220]" : "bg-slate-50"}
         contentContainerStyle={{
           minHeight: "100%",
           paddingHorizontal: 16,
@@ -378,23 +79,11 @@ export default function RegistrarScreen() {
           >
             <View
               className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
-                  ? "border-slate-700 bg-slate-900/70"
-                  : "border-slate-200/80 bg-white"
+                ? "border-slate-700 bg-slate-900/70"
+                : "border-slate-200/80 bg-white"
                 } backdrop-blur`}
             >
               <View className="items-center mb-3">
-                <View
-                  className={`mb-2 rounded-full px-3 py-1 ${isDark ? "bg-slate-800/80" : "bg-slate-100"
-                    }`}
-                >
-                  <Text
-                    className={`text-[11px] font-semibold ${isDark ? "text-slate-200" : "text-slate-700"
-                      }`}
-                  >
-                    Paso final · Crea tu acceso
-                  </Text>
-                </View>
-
                 <Text
                   className={`text-2xl font-bold text-center ${isDark ? "text-white" : "text-slate-900"
                     }`}
@@ -440,7 +129,7 @@ export default function RegistrarScreen() {
 
                   <View className="flex-row items-start gap-2 mt-1">
                     <Controller
-                      control={control}
+                      control={methods.control}
                       name="acepta"
                       render={({ field: { value, onChange } }) => (
                         <Switch
@@ -454,34 +143,29 @@ export default function RegistrarScreen() {
                         />
                       )}
                     />
+
                     <Text
                       className={`flex-1 text-xs ${isDark ? "text-slate-300" : "text-slate-700"
                         }`}
                     >
-                      Acepto los{" "}
+                      Acepto la{" "}
                       <Text
-                        onPress={goTerminos}
-                        className="text-green-500 font-semibold"
+                        onPress={openPrivacidad}
+                        className="text-green-500 font-semibold underline"
                       >
-                        Términos y Condiciones
-                      </Text>{" "}
-                      y la{" "}
-                      <Text
-                        onPress={goPrivacidad}
-                        className="text-green-500 font-semibold"
-                      >
-                        Política de Privacidad
+                        información legal (Términos y Privacidad)
                       </Text>
                       .
                     </Text>
                   </View>
+
                   {errors.acepta && (
                     <Text className="text-red-500 text-xs -mt-1">
                       {errors.acepta.message}
                     </Text>
                   )}
 
-                  {/* Botón REGISTRARSE (mismo estilo que Iniciar sesión en Sesion.tsx) */}
+                  {/* Botón REGISTRARSE */}
                   <Pressable
                     disabled={loading}
                     onPress={handleSubmit(onSubmit, onError)}
@@ -511,7 +195,6 @@ export default function RegistrarScreen() {
                       </View>
                     </LinearGradient>
                   </Pressable>
-
                 </View>
               </FormProvider>
 
@@ -532,46 +215,36 @@ export default function RegistrarScreen() {
                       className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"
                         }`}
                     >
-                      o continúa con
+                      o
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <View className="gap-3">
-                <Pressable
-                  onPress={handleGoogleLogin}
-                  disabled={loading}
-                  className={`flex-row items-center justify-center gap-3 w-full border py-3 rounded-xl ${isDark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"
-                    }`}
-                  style={({ pressed }) => [
-                    { opacity: loading ? 0.7 : pressed ? 0.9 : 1 },
-                  ]}
-                >
-                  <View
-                    className={`h-8 w-8 rounded-full items-center justify-center ${isDark ? "bg-white" : "bg-white"
-                      }`}
-                  >
-                    <Text className="text-lg font-bold text-slate-900">G</Text>
-                  </View>
-                  <Text
-                    className={`text-sm ${isDark ? "text-white" : "text-slate-900"
-                      }`}
-                  >
-                    Continuar con Google
-                  </Text>
-                </Pressable>
-              </View>
+              {/* Google: mismo componente que Sesion */}
+              <GoogleSignInButton
+                text="Continuar con Google"
+                onSuccess={(res) => {
+                  handleGoogleLogin(res.token);
+                }}
+                onError={(err) => {
+                  console.log("[APP] Error Google Registro:", err.message);
+                  Toast.show({
+                    type: "error",
+                    text1: "Google",
+                    text2: "No se pudo continuar con Google. Intenta de nuevo.",
+                    position: "top",
+                  });
+                }}
+                className="mt-1"
+              />
 
               <Text
                 className={`text-sm text-center mt-6 ${isDark ? "text-slate-300" : "text-slate-700"
                   }`}
               >
                 ¿Ya tienes una cuenta?{" "}
-                <Text
-                  onPress={goLogin}
-                  className="text-green-500 font-semibold"
-                >
+                <Text onPress={goLogin} className="text-green-500 font-semibold">
                   Inicia sesión
                 </Text>
               </Text>
@@ -581,40 +254,23 @@ export default function RegistrarScreen() {
 
         {/* Footer */}
         <View className="mt-8 items-center">
-          <Text
-            className={
-              isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"
-            }
-          >
-            © {new Date().getFullYear()} FitGenius. Todos los derechos
-            reservados.
+          <Text className={isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"}>
+            © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
           </Text>
-          <View className="mt-2 flex-row items-center justify-center gap-3">
+
+          <Pressable onPress={openPrivacidad} className="mt-2" hitSlop={10}>
             <Text
-              onPress={goTerminos}
               className={
                 isDark
-                  ? "text-slate-300 underline"
-                  : "text-slate-600 underline"
+                  ? "text-slate-300 underline text-xs"
+                  : "text-slate-600 underline text-xs"
               }
             >
-              Términos y Condiciones
+              Legal (Términos y Privacidad)
             </Text>
-            <Text className={isDark ? "text-slate-400" : "text-slate-600"}>
-              •
-            </Text>
-            <Text
-              onPress={goPrivacidad}
-              className={
-                isDark
-                  ? "text-slate-300 underline"
-                  : "text-slate-600 underline"
-              }
-            >
-              Política de Privacidad
-            </Text>
-          </View>
+          </Pressable>
         </View>
+
       </ScrollView>
 
       {/* Overlay de verificación de código */}
@@ -622,13 +278,7 @@ export default function RegistrarScreen() {
         <View className="absolute inset-0 z-30 items-center justify-center bg-black/80">
           <EnterCodeVerify
             onComplete={completarRegistro}
-            onResend={() => {
-              const correo = (payloadUsuario ??
-                ({
-                  correo: getValues("correo"),
-                } as any)).correo as unknown as string;
-              return enviarCodigo(correo);
-            }}
+            onResend={resendCodigo}
             setComponentCode={setComponentCode}
           />
         </View>
@@ -652,6 +302,7 @@ function Input({
   type?: "text" | "number" | "email" | "password";
 }) {
   const { control } = useFormContext<FormUsuario>();
+  const isDark = false; // no lo usamos aquí directamente, solo placeholder, se pinta por clases
 
   return (
     <View>
@@ -661,16 +312,20 @@ function Input({
       <Controller
         control={control}
         name={id}
-        render={({ field: { value, onChange } }) => (
+        render={({ field: { value, onChange, onBlur } }) => (
           <ModernInput
             type={type}
-            className={`w-full p-3 rounded-xl border text-sm bg-white dark:bg-[#020617] backdrop-blur focus:border-green-400 ${error
-                ? "border-red-400"
-                : "border-slate-300 dark:border-slate-700"
-              }`}
             value={value ?? ""}
             onChangeText={onChange}
+            onBlur={onBlur}
             secureTextEntry={type === "password"}
+            className={`w-full p-3 rounded-xl border text-sm
+              bg-white dark:bg-[#0b1220]
+              text-slate-900 dark:text-slate-50
+              backdrop-blur focus:border-green-400
+              ${error ? "border-red-400" : "border-slate-300 dark:border-slate-700"
+              }`}
+            placeholderTextColor={isDark ? "#94A3B8" : "#64748B"}
           />
         )}
       />

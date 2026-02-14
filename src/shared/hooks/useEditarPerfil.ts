@@ -114,20 +114,21 @@ export function useEditarPerfil() {
   const handleSubmit = useCallback(async () => {
     if (!hayCambios) {
       console.log("[EditarPerfil] handleSubmit sin cambios, no se envía");
-      Toast.show({ type: "info", text1: "No hay cambios para guardar." });
       return;
     }
 
-    // 👇 MAPEAMOS a lo que espera el backend (perfilSchema)
+    // ✅ MAPEAMOS al contrato ACTUAL del backend (service destruye: nivel, actividad, objetivo, duracion, lugar, enfoque...)
     const payload = {
       pesoObjetivo: Number((formData as any).pesoObjetivo) || 0,
       sexo: formData.sexo,
-      nivelExperiencia: formData.nivel,
-      actividadDiaria: formData.actividad,
-      objetivoPrincipal: formData.objetivo,
-      duracionSesion: formData.duracion,
-      lugarEntrenamiento: formData.lugar,
-      enfoquesMusculares: formData.enfoque ?? [],
+
+      nivel: formData.nivel,
+      actividad: formData.actividad,
+      objetivo: formData.objetivo,
+      duracion: formData.duracion,
+      lugar: formData.lugar,
+
+      enfoque: formData.enfoque ?? [],
       limitaciones: formData.limitaciones ?? [],
       dias: formData.dias ?? [],
       equipamiento: formData.equipamiento ?? [],
@@ -138,14 +139,12 @@ export function useEditarPerfil() {
       tipos: {
         pesoObjetivo: typeof payload.pesoObjetivo,
         sexo: typeof payload.sexo,
-        nivelExperiencia: typeof payload.nivelExperiencia,
-        actividadDiaria: typeof payload.actividadDiaria,
-        objetivoPrincipal: typeof payload.objetivoPrincipal,
-        duracionSesion: typeof payload.duracionSesion,
-        lugarEntrenamiento: typeof payload.lugarEntrenamiento,
-        enfoquesMusculares: Array.isArray(payload.enfoquesMusculares)
-          ? "array"
-          : typeof payload.enfoquesMusculares,
+        nivel: typeof payload.nivel,
+        actividad: typeof payload.actividad,
+        objetivo: typeof payload.objetivo,
+        duracion: typeof payload.duracion,
+        lugar: typeof payload.lugar,
+        enfoque: Array.isArray(payload.enfoque) ? "array" : typeof payload.enfoque,
         limitaciones: Array.isArray(payload.limitaciones)
           ? "array"
           : typeof payload.limitaciones,
@@ -158,20 +157,29 @@ export function useEditarPerfil() {
 
     try {
       setSaving(true);
-      Toast.show({ type: "info", text1: "Guardando cambios..." });
 
       const res = await actualizarPerfil(payload as any);
       console.log("[EditarPerfil] Respuesta actualizarPerfil OK:", res);
 
-      // 👇 Aquí sí actualizamos el store en el formato que usa usuario
+      // ✅ Actualizamos el store en el formato que usa "usuario" (evita que queden keys sueltas: nivel/lugar/etc)
       useUsuarioStore.setState((prev) => ({
         ...prev,
         usuario: prev.usuario
           ? {
               ...prev.usuario,
-              ...payload,
+              pesoObjetivo: payload.pesoObjetivo,
+              sexo: payload.sexo,
+              nivelExperiencia: payload.nivel,
+              actividadDiaria: payload.actividad,
+              objetivoPrincipal: payload.objetivo,
+              duracionSesion: payload.duracion,
+              lugarEntrenamiento: payload.lugar,
+              enfoquesMusculares: payload.enfoque,
+              limitaciones: payload.limitaciones,
+              dias: payload.dias,
+              equipamiento: payload.equipamiento,
             }
-          : (prev.usuario as any),
+          : prev.usuario,
       }));
 
       Toast.show({
@@ -187,13 +195,7 @@ export function useEditarPerfil() {
           JSON.stringify(err.response.data, null, 2)
         );
       }
-
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Ocurrió un error al actualizar el perfil.";
-      Toast.show({ type: "error", text1: "Error", text2: msg });
+      // Errores mostrados por handleApiError en la capa API
     } finally {
       setSaving(false);
     }

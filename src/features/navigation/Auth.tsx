@@ -1,12 +1,11 @@
 // navigation/AuthNavigator.tsx
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StatusBar, Text, View } from "react-native";
+import { StatusBar, View } from "react-native";
 import { useColorScheme } from "nativewind";
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 import React from "react";
 
-// Screens
-import Sesion from "../screens/auth/Sesion";
+// Screens SOLO del registro (wizard)
 import Objetivo from "../screens/auth/Objetivo";
 import Sexo from "../screens/auth/Sexo";
 import Enfoque from "../screens/auth/Enfoque";
@@ -16,8 +15,6 @@ import Lugar from "../screens/auth/Lugar";
 import Equipamiento from "../screens/auth/Equipamiento";
 import Altura from "../screens/auth/Altura";
 import Peso from "../screens/auth/Peso";
-import WizardProgressBar from "@/shared/components/ui/WizardProgressBar";
-import { useRegistroStore } from "../store/useRegistroStore";
 import PesoObjetivo from "../screens/auth/PesoObjetivo";
 import Edad from "../screens/auth/Edad";
 import Dias from "../screens/auth/Dias";
@@ -25,8 +22,10 @@ import Duracion from "../screens/auth/Duracion";
 import Limitaciones from "../screens/auth/Limitaciones";
 import Registrar from "../screens/auth/Registrar";
 
+import WizardProgressBar from "@/shared/components/ui/WizardProgressBar";
+import { useRegistroStore } from "../store/useRegistroStore";
+
 export type AuthStackParamList = {
-  Sesion: undefined;
   Objetivo: undefined;
   Sexo: undefined;
   Enfoque: undefined;
@@ -52,38 +51,31 @@ export default function AuthNavigator() {
   const isDark = colorScheme === "dark";
   const showWizard = useRegistroStore((s) => s.showWizard);
 
-
   return (
-    <View style={{ flex: 1, }}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <View style={{ flex: 1 }}>
 
       {/* Toggle de tema flotante */}
       <View className="absolute right-5 top-10 z-10 mt-14">
         <ThemeToggle />
       </View>
+      <WizardProgressBar isDark={isDark} height={12} visible={showWizard} />
 
-       <WizardProgressBar isDark={isDark} height={12} visible={showWizard} />
-      {/* ⬇️ Barra de progreso basada en store, fuera del header */}
-      {/* Overlay fuera del header */}
+      {/* Barra de progreso del wizard, solo en registro */}
 
       <Stack.Navigator
-        initialRouteName="Sesion"
-        screenOptions={({ route }) => ({
+        initialRouteName="Objetivo"
+        screenOptions={{
           headerShown: false,
           presentation: "card",
           animation: "slide_from_right",
           gestureEnabled: true,
           contentStyle: {
-            backgroundColor: isDark ? "#0b1220" : "#ffffff",
-            // 👇 Solo aplica paddingTop cuando NO sea "Sesion"
-            paddingTop: route.name === "Sesion" ? 0 : 100,
+            backgroundColor: isDark ? "#0b1220" : "#f6f7fb",
+            // padding fijo para no tapar contenido con la barra
+            paddingTop: 100,
           },
-        })}
+        }}
       >
-        {/* Auth */}
-        <Stack.Screen name="Sesion" component={Sesion} />
-
-        {/* Registro */}
         <Stack.Screen name="Objetivo" component={Objetivo} />
         <Stack.Screen name="Sexo" component={Sexo} />
         <Stack.Screen name="Enfoque" component={Enfoque} />
@@ -99,7 +91,6 @@ export default function AuthNavigator() {
         <Stack.Screen name="Duracion" component={Duracion} />
         <Stack.Screen name="Limitaciones" component={Limitaciones} />
         <Stack.Screen name="Registrar" component={Registrar} />
-        {/* ... resto de pantallas */}
       </Stack.Navigator>
     </View>
   );

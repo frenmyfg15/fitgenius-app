@@ -1,7 +1,5 @@
-// src/shared/components/misRutinas/Ejercicios.tsx
 import React, { useMemo } from "react";
 import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import {
   Rutina,
@@ -13,7 +11,7 @@ import {
 import { Layers, Shuffle, Infinity as Circuit } from "lucide-react-native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import CandadoPremium from "@/shared/components/ui/CandadoPremium";
-
+import { formatDescripcion } from "@/shared/utils/formatDescripcion";
 type Props = { dias: Rutina["dias"]; day: string };
 
 const cloudinaryGif = (idGif?: string | null) =>
@@ -40,8 +38,8 @@ function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean
       style={[
         styles.chip,
         {
-          backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f5f5f5",
-          borderColor: isDark ? "rgba(255,255,255,0.18)" : "#e5e7eb",
+          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6",
+          borderColor: isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb",
         },
       ]}
     >
@@ -67,8 +65,8 @@ function CompuestoBranchItem({
   isDark: boolean;
 }) {
   const isLast = index === total - 1;
-  const lineColor = isDark ? "rgba(255,255,255,0.12)" : "#e5e7eb";
-  const dotBorder = isDark ? "rgba(255,255,255,0.22)" : "#e5e7eb";
+  const lineColor = isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb";
+  const dotBorder = isDark ? "rgba(148,163,184,0.7)" : "#e5e7eb";
 
   return (
     <View style={{ paddingLeft: 24 }}>
@@ -93,7 +91,7 @@ function CompuestoBranchItem({
           width: 8,
           height: 8,
           borderRadius: 999,
-          backgroundColor: isDark ? "#0b1220" : "#ffffff",
+          backgroundColor: isDark ? "#020617" : "#ffffff",
           borderWidth: 1,
           borderColor: dotBorder,
         }}
@@ -107,9 +105,9 @@ function CompuestoBranchItem({
           gap: 12,
           borderRadius: 12,
           padding: 8,
-          backgroundColor: isDark ? "rgba(20,28,44,0.55)" : "#ffffff",
+          backgroundColor: isDark ? "rgba(15,23,42,0.9)" : "#ffffff",
           borderWidth: 1,
-          borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb",
+          borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
         }}
       >
         <View
@@ -118,9 +116,9 @@ function CompuestoBranchItem({
             height: 48,
             borderRadius: 10,
             overflow: "hidden",
-            backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+            backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
             borderWidth: 1,
-            borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb",
+            borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
           }}
         >
           <Image
@@ -151,18 +149,27 @@ export default function Ejercicios({ dias, day }: Props) {
   const { usuario } = useUsuarioStore();
   const isFreePlan = usuario?.planActual === "GRATUITO";
 
+  // ✅ unidades del usuario (sin convertir valores)
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase(); // "kg" | "lb"
+  // const heightUnit = (usuario?.medidaAltura ?? "CM").toLowerCase(); // "cm" | "ft" (no se usa aquí)
+
   const dia = useMemo(() => (dias ?? []).find((d) => d.diaSemana === day), [dias, day]);
   if (!dia) return null;
 
   const total = dia.ejercicios.length;
   const allowed = isFreePlan ? Math.ceil(total / 2) : total;
 
-  const frameGradient = isDark
-    ? ["#111a2b", "#0b1220", "#111a2b"]
-    : ["#39ff14", "#14ff80", "#22c55e"];
-
-  const cardBg = isDark ? "#0b1220" : "rgba(255,255,255,0.96)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.10)" : "#e5e7eb";
+  const cardBg = isDark ? "#020617" : "#ffffff";
+  const cardBorder = isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb";
+  const cardShadow = isDark
+    ? {}
+    : {
+      shadowColor: "#000",
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
+    };
 
   return (
     <ScrollView
@@ -177,63 +184,52 @@ export default function Ejercicios({ dias, day }: Props) {
         const locked = idx >= allowed;
 
         const CardWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-          <LinearGradient
-            colors={frameGradient as any}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 16, padding: 1, width: "100%", maxWidth: 680 }}
-          >
-            <View
-              style={{
+          <View
+            style={[
+              {
                 position: "relative",
                 borderRadius: 16,
                 backgroundColor: cardBg,
                 borderWidth: 1,
                 borderColor: cardBorder,
                 padding: 16,
+                width: "100%",
+                maxWidth: 680,
                 overflow: "hidden",
-              }}
-            >
-              {/* contenido (si locked, lo atenuamos un poco) */}
-              <View style={{ opacity: locked ? 0.55 : 1 }}>{children}</View>
+              },
+              cardShadow,
+            ]}
+          >
+            <View style={{ opacity: locked ? 0.55 : 1 }}>{children}</View>
 
-              {/* overlay de bloqueo */}
-              {locked && (
-                <View
-                  pointerEvents="auto"
-                  style={StyleSheet.absoluteFillObject}
-                >
-                  <CandadoPremium size={48} isDark={isDark} />
-                </View>
-              )}
-            </View>
-          </LinearGradient>
+            {locked && (
+              <View pointerEvents="auto" style={StyleSheet.absoluteFillObject}>
+                <CandadoPremium size={48} isDark={isDark} />
+              </View>
+            )}
+          </View>
         );
 
         /* --------- SIMPLE --------- */
         if (isSimple(asignado)) {
           const ej = asignado.ejercicio!;
+
           const meta =
             asignado.seriesSugeridas ||
-            asignado.repeticionesSugeridas ||
-            asignado.pesoSugerido
+              asignado.repeticionesSugeridas ||
+              asignado.pesoSugerido
               ? [
-                  asignado.seriesSugeridas ? `${asignado.seriesSugeridas} series` : null,
-                  asignado.repeticionesSugeridas ? `${asignado.repeticionesSugeridas} reps` : null,
-                  asignado.pesoSugerido ? `${asignado.pesoSugerido} kg` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
+                asignado.seriesSugeridas ? `${asignado.seriesSugeridas} series` : null,
+                asignado.repeticionesSugeridas ? `${asignado.repeticionesSugeridas} reps` : null,
+                asignado.pesoSugerido ? `${asignado.pesoSugerido} ${weightUnit}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
               : null;
 
           return (
             <CardWrapper key={`s-${(asignado as any).id ?? idx}`}>
-              <View
-                style={{
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
+              <View style={{ flexDirection: "column", gap: 12 }}>
                 <View
                   style={{
                     alignSelf: "center",
@@ -241,9 +237,9 @@ export default function Ejercicios({ dias, day }: Props) {
                     height: 112,
                     borderRadius: 14,
                     overflow: "hidden",
-                    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+                    backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
                     borderWidth: 1,
-                    borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb",
+                    borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
                   }}
                 >
                   <Image
@@ -275,7 +271,7 @@ export default function Ejercicios({ dias, day }: Props) {
                       }}
                       numberOfLines={2}
                     >
-                      {ej.descripcion}
+                      {formatDescripcion(ej.descripcion)}
                     </Text>
                   ) : null}
 
@@ -306,8 +302,8 @@ export default function Ejercicios({ dias, day }: Props) {
             comp.tipoCompuesto === "SUPERSET"
               ? Shuffle
               : comp.tipoCompuesto === "CIRCUITO"
-              ? Circuit
-              : Layers;
+                ? Circuit
+                : Layers;
 
           const componentes: ComponenteEjercicioCompuesto[] = [
             ...(comp.ejerciciosComponentes ?? []),
@@ -322,9 +318,9 @@ export default function Ejercicios({ dias, day }: Props) {
                       height: 40,
                       width: 40,
                       borderRadius: 12,
-                      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#ffffff",
+                      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f9fafb",
                       borderWidth: 1,
-                      borderColor: isDark ? "rgba(255,255,255,0.12)" : "#e5e7eb",
+                      borderColor: isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -348,9 +344,9 @@ export default function Ejercicios({ dias, day }: Props) {
                           marginTop: 8,
                           fontSize: 12,
                           color: isDark ? "#CBD5E1" : "#334155",
-                          backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+                          backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
                           borderWidth: 1,
-                          borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e5e7eb",
+                          borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
                           borderRadius: 12,
                           paddingHorizontal: 12,
                           paddingVertical: 8,
@@ -367,7 +363,7 @@ export default function Ejercicios({ dias, day }: Props) {
                     const detalle = [
                       c.series ? `${c.series} series` : null,
                       c.repeticiones ? `${c.repeticiones} reps` : null,
-                      c.pesoSugerido ? `${c.pesoSugerido} kg` : null,
+                      c.pesoSugerido ? `${c.pesoSugerido} ${weightUnit}` : null,
                       c.descansoSugeridoSeg ? `${c.descansoSugeridoSeg}s descanso` : null,
                     ]
                       .filter(Boolean)

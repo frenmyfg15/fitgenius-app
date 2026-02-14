@@ -1,6 +1,6 @@
 // src/features/premium/DistribucionMuscularCard.tsx
 import React, { useMemo } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
@@ -12,9 +12,6 @@ import Svg, {
   LinearGradient as SvgLinearGradient,
   Stop,
 } from "react-native-svg";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import { Lock } from "lucide-react-native";
-import { useNavigation } from "@react-navigation/native";
 
 type DistribucionItem = {
   grupoMuscular: string;
@@ -48,17 +45,42 @@ function normalizeDistribucion(src: DistribucionItem[]) {
   return arr.sort((a, b) => b.porcentaje - a.porcentaje).slice(0, 10);
 }
 
+/* ---------- Paleta pastel por grupo muscular ---------- */
+
+// Colores pastel suaves, pensados para que todos sean distinguibles
+const PASTEL_COLORS = [
+  "#a5b4fc", // lila suave
+  "#f9a8d4", // rosa pastel
+  "#6ee7b7", // verde menta
+  "#fde68a", // amarillo suave
+  "#bfdbfe", // azul pastel
+  "#fca5a5", // rojo suave
+  "#fed7aa", // naranja suave
+  "#7dd3fc", // celeste
+  "#c4b5fd", // violeta pastel
+  "#bbf7d0", // verde muy claro
+] as const;
+
+/**
+ * Asigna un color pastel estable a cada grupo muscular.
+ * Usa un hash simple del nombre + fallback por índice.
+ */
+function getColorForGroup(grupoMuscular: string, index: number): string {
+  const base = grupoMuscular || "";
+  let hash = 0;
+  for (let i = 0; i < base.length; i++) {
+    hash = (hash + base.charCodeAt(i) * 17) | 0;
+  }
+  const idx = Math.abs(hash) % PASTEL_COLORS.length;
+  // mezclar un poco con el índice para que grupos con nombre parecido no caigan igual
+  const finalIdx = (idx + index) % PASTEL_COLORS.length;
+  return PASTEL_COLORS[finalIdx];
+}
+
 /* ---------- Componente principal ---------- */
 export default function DistribucionMuscularCard({ distribucion }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { usuario } = useUsuarioStore();
-  const navigation = useNavigation<any>();
-
-  const planActual = usuario?.planActual;
-  const haPagado = usuario?.haPagado ?? false;
-  const isPremiumActive = planActual === "PREMIUM" && haPagado;
-  const locked = !isPremiumActive;
 
   // 🎨 Paleta & glass (consistente con otras cards)
   const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
@@ -71,12 +93,6 @@ export default function DistribucionMuscularCard({ distribucion }: Props) {
   const data = useMemo(() => normalizeDistribucion(distribucion), [distribucion]);
   const hasData = data.length > 0;
   const top = hasData ? data[0] : null;
-
-  const handleGoPremium = () => {
-     navigation.navigate("Perfil", {
-  screen: "PremiumPayment",
-}); 
-  };
 
   return (
     <View className="w-full max-w-[520px]">
@@ -100,17 +116,13 @@ export default function DistribucionMuscularCard({ distribucion }: Props) {
               overflow: "hidden",
             }}
           >
-            {locked ? (
-              <LockedBody isDark={true} onPress={handleGoPremium} />
-            ) : (
-              <CardBody
-                isDark
-                data={data}
-                top={top}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            )}
+            <CardBody
+              isDark
+              data={data}
+              top={top}
+              textPrimaryDark={textPrimaryDark}
+              textSecondaryDark={textSecondaryDark}
+            />
           </LinearGradient>
         ) : (
           <View
@@ -122,17 +134,13 @@ export default function DistribucionMuscularCard({ distribucion }: Props) {
               overflow: "hidden",
             }}
           >
-            {locked ? (
-              <LockedBody isDark={false} onPress={handleGoPremium} />
-            ) : (
-              <CardBody
-                isDark={false}
-                data={data}
-                top={top}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            )}
+            <CardBody
+              isDark={false}
+              data={data}
+              top={top}
+              textPrimaryDark={textPrimaryDark}
+              textSecondaryDark={textSecondaryDark}
+            />
           </View>
         )}
       </LinearGradient>
@@ -140,7 +148,7 @@ export default function DistribucionMuscularCard({ distribucion }: Props) {
   );
 }
 
-/* ---------- Cuerpo cuando está desbloqueado (Premium) ---------- */
+/* ---------- Cuerpo principal ---------- */
 function CardBody({
   isDark,
   data,
@@ -155,6 +163,16 @@ function CardBody({
   textSecondaryDark: string;
 }) {
   const hasData = data.length > 0;
+
+  // Enriquecer data con color pastel por grupo muscular
+  const coloredData = useMemo(
+    () =>
+      data.map((item, index) => ({
+        ...item,
+        color: getColorForGroup(item.grupoMuscular, index),
+      })),
+    [data]
+  );
 
   return (
     <View className="relative rounded-2xl">
@@ -197,8 +215,8 @@ function CardBody({
       <View className="px-4 pb-5">
         {hasData ? (
           <>
-            <RadarChart data={data} isDark={isDark} />
-            <Legend data={data} isDark={isDark} />
+            <RadarChart data={coloredData} isDark={isDark} />
+            <Legend data={coloredData} isDark={isDark} />
           </>
         ) : (
           <EmptyState isDark={isDark} />
@@ -208,75 +226,21 @@ function CardBody({
   );
 }
 
-/* ---------- Cuerpo cuando está bloqueado (no Premium) ---------- */
-function LockedBody({
-  isDark,
-  onPress,
-}: {
-  isDark: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={onPress}
-      className="rounded-2xl"
-    >
-      <View className="px-5 py-5 flex-row items-center gap-4">
-        <View
-          className={
-            "h-12 w-12 rounded-2xl items-center justify-center " +
-            (isDark ? "bg-white/5" : "bg-neutral-50")
-          }
-        >
-          <Lock
-            size={26}
-            color={isDark ? "#e5e7eb" : "#0f172a"}
-            strokeWidth={2}
-          />
-        </View>
-
-        <View className="flex-1">
-          <Text
-            className={
-              (isDark ? "text-white" : "text-slate-900") +
-              " text-[15px] font-semibold"
-            }
-          >
-            Distribución muscular Premium
-          </Text>
-          <Text
-            className={
-              (isDark ? "text-[#94a3b8]" : "text-neutral-600") +
-              " text-[12px] mt-1"
-            }
-          >
-            Hazte Premium para ver qué grupos musculares estás trabajando más y
-            equilibrar tus entrenamientos.
-          </Text>
-          <Text
-            className={
-              "mt-2 text-[12px] font-semibold " +
-              (isDark ? "text-emerald-300" : "text-emerald-600")
-            }
-          >
-            Toca para activar fitgenius Premium →
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 /* ---------- RadarChart (SVG puro) ---------- */
+
+type RadarDataItem = {
+  grupoMuscular: string;
+  porcentaje: number;
+  color: string;
+};
+
 function RadarChart({
   data,
   isDark,
 }: {
-  data: { grupoMuscular: string; porcentaje: number }[];
+  data: RadarDataItem[];
   isDark: boolean;
 }) {
-  // Geometría
   const size = 260;
   const cx = size / 2;
   const cy = size / 2;
@@ -286,7 +250,6 @@ function RadarChart({
   const n = Math.max(3, data.length);
   const rings = 5;
 
-  // Colores
   const gridStroke = isDark
     ? "rgba(148,163,184,0.15)"
     : "rgba(15,23,42,0.08)";
@@ -294,7 +257,6 @@ function RadarChart({
     ? "rgba(148,163,184,0.25)"
     : "rgba(15,23,42,0.12)";
 
-  // Puntos
   const angleAt = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2;
   const point = (rNorm: number, i: number) => {
     const a = angleAt(i);
@@ -302,7 +264,6 @@ function RadarChart({
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   };
 
-  // Anillos
   const ringPolygons: string[] = [];
   for (let k = 1; k <= rings; k++) {
     const norm = k / rings;
@@ -314,14 +275,12 @@ function RadarChart({
     ringPolygons.push(pts.join(" "));
   }
 
-  // Ejes
   const axes: { x1: number; y1: number; x2: number; y2: number }[] = [];
   for (let i = 0; i < n; i++) {
     const p = point(1, i);
     axes.push({ x1: cx, y1: cy, x2: p.x, y2: p.y });
   }
 
-  // Polígono de datos
   const dataPoints = data.map((d, i) =>
     point(Math.max(0, Math.min(1, d.porcentaje / 100)), i)
   );
@@ -390,14 +349,16 @@ function RadarChart({
             strokeWidth={2.5}
           />
 
-          {/* Puntos */}
+          {/* Puntos coloreados por grupo muscular */}
           {dataPoints.map((p, idx) => (
             <SvgCircle
               key={`dp-${idx}`}
               cx={p.x}
               cy={p.y}
-              r={3}
-              fill={isDark ? "#fff" : "#0f172a"}
+              r={4}
+              fill={data[idx]?.color || (isDark ? "#e5e7eb" : "#0f172a")}
+              stroke={isDark ? "#020617" : "#ffffff"}
+              strokeWidth={1.2}
             />
           ))}
         </G>
@@ -411,21 +372,20 @@ function Legend({
   data,
   isDark,
 }: {
-  data: { grupoMuscular: string; porcentaje: number }[];
+  data: RadarDataItem[];
   isDark: boolean;
 }) {
   return (
     <View className="mt-3">
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.grupoMuscular}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        renderItem={({ item }) => (
-          <View className="flex-row items-center mb-2 w-[48%]">
+      <View className="flex-row flex-wrap justify-between">
+        {data.map((item) => (
+          <View
+            key={item.grupoMuscular}
+            className="flex-row items-center mb-2 w-[48%]"
+          >
             <View
               className="h-2.5 w-2.5 rounded-full mr-2"
-              style={{ backgroundColor: "#94a3b8" }}
+              style={{ backgroundColor: item.color }}
             />
             <Text
               className="text-xs flex-1"
@@ -441,11 +401,12 @@ function Legend({
               {item.porcentaje.toFixed(1)}%
             </Text>
           </View>
-        )}
-      />
+        ))}
+      </View>
     </View>
   );
 }
+
 
 /* ---------- Vacío / sin datos ---------- */
 function EmptyState({ isDark }: { isDark: boolean }) {
@@ -461,9 +422,7 @@ function EmptyState({ isDark }: { isDark: boolean }) {
       <View
         className="h-12 w-12 rounded-xl mb-3 items-center justify-center"
         style={{
-          backgroundColor: isDark
-            ? "rgba(255,255,255,0.10)"
-            : "#e2e8f0",
+          backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
         }}
       >
         <Text style={{ color: isDark ? "#e5e7eb" : "#94a3b8" }}>⭐️</Text>

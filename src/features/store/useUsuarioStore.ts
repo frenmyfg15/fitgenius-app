@@ -1,4 +1,3 @@
-// src/features/store/usuario.ts
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -11,7 +10,7 @@ export type UsuarioLogin = {
   imagenPerfil?: string;
 
   edad: number;
-  altura: number;
+  altura: string;
   medidaAltura: string;
   peso: number;
   medidaPeso: string;
@@ -36,7 +35,7 @@ export type UsuarioLogin = {
 
   caloriasMes: number;
 
-  // 👇 NUEVOS CAMPOS
+  // Nuevos campos
   rutinasManualCreadas: number;
   rutinasIACreadas: number;
 };
@@ -59,53 +58,59 @@ type UsuarioStore = {
   usuario: UsuarioLogin | null;
   setUsuario: (usuario: UsuarioLogin | null) => void;
   logout: () => void;
+
+  // Persistencia
   rehydrated: boolean;
   setRehydrated: () => void;
+
+  // Update
   updatePerfil: (data: PerfilFormData) => void;
 };
 
+// ❌ sin isPremium en el store
 export const useUsuarioStore = create<UsuarioStore>()(
   persist(
     (set, get) => ({
       usuario: null,
+
       setUsuario: (usuario) => set({ usuario }),
+
       logout: () => set({ usuario: null }),
+
       rehydrated: false,
       setRehydrated: () => set({ rehydrated: true }),
-      updatePerfil: (data) => {
+
+      updatePerfil: (data) =>
         set((state) => {
-          if (!state.usuario) {
-            console.warn("No hay usuario logueado para actualizar el perfil.");
-            return state;
-          }
-          const updatedUsuario: UsuarioLogin = {
-            ...state.usuario,
-            pesoObjetivo: data.pesoObjetivo,
-            sexo: data.sexo,
-            nivelExperiencia: data.nivel,
-            actividadDiaria: data.actividad,
-            objetivoPrincipal: data.objetivo,
-            duracionSesion: data.duracion,
-            lugarEntrenamiento: data.lugar,
-            enfoquesMusculares: data.enfoque,
-            limitaciones: data.limitaciones,
-            dias: data.dias,
-            equipamiento: data.equipamiento,
+          if (!state.usuario) return state;
+
+          return {
+            usuario: {
+              ...state.usuario,
+              pesoObjetivo: data.pesoObjetivo,
+              sexo: data.sexo,
+              nivelExperiencia: data.nivel,
+              actividadDiaria: data.actividad,
+              objetivoPrincipal: data.objetivo,
+              duracionSesion: data.duracion,
+              lugarEntrenamiento: data.lugar,
+              enfoquesMusculares: data.enfoque,
+              limitaciones: data.limitaciones,
+              dias: data.dias,
+              equipamiento: data.equipamiento,
+            },
           };
-          return { usuario: updatedUsuario };
-        });
-      },
+        }),
     }),
     {
       name: "usuario-storage",
-      storage: createJSONStorage(() => AsyncStorage), // 👈 Persistencia real en RN
+      storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.warn("Hydration error:", error);
-        }
-        state?.setRehydrated(); // 👈 evita spinner infinito
+        if (error) console.warn("Hydration error:", error);
+        state?.setRehydrated();
       },
       version: 1,
     }
   )
 );
+

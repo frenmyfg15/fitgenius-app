@@ -66,7 +66,7 @@ export default function FormularioCompuesto({
         justifyContent: "center",
         alignItems: "center",
         padding: 16,
-        zIndex: 40
+        zIndex: 100,
       }}
       accessibilityViewIsModal
       accessibilityLabel="Formulario de ejercicio compuesto"
@@ -107,9 +107,13 @@ export default function FormularioCompuesto({
                 borderRadius: 999,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: isDark ? "rgba(148,163,184,0.18)" : "#f1f5f9",
+                backgroundColor: isDark
+                  ? "rgba(148,163,184,0.18)"
+                  : "#f1f5f9",
                 borderWidth: 1,
-                borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+                borderColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "#e2e8f0",
               }}
             >
               <X size={18} color={textSecondary} />

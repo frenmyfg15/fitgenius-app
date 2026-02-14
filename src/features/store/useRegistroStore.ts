@@ -33,7 +33,7 @@ type RegistroState = {
   usuario: Usuario;
   // acciones
 
-  showWizard: boolean;                     // ⬅️ nuevo
+  showWizard: boolean;
   setShowWizard: (v: boolean) => void;
   setUsuario: (u: Usuario) => void;
   updateUsuario: (partial: Partial<Usuario>) => void;

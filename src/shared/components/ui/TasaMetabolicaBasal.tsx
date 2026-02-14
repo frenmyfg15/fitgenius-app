@@ -19,19 +19,30 @@ const C = 2 * Math.PI * R;
 const CX = 90;
 const CY = 90;
 
+type UnidadPeso = "KG" | "LB";
+type UnidadAltura = "CM" | "FT";
+
 type TasaMetabolicaBasalProps = {
   peso?: number | string | null;
   altura?: number | string | null;
   edad?: number | string | null;
   sexo?: string | null;
+  medidaPeso?: UnidadPeso;
+  medidaAltura?: UnidadAltura;
   soloGrafica?: boolean;
 };
+
+const KG_TO_LB = 2.2046226218;
+const LB_TO_KG = 1 / KG_TO_LB;
+const CM_PER_FT = 30.48;
 
 export default function TasaMetabolicaBasal({
   peso,
   altura,
   edad,
   sexo,
+  medidaPeso = "KG",
+  medidaAltura = "CM",
   soloGrafica = false,
 }: TasaMetabolicaBasalProps) {
   const { colorScheme } = useColorScheme();
@@ -60,6 +71,51 @@ export default function TasaMetabolicaBasal({
       screen: "PremiumPayment",
     });
   };
+
+  // ✅ Lógica de cálculo (normalizando unidades)
+  const pesoNumOriginal = Number(peso ?? 0);
+  const alturaNumOriginal = Number(altura ?? 0);
+  const edadNum = Number(edad ?? 0);
+  const sexoRaw = String(sexo ?? "");
+
+  // Peso → kg
+  const pesoKg =
+    medidaPeso === "LB" ? pesoNumOriginal * LB_TO_KG : pesoNumOriginal;
+
+  // Altura → cm, robusto por si la unidad no coincide con el valor
+  const alturaCm =
+    alturaNumOriginal <= 0
+      ? 0
+      : medidaAltura === "CM"
+      ? alturaNumOriginal // ya está en cm
+      : // "FT"
+        alturaNumOriginal <= 10
+        ? alturaNumOriginal * CM_PER_FT // pies → cm (ej: 5.8 ft)
+        : alturaNumOriginal; // valor grande: probablemente ya viene en cm
+
+  const hasInputs =
+    pesoKg > 0 && alturaCm > 0 && edadNum > 0 && !!sexoRaw.trim();
+
+  const sexoNorm = sexoRaw.toLowerCase().startsWith("m") ? "M" : "F";
+
+  const tmb: number | null = hasInputs
+    ? Math.round(
+        sexoNorm === "M"
+          ? 10 * pesoKg + 6.25 * alturaCm - 5 * edadNum + 5
+          : 10 * pesoKg + 6.25 * alturaCm - 5 * edadNum - 161
+      )
+    : null;
+
+  const minTMB = 1000;
+  const maxTMB = 3000;
+
+  // ✅ useMemo SIEMPRE se ejecuta (aunque locked / sin datos)
+  const { estado, isGradient } = useMemo(() => {
+    if (tmb == null) return { estado: "", isGradient: false };
+    if (tmb < minTMB) return { estado: "por debajo", isGradient: false };
+    if (tmb > maxTMB) return { estado: "por encima", isGradient: false };
+    return { estado: "en rango estimado", isGradient: true };
+  }, [tmb, minTMB, maxTMB]);
 
   // 🔒 Basado en plan actual
   if (locked) {
@@ -164,31 +220,18 @@ export default function TasaMetabolicaBasal({
     );
   }
 
-  // ✅ Lógica de cálculo cuando está desbloqueado
-  const pesoNum = Number(peso ?? 0);
-  const alturaNum = Number(altura ?? 0);
-  const edadNum = Number(edad ?? 0);
-  const sexoRaw = String(sexo ?? "");
+  // ✅ Si está desbloqueado pero faltan inputs, no renderiza
+  if (!hasInputs || tmb == null) return null;
 
-  if (!pesoNum || !alturaNum || !edadNum || !sexoRaw) return null;
-
-  const sexoNorm = sexoRaw.toLowerCase().startsWith("m") ? "M" : "F";
-  const tmb = Math.round(
-    sexoNorm === "M"
-      ? 10 * pesoNum + 6.25 * alturaNum - 5 * edadNum + 5
-      : 10 * pesoNum + 6.25 * alturaNum - 5 * edadNum - 161
-  );
-
-  const minTMB = 1000;
-  const maxTMB = 3000;
   const pct = Math.max(0, Math.min(1, (tmb - minTMB) / (maxTMB - minTMB)));
   const dash = C * (1 - pct);
 
-  const { estado, isGradient } = useMemo(() => {
-    if (tmb < minTMB) return { estado: "por debajo", isGradient: false };
-    if (tmb > maxTMB) return { estado: "por encima", isGradient: false };
-    return { estado: "en rango estimado", isGradient: true };
-  }, [tmb, minTMB, maxTMB]);
+  // Valores mostrados según unidades del usuario
+  const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
+  const unidadAlturaLabel = medidaAltura === "FT" ? "ft" : "cm";
+
+  const pesoDisplay = pesoNumOriginal;
+  const alturaDisplay = alturaNumOriginal;
 
   return (
     <View className="w-full max-w-[520px]">
@@ -218,6 +261,7 @@ export default function TasaMetabolicaBasal({
             >
               Tasa metabólica basal
             </Text>
+
             <View
               style={{
                 paddingHorizontal: 8,
@@ -227,9 +271,7 @@ export default function TasaMetabolicaBasal({
                   ? "rgba(148,163,184,0.16)"
                   : "#f5f5f5",
                 borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : "#e5e7eb",
+                borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb",
               }}
             >
               <Text
@@ -250,12 +292,12 @@ export default function TasaMetabolicaBasal({
               <View className="mt-3 grid grid-cols-3 gap-3">
                 <Chip
                   label="Peso"
-                  value={`${round1(pesoNum)} kg`}
+                  value={`${round1(pesoDisplay)} ${unidadPesoLabel}`}
                   isDark={isDark}
                 />
                 <Chip
                   label="Altura"
-                  value={`${round1(alturaNum)} cm`}
+                  value={`${round1(alturaDisplay)} ${unidadAlturaLabel}`}
                   isDark={isDark}
                 />
                 <Chip
@@ -282,19 +324,11 @@ export default function TasaMetabolicaBasal({
                     <Stop offset="50%" stopColor="rgb(94,230,157)" />
                     <Stop offset="100%" stopColor="rgb(178,0,255)" />
                   </SvgLinearGradient>
-                  <SvgLinearGradient
-                    id="tmbGradMuted"
-                    x1="0"
-                    y1="0"
-                    x2="1"
-                    y2="1"
-                  >
+
+                  <SvgLinearGradient id="tmbGradMuted" x1="0" y1="0" x2="1" y2="1">
                     <Stop offset="0%" stopColor="rgba(0,255,64,0.5)" />
                     <Stop offset="50%" stopColor="rgba(94,230,157,0.5)" />
-                    <Stop
-                      offset="100%"
-                      stopColor="rgba(178,0,255,0.5)"
-                    />
+                    <Stop offset="100%" stopColor="rgba(178,0,255,0.5)" />
                   </SvgLinearGradient>
                 </Defs>
 
@@ -324,12 +358,7 @@ export default function TasaMetabolicaBasal({
 
               {/* Centro del anillo */}
               <View className="absolute inset-0 items-center justify-center">
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: textSecondary,
-                  }}
-                >
+                <Text style={{ fontSize: 11, color: textSecondary }}>
                   TMB estimada
                 </Text>
                 <Text
@@ -343,11 +372,7 @@ export default function TasaMetabolicaBasal({
                   {tmb}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 11,
-                    color: textSecondary,
-                    marginTop: 2,
-                  }}
+                  style={{ fontSize: 11, color: textSecondary, marginTop: 2 }}
                 >
                   kcal / día
                 </Text>
@@ -367,9 +392,7 @@ export default function TasaMetabolicaBasal({
                   ? "rgba(148,163,184,0.18)"
                   : "#e5e7eb",
                 borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(255,255,255,0.10)"
-                  : "#e5e7eb",
+                borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e5e7eb",
               }}
             >
               <LinearGradient
@@ -379,10 +402,8 @@ export default function TasaMetabolicaBasal({
                 style={{ width: `${pct * 100}%`, height: "100%" }}
               />
             </View>
-            <View
-              className="flex-row justify-between"
-              style={{ marginTop: 6 }}
-            >
+
+            <View className="flex-row justify-between" style={{ marginTop: 6 }}>
               <Text style={{ fontSize: 11, color: textSecondary }}>
                 1000 kcal
               </Text>
@@ -393,15 +414,9 @@ export default function TasaMetabolicaBasal({
           </View>
 
           {/* Nota */}
-          <Text
-            style={{
-              marginTop: 16,
-              fontSize: 12,
-              color: textSecondary,
-            }}
-          >
-            La TMB es una aproximación basada en fórmulas estándar. Factores
-            como masa magra, sueño, estrés o medicación pueden modificar tus
+          <Text style={{ marginTop: 16, fontSize: 12, color: textSecondary }}>
+            La TMB es una aproximación basada en fórmulas estándar. Factores como
+            masa magra, sueño, estrés o medicación pueden modificar tus
             necesidades reales.
           </Text>
         </View>
@@ -540,12 +555,7 @@ function Chip({
         padding: 12,
       }}
     >
-      <Text
-        style={{
-          fontSize: 11,
-          color: isDark ? "#94a3b8" : "#6b7280",
-        }}
-      >
+      <Text style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#6b7280" }}>
         {label}
       </Text>
       <Text

@@ -1,16 +1,17 @@
-// src/features/fit/screens/app/rutinas/MisRutinas.tsx (o la ruta que uses)
-import React, { useEffect, useMemo, useRef } from "react";
+// src/features/fit/screens/app/rutinas/MisRutinas.tsx
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
   Animated,
   Dimensions,
   TouchableOpacity,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
-import { Lock } from "lucide-react-native";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
@@ -19,18 +20,16 @@ import { useMisRutinas } from "@/shared/hooks/useMisRutinas";
 import MisRutinas from "@/shared/components/misRutinas/MisRutinas";
 import MostrarRutina from "@/shared/components/misRutinas/MostrarRutina";
 import MisRutinasSkeleton from "@/shared/components/skeleton/MisRutinasSkeleton";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-/* -------- Paleta y glass como en el resto de componentes -------- */
+/* -------- Paleta y glass -------- */
 const marcoGradient = [
   "rgb(0,255,64)",
   "rgb(94,230,157)",
   "rgb(178,0,255)",
 ] as const;
-const cardBgDarkA = "rgba(20,28,44,0.85)";
-const cardBgDarkB = "rgba(9,14,24,0.9)";
+
 const cardBorderDark = "rgba(255,255,255,0.08)";
-const textPrimaryDark = "#e5e7eb";
-const textSecondaryDark = "#94a3b8";
 
 export default function MisRutinasScreen() {
   const navigation = useNavigation<any>();
@@ -41,21 +40,22 @@ export default function MisRutinasScreen() {
     loading,
     mostrar,
     cerrarVisor,
-    toggleReload,
-    lockedManual,
-    maxManual,
-    maxIA,
-    totalManual,
+    reloadRutinas, // ✅ antes: toggleReload
     totalIA,
+    maxIA,
   } = useMisRutinas();
+
+  const isPremium = useUsuarioStore((s) => s.usuario?.haPagado === true);
 
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  // Animación slide-up visor
   const screenH = useMemo(() => Dimensions.get("window").height, []);
   const slideY = useRef(new Animated.Value(screenH)).current;
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Animación visor
   useEffect(() => {
     const toValue = ver && rutinaSeleccionada ? 0 : screenH;
     Animated.timing(slideY, {
@@ -65,168 +65,125 @@ export default function MisRutinasScreen() {
     }).start();
   }, [ver, rutinaSeleccionada, screenH, slideY]);
 
-  const textPrimary = isDark ? textPrimaryDark : "#0f172a";
-  const textSecondary = isDark ? textSecondaryDark : "#64748b";
+  // Navegación
+  const goToManual = () => navigation.navigate("CrearRutina");
 
-  const goToManual = () => {
-    if (lockedManual) {
-      // Navegación a la pantalla de pago dentro del tab Perfil
-      (navigation as any).navigate("Perfil", {
-        screen: "PremiumPayment",
-      });
-      return;
+  // Pull-to-refresh (✅ ahora sí espera a la API)
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reloadRutinas();
+    } finally {
+      setRefreshing(false);
     }
-
-    navigation.navigate("CrearRutina");
-  };
+  }, [reloadRutinas]);
 
   return (
     <View
-      className={`flex-1 px-4 py-8 pb-40 items-center ${
-        isDark ? "bg-[#0b1220]" : "bg-white"
-      }`}
+      className={`flex-1 items-center ${isDark ? "bg-[#0b1220]" : "bg-white"}`}
     >
-      <View className="mb-6 items-center">
-        <Text
-          className={`text-2xl font-bold ${
-            isDark ? "text-gray-100" : "text-gray-900"
-          }`}
-        >
-          Tus rutinas
-        </Text>
-        <Text
-          className={`${
-            isDark ? "text-gray-400" : "text-gray-600"
-          } text-center`}
-        >
-          Consulta, gestiona y crea nuevas rutinas personalizadas
-        </Text>
-      </View>
-
-      {loading ? (
-        // ✅ Skeleton dentro del mismo contenedor de 600px para mantener layout
-        <View className="w-full max-w-[600px]">
-          <MisRutinasSkeleton />
+      <ScrollView
+        style={{ flex: 1, width: "100%" }}
+        contentContainerStyle={{
+          alignItems: "center",
+          paddingHorizontal: 16,
+          paddingTop: 32,
+          paddingBottom: 140,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? "#e5e7eb" : "#0f172a"}
+            colors={[isDark ? "#22c55e" : "#16a34a"]}
+          />
+        }
+      >
+        {/* Título */}
+        <View className="mb-6 items-center w-full max-w-[600px]">
+          <Text
+            className={`text-2xl font-bold text-center ${
+              isDark ? "text-gray-100" : "text-gray-900"
+            }`}
+          >
+            Tus rutinas
+          </Text>
+          <Text
+            className={`${
+              isDark ? "text-gray-400" : "text-gray-600"
+            } text-center mt-1`}
+          >
+            Consulta, gestiona y crea nuevas rutinas personalizadas
+          </Text>
         </View>
-      ) : (
-        <View className="w-full mt-6 max-w-[600px]">
-          {rutinas.length > 0 ? (
-            <MisRutinas rutinas={rutinas as Rutina[]} mostrar={mostrar} />
-          ) : (
-            <MensajeVacio
-              titulo="Aún no tienes una rutina"
-              descripcion="Crea tu primera rutina manual o genera una con IA según tus objetivos."
-              textoBoton="Crear mi rutina"
-              rutaDestino="/crear-rutina"
-              nombreImagen="rutinas"
-              mostrarBoton={false}
-            />
-          )}
-        </View>
-      )}
 
-      {/* CTA flotantes (ocultos durante el loading para no tapar el skeleton) */}
-      {!loading && (
-        <View className="absolute bottom-5 z-30 flex-row gap-7 items-center justify-center">
-          {/* Rutina manual */}
-          <View className="relative">
-            <LinearGradient
-              colors={marcoGradient as any}
-              className="rounded-2xl p-[1px]"
-              style={{ borderRadius: 15, overflow: "hidden" }}
-            >
-              <TouchableOpacity
-                onPress={goToManual}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  lockedManual
-                    ? "Desbloquear rutinas manuales Premium"
-                    : "Crear o gestionar rutina manual"
-                }
-                className={
-                  "px-6 py-2 rounded-full flex-row items-center justify-center " +
-                  (isDark ? "bg-[#0f172a]" : "bg-white")
-                }
-                activeOpacity={0.9}
-              >
-                {lockedManual && (
-                  <Lock
-                    size={16}
-                    color={isDark ? "#facc15" : "#d97706"}
-                    strokeWidth={2}
-                    style={{ marginRight: 6 }}
-                  />
-                )}
-
-                <Text
-                  className={
-                    "text-sm font-semibold " +
-                    (isDark ? "text-white" : "text-gray-900")
-                  }
-                >
-                  {lockedManual ? "Desbloquear rutina manual" : "Rutina manual"}
-                </Text>
-              </TouchableOpacity>
-            </LinearGradient>
-
-            {/* Badge contador manual */}
-            <View
-              className="absolute -top-10 -right-2 min-w-[40px] px-2 h-6 rounded-full border text-[12px] font-semibold grid place-items-center shadow"
-              style={{
-                backgroundColor: isDark
-                  ? "rgba(20,28,44,0.9)"
-                  : "#ffffff",
-                borderColor: isDark
-                  ? cardBorderDark
-                  : "rgba(0,0,0,0.06)",
-              }}
-              accessibilityLabel={`Rutinas manuales: ${totalManual} de ${maxManual}`}
-            >
-              <Text
-                style={{
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
-                {totalManual}/{maxManual}
-              </Text>
-            </View>
-
-            {/* Nota pequeña bajo el botón cuando está bloqueado */}
-            {lockedManual && (
-              <Text
-                style={{
-                  marginTop: 6,
-                  fontSize: 11,
-                  textAlign: "center",
-                  color: isDark ? textSecondaryDark : "#4b5563",
-                }}
-              >
-                Amplía a Premium para crear más rutinas manuales.
-              </Text>
+        {/* Contenido principal */}
+        {loading ? (
+          <View className="w-full max-w-[600px]">
+            <MisRutinasSkeleton />
+          </View>
+        ) : (
+          <View className="w-full mt-2 max-w-[600px]">
+            {rutinas.length > 0 ? (
+              <MisRutinas rutinas={rutinas as Rutina[]} mostrar={mostrar} />
+            ) : (
+              <MensajeVacio
+                titulo="Aún no tienes una rutina"
+                descripcion="Crea tu primera rutina manual o genera una con IA según tus objetivos."
+                textoBoton="Crear mi rutina"
+                rutaDestino="/crear-rutina"
+                nombreImagen="rutinas"
+                mostrarBoton={false}
+              />
             )}
           </View>
+        )}
+      </ScrollView>
 
-          {/* Rutina IA */}
+      {/* CTA flotantes */}
+      {!loading && (
+        <View className="absolute bottom-5 z-30 flex-row gap-7 items-center justify-center">
+          {/* Crear rutina manual */}
+          <LinearGradient
+            colors={marcoGradient as any}
+            className="rounded-2xl p-[1px]"
+            style={{ borderRadius: 15, overflow: "hidden" }}
+          >
+            <TouchableOpacity
+              onPress={goToManual}
+              className={
+                "px-6 py-2 rounded-full flex-row items-center justify-center " +
+                (isDark ? "bg-[#0f172a]" : "bg-white")
+              }
+              activeOpacity={0.9}
+            >
+              <Text
+                className={
+                  "text-sm font-semibold " +
+                  (isDark ? "text-white" : "text-gray-900")
+                }
+              >
+                Rutina manual
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          {/* Crear con IA */}
           <View className="relative">
-            <IaGenerate onCreate={toggleReload} />
+            {/* ✅ ahora dispara recarga real */}
+            <IaGenerate onCreate={reloadRutinas} />
+
             <View
               className="absolute -top-9 -right-2 min-w-[40px] px-2 h-6 rounded-full border text-[12px] font-semibold grid place-items-center shadow"
               style={{
-                backgroundColor: isDark
-                  ? "rgba(20,28,44,0.9)"
-                  : "#ffffff",
-                borderColor: isDark
-                  ? cardBorderDark
-                  : "rgba(0,0,0,0.06)",
+                backgroundColor: isDark ? "rgba(20,28,44,0.9)" : "#ffffff",
+                borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
               }}
-              accessibilityLabel={`Rutinas generadas por IA: ${totalIA} de ${maxIA}`}
             >
-              <Text
-                style={{
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
-                {totalIA}/{maxIA}
+              <Text style={{ color: isDark ? "#ffffff" : "#111827" }}>
+                IA usadas: {totalIA}
+                {isPremium ? " / ∞" : ` / ${maxIA}`}
               </Text>
             </View>
           </View>
@@ -252,11 +209,10 @@ export default function MisRutinasScreen() {
             <MostrarRutina
               key={rutinaSeleccionada.id}
               rutinas={rutinaSeleccionada}
-              setVer={(v: boolean) => {
-                if (!v) cerrarVisor();
-              }}
-              onDelete={() => {
-                toggleReload();
+              setVer={(v: boolean) => !v && cerrarVisor()}
+              onDelete={async () => {
+                // ✅ recarga real antes de cerrar
+                await reloadRutinas();
                 cerrarVisor();
               }}
             />

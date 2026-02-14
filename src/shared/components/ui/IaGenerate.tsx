@@ -1,4 +1,3 @@
-// IaGenerate.tsx
 import React from "react";
 import {
   View,
@@ -16,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import CargaRutina from "./CargaRutina";
 import { useIaGenerate } from "@/shared/hooks/useIaGenerate";
+import NoAdsModal from "@/shared/components/ads/NoAdsModal";
 
 /* ---------------- Paleta y glass compartida (igual que en otras cards) ---------------- */
 const marcoGradient = [
@@ -54,6 +54,12 @@ export default function IaGenerate({ onCreate }: Props) {
     handleChangeNombre,
     handleChangeInstruccion,
     setInstruccion,
+
+    // anuncios
+    noAdsModalVisible,
+    setNoAdsModalVisible,
+    noAdsRetrying,
+    reintentarAnuncioIa,
   } = useIaGenerate(onCreate);
 
   const handlePressMain = () => {
@@ -255,6 +261,20 @@ export default function IaGenerate({ onCreate }: Props) {
           <CargaRutina />
         </Modal>
       )}
+
+      {/* Modal sincero: no hay anuncios */}
+      <NoAdsModal
+        visible={noAdsModalVisible}
+        loading={noAdsRetrying}
+        onRetry={reintentarAnuncioIa}
+        onGoPremium={() => {
+          setNoAdsModalVisible(false);
+          (navigation as any).navigate("Perfil", {
+            screen: "PremiumPayment",
+          });
+        }}
+        onClose={() => setNoAdsModalVisible(false)}
+      />
     </>
   );
 }
@@ -470,7 +490,7 @@ function ModalInner({
           {suggestionChips.map((s) => (
             <TouchableOpacity
               key={s}
-              //@ts-ignore
+              // @ts-ignore
               onPress={() =>
                 setInstruccion((prev) =>
                   prev
@@ -502,117 +522,130 @@ function ModalInner({
         </View>
       </ScrollView>
 
-      {/* Footer */}
-      <View className="px-6 pb-6 pt-1 flex-row items-center justify-end gap-3">
-        <TouchableOpacity
-          onPress={cerrarModal}
-          disabled={loading}
-          className="px-4 py-2.5 rounded-xl"
-          style={{
-            backgroundColor: isDark
-              ? "rgba(255,255,255,0.05)"
-              : "#ffffff",
-            borderWidth: 1,
-            borderColor: isDark
-              ? cardBorderDark
-              : "rgba(0,0,0,0.06)",
-          }}
-        >
-          <Text
-            className="text-sm font-medium"
+      /* Footer */
+      <View
+        className="px-6 pb-6 pt-2"
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+          backgroundColor: "transparent",
+        }}
+      >
+        <View className="flex-row items-center justify-end gap-3">
+          {/* Cancelar (ghost) */}
+          <TouchableOpacity
+            onPress={cerrarModal}
+            disabled={loading}
+            activeOpacity={0.9}
+            className="px-4 py-2.5 rounded-xl"
             style={{
-              color: isDark ? textPrimaryDark : "#0f172a",
+              backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(2,6,23,0.03)",
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(2,6,23,0.08)",
+              opacity: loading ? 0.6 : 1,
             }}
           >
-            Cancelar
-          </Text>
-        </TouchableOpacity>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
+            >
+              Cancelar
+            </Text>
+          </TouchableOpacity>
 
-        <LinearGradient
-          colors={
-            !nombre.trim()
-              ? [
-                  "rgba(20,28,44,0.55)",
-                  "rgba(9,14,24,0.55)",
-                  "rgba(20,28,44,0.55)",
-                ]
-              : (marcoGradient as any)
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="rounded-xl p-[1px]"
-          style={{ borderRadius: 15 }}
-        >
-          {isDark ? (
-            <LinearGradient
-              colors={
-                !nombre.trim()
-                  ? [
-                      "rgba(20,28,44,0.55)",
-                      "rgba(9,14,24,0.55)",
-                      "rgba(20,28,44,0.55)",
-                    ]
-                  : [cardBgDarkA, cardBgDarkB, cardBgDarkA]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+          {/* Confirmar y generar (primary) */}
+          {/** Enabled */}
+          {nombre.trim() ? (
+            <TouchableOpacity
+              onPress={crear}
+              disabled={loading}
+              activeOpacity={0.9}
               style={{
-                borderRadius: 15,
-                borderWidth: 1,
-                borderColor: cardBorderDark,
+                borderRadius: 14,
                 overflow: "hidden",
-                opacity: !nombre.trim() ? 0.6 : 1,
+                // sombra suave (iOS) + elevación (Android)
+                shadowColor: "#000",
+                shadowOpacity: isDark ? 0.35 : 0.18,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 8 },
+                elevation: 6,
+                opacity: loading ? 0.85 : 1,
               }}
             >
-              <TouchableOpacity
-                onPress={crear}
-                disabled={loading || !nombre.trim()}
-                accessibilityState={{
-                  disabled: loading || !nombre.trim(),
+              <LinearGradient
+                colors={marcoGradient as any}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
-                className="px-4 py-2.5 rounded-[11px] items-center justify-center"
               >
+                <Sparkles size={16} color="#fff" strokeWidth={2.2} />
+                <Text style={{ fontSize: 14, fontWeight: "800", color: "#fff" }}>
+                  {loading ? "Generando…" : "Confirmar y generar"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            /** Disabled */
+            <View
+              style={{
+                borderRadius: 14,
+                overflow: "hidden",
+                opacity: 0.7,
+              }}
+            >
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(2,6,23,0.06)",
+                  borderWidth: 1,
+                  borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(2,6,23,0.10)",
+                }}
+              >
+                <Sparkles
+                  size={16}
+                  color={isDark ? "rgba(229,231,235,0.55)" : "rgba(15,23,42,0.45)"}
+                  strokeWidth={2.2}
+                />
                 <Text
-                  className="text-sm font-semibold"
                   style={{
-                    color: !nombre.trim()
-                      ? "rgba(229,231,235,0.6)"
-                      : textPrimaryDark,
+                    fontSize: 14,
+                    fontWeight: "800",
+                    color: isDark ? "rgba(229,231,235,0.55)" : "3fffrgba(15,23,42,0.55)",
                   }}
                 >
-                  {loading ? "Generando…" : "Confirmar y generar"}
+                  Confirmar y generar
                 </Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          ) : (
-            <View
-              className="rounded-xl"
-              style={{
-                backgroundColor: "#ffffff",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <TouchableOpacity
-                onPress={crear}
-                disabled={loading || !nombre.trim()}
-                accessibilityState={{
-                  disabled: loading || !nombre.trim(),
-                }}
-                className="px-4 py-2.5 rounded-[11px] items-center justify-center"
-              >
-                <Text
-                  className="text-sm font-semibold"
-                  style={{ color: "#0f172a" }}
-                >
-                  {loading ? "Generando…" : "Confirmar y generar"}
-                </Text>
-              </TouchableOpacity>
+              </View>
             </View>
           )}
-        </LinearGradient>
+        </View>
+
+        {/* Hint inferior (opcional, queda muy bien) */}
+        <Text
+          className="text-[11px] mt-3"
+          style={{
+            textAlign: "right",
+            color: isDark ? textSecondaryDark : "#64748b",
+          }}
+        >
+          Pon un nombre para habilitar el botón.
+        </Text>
       </View>
+
     </View>
   );
 }

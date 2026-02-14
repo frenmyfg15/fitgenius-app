@@ -1,6 +1,6 @@
 // src/shared/components/CardSelectable.tsx
 import React, { memo } from "react";
-import { View, Text, Image, Pressable, Platform } from "react-native";
+import { View, Text, Image, Pressable, Vibration } from "react-native";
 
 type Usuario = {
   id: string;
@@ -26,7 +26,10 @@ function CardSelectable({
   const isSelected = (id: string): boolean =>
     multiple ? Array.isArray(select) && select.includes(id) : select === id;
 
-  const handleClick = (id: string) => onClic(id);
+  const handleClick = (id: string) => {
+    Vibration.vibrate(15); // ← háptico corto
+    onClic(id);
+  };
 
   return (
     <View
@@ -41,7 +44,9 @@ function CardSelectable({
 
         const cardBase =
           "relative rounded-2xl items-center justify-end shadow-md my-2";
-        const cardSize = image ? "w-[160px] h-[160px] py-2" : "w-[31%] min-w-[100px]";
+        const cardSize = image
+          ? "w-[160px] h-[160px] py-2"
+          : "w-[31%] min-w-[100px]";
         const cardBg = image
           ? selected
             ? "bg-neon-400"
@@ -86,7 +91,6 @@ function CardSelectable({
               <Text
                 className="text-black font-semibold text-[16px] leading-tight text-center"
                 allowFontScaling={false}
-                // quita padding vertical extra en Android para igualar a web
                 style={{
                   includeFontPadding: false as any,
                   letterSpacing: 0,

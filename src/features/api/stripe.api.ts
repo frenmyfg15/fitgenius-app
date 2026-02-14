@@ -1,5 +1,7 @@
 // src/features/api/stripe.api.ts
 import { api } from "./axios";
+import { handleApiError } from "@/shared/lib/handleApiError";
+import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid"; // ✅ NUEVO
 
 /* ============================================================
    Tipos
@@ -32,10 +34,12 @@ export const createPremiumSubscription =
         "/stripe/subscription/premium"
       );
       return res.data;
-    } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.error ||
-          "No se pudo iniciar el pago Premium"
+    } catch (error) {
+      checkAuthTokenInvalid(error); // ✅ limpia el store si el token es inválido
+
+      return handleApiError(
+        error,
+        "No se pudo iniciar el pago Premium"
       );
     }
   };
@@ -50,10 +54,12 @@ export const cancelPremiumSubscription =
         "/stripe/subscription/cancel"
       );
       return res.data;
-    } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.error ||
-          "No se pudo cancelar la suscripción"
+    } catch (error) {
+      checkAuthTokenInvalid(error); // ✅ limpia el store si el token es inválido
+
+      return handleApiError(
+        error,
+        "No se pudo cancelar la suscripción"
       );
     }
   };

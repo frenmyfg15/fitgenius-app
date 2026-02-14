@@ -95,13 +95,17 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           ? "bg-white/5 border border-white/10"
           : "bg-gray-50 border border-gray-100";
 
-        // Si es seleccionado: fondo NEGRO, texto BLANCO (sin borde de selección)
-        const fondoSeleccionado = "bg-black border border-black";
+        // ✅ Si es seleccionado:
+        //    - en dark: fondo BLANCO, texto NEGRO
+        //    - en light: fondo NEGRO, texto BLANCO
+        const fondoSeleccionado = isDark
+          ? "bg-white border border-white"
+          : "bg-black border border-black";
 
         // Si es hoy (y no está seleccionado): fondo degradado; el contenedor se queda transparente
         const fondoHoyNoSeleccionado = "bg-transparent border-transparent";
 
-        // Borde verde adicional solo para completado cuando no es seleccionado (seleccionado ya usa fondo negro)
+        // Borde verde adicional solo para completado cuando no es seleccionado
         const bordeVerde =
           completado && !esSeleccionado ? (isDark ? "border-[#22c55e]/50" : "border-[#22c55e]") : "";
 
@@ -113,16 +117,41 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
             ? `${baseClasses} ${fondoHoyNoSeleccionado} ${bordeVerde} ${disabledStyle}`
             : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
 
-        // Colores de texto
-        const colorTextoNumero =
-          esSeleccionado ? "#ffffff" : esHoy ? "#ffffff" : completado ? "#22c55e" : isDark ? "#ffffff" : "#111111";
+        // ✅ Colores de texto
+        const colorTextoNumero = esSeleccionado
+          ? isDark
+            ? "#000000"
+            : "#ffffff"
+          : esHoy
+          ? "#ffffff"
+          : completado
+          ? "#22c55e"
+          : isDark
+          ? "#ffffff"
+          : "#111111";
 
-        const colorTextoEtiqueta =
-          esSeleccionado ? "#ffffff" : esHoy ? "#ffffff" : completado ? "#22c55e" : isDark ? "#94a3b8" : "#6b7280";
+        const colorTextoEtiqueta = esSeleccionado
+          ? isDark
+            ? "#000000"
+            : "#ffffff"
+          : esHoy
+          ? "#ffffff"
+          : completado
+          ? "#22c55e"
+          : isDark
+          ? "#94a3b8"
+          : "#6b7280";
 
-        // Borde del punto para garantizar contraste
-        const bordePunto =
-          esSeleccionado ? "#ffffff" : esHoy ? "#ffffff" : isDark ? "#0b1220" : "#ffffff";
+        // ✅ Borde del punto para garantizar contraste
+        const bordePunto = esSeleccionado
+          ? isDark
+            ? "#000000" // fondo blanco → borde negro en dark
+            : "#ffffff" // fondo negro en light → borde blanco
+          : esHoy
+          ? "#ffffff"
+          : isDark
+          ? "#0b1220"
+          : "#ffffff";
 
         return (
           <TouchableOpacity

@@ -8,32 +8,21 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  ImageSourcePropType,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 
 import { equipamiento as opcionesEquipamiento } from "../../../../shared/constants/register/equipamiento";
 import { limitaciones as opcionesLimitaciones } from "../../../../shared/constants/register/limitaciones";
 import { useEditarPerfil } from "@/shared/hooks/useEditarPerfil";
 
-/* ---------- Tokens visuales (mismos que el resto) ---------- */
-const marcoGradient = [
-  "rgb(0,255,64)",
-  "rgb(94,230,157)",
-  "rgb(178,0,255)",
-] as const;
-const cardBgDarkA = "rgba(20,28,44,0.85)";
-const cardBgDarkB = "rgba(9,14,24,0.9)";
-const cardBorderDark = "rgba(255,255,255,0.08)";
-const textPrimaryDark = "#e5e7eb";
-const textSecondaryDark = "#94a3b8";
-
 /* ---------- Tipos locales ---------- */
 interface EquipamientoOpcion {
   id: string;
   nombre: string;
-  imagen: string;
+  imagen: ImageSourcePropType;
 }
+
 interface LimitacionOpcion {
   id: string;
   nombre: string;
@@ -119,48 +108,6 @@ function prettyLabel(v: string) {
     .replace(/^\w/, (s) => s.toUpperCase());
 }
 
-function FrameCard({ children }: { children: React.ReactNode }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  return (
-    <LinearGradient
-      colors={marcoGradient as any}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
-    >
-      {isDark ? (
-        <LinearGradient
-          colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: cardBorderDark,
-            overflow: "hidden",
-          }}
-        >
-          <View className="rounded-2xl p-6">{children}</View>
-        </LinearGradient>
-      ) : (
-        <View
-          className="rounded-2xl p-6"
-          style={{
-            backgroundColor: "#ffffff",
-            borderWidth: 1,
-            borderColor: "rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          {children}
-        </View>
-      )}
-    </LinearGradient>
-  );
-}
-
 function Section({
   title,
   description,
@@ -172,26 +119,34 @@ function Section({
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+
   return (
-    <FrameCard>
-      <View className="mb-4">
+    <View
+      className="rounded-2xl p-5"
+      style={{
+        backgroundColor: isDark ? "#020617" : "#ffffff",
+        borderWidth: 1,
+        borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
+      }}
+    >
+      <View className="mb-3">
         <Text
-          className="text-lg font-semibold tracking-tight"
-          style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
+          className="text-base font-semibold"
+          style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
         >
           {title}
         </Text>
         {!!description && (
           <Text
-            className="mt-1 text-sm"
-            style={{ color: isDark ? textSecondaryDark : "#64748b" }}
+            className="mt-1 text-xs"
+            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
           >
             {description}
           </Text>
         )}
       </View>
       {children}
-    </FrameCard>
+    </View>
   );
 }
 
@@ -200,44 +155,46 @@ export default function EditarPerfil() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const { formData, handleText, toggleArrayValue, hayCambios, saving, handleSubmit } =
-    useEditarPerfil();
+  const {
+    formData,
+    handleText,
+    toggleArrayValue,
+    hayCambios,
+    saving,
+    handleSubmit,
+  } = useEditarPerfil();
 
   return (
     <ScrollView
-      className={`flex-1 p-4 pb-16 ${
-        isDark ? "bg-[#0b1220]" : "bg-white"
-      }`}
-      contentContainerStyle={{ paddingBottom: 60 }}
+      className={`flex-1 px-4 pt-4 ${isDark ? "bg-[#020617]" : "bg-[#f9fafb]"
+        }`}
+      contentContainerStyle={{ paddingBottom: 32 }}
     >
       {/* Header */}
-      <View className="mb-6 items-center">
+      <View className="mb-5">
         <Text
-          className={`text-2xl font-bold ${
-            isDark ? "text-gray-100" : "text-gray-900"
-          }`}
+          className={`text-xl font-semibold ${isDark ? "text-slate-50" : "text-slate-900"
+            }`}
         >
-          Ajusta tu perfil de entrenamiento
+          Editar perfil
         </Text>
         <Text
-          className={`${
-            isDark ? "text-gray-400" : "text-gray-600"
-          } text-center`}
+          className={`mt-1 text-sm ${isDark ? "text-slate-400" : "text-slate-600"
+            }`}
         >
-          Personaliza tus preferencias para obtener planes más precisos
+          Ajusta tus preferencias para que tus planes se adapten mejor a ti.
         </Text>
       </View>
 
-      {/* Tarjetas separadas */}
-      <View className="mt-6 gap-6">
+      <View className="gap-5">
         {/* Información General */}
         <Section title="Información general">
-          <View className="gap-6">
+          <View className="gap-5">
             {/* Peso objetivo */}
             <View>
               <Text
-                className="text-sm font-medium mb-1"
-                style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
+                className="text-xs font-medium mb-1"
+                style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
               >
                 Peso objetivo (kg)
               </Text>
@@ -248,36 +205,29 @@ export default function EditarPerfil() {
                   handleText("pesoObjetivo", t.replace(",", "."))
                 }
                 placeholder="Ej: 70"
-                placeholderTextColor={
-                  isDark ? "#64748b" : "#94a3b8"
-                }
-                className="rounded-xl px-3 py-3"
+                placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                className="rounded-xl px-3 py-2.5 text-sm"
                 style={{
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.03)"
-                    : "#fff",
-                  color: isDark ? textPrimaryDark : "#0f172a",
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
+                  color: isDark ? "#e5e7eb" : "#0f172a",
                   borderWidth: 1,
                   borderColor: isDark
-                    ? cardBorderDark
-                    : "rgba(0,0,0,0.06)",
+                    ? "rgba(148,163,184,0.35)"
+                    : "#e5e7eb",
                 }}
-                accessibilityLabel="Peso objetivo en kilogramos"
               />
             </View>
 
             {/* Selectores (chips) */}
-            <View className="gap-6">
+            <View className="gap-5">
               {Object.entries(optionsConfig).map(([key, cfg]) => {
                 const k = key as OptionsConfigKey;
                 const value = formData[k] as string;
                 return (
                   <View key={k} className="gap-2">
                     <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color: isDark ? textPrimaryDark : "#0f172a",
-                      }}
+                      className="text-xs font-medium"
+                      style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
                     >
                       {cfg.label}
                     </Text>
@@ -290,29 +240,33 @@ export default function EditarPerfil() {
                             onPress={() => handleText(k, v)}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
-                            className="rounded-xl px-3 py-2"
+                            className="px-3 py-1.5 rounded-full"
                             style={{
                               borderWidth: 1,
                               borderColor: active
                                 ? "#22c55e"
                                 : isDark
-                                ? cardBorderDark
-                                : "rgba(0,0,0,0.06)",
+                                  ? "rgba(148,163,184,0.35)"
+                                  : "#e5e7eb",
                               backgroundColor: active
                                 ? isDark
                                   ? "rgba(34,197,94,0.15)"
-                                  : "rgba(57,255,20,0.20)"
+                                  : "#dcfce7"
                                 : isDark
-                                ? "rgba(255,255,255,0.03)"
-                                : "#fff",
+                                  ? "#020617"
+                                  : "#ffffff",
                             }}
                           >
                             <Text
-                              className="text-sm font-medium"
+                              className="text-xs font-medium"
                               style={{
-                                color: isDark
-                                  ? textPrimaryDark
-                                  : "#0f172a",
+                                color: active
+                                  ? isDark
+                                    ? "#bbf7d0"
+                                    : "#166534"
+                                  : isDark
+                                    ? "#e5e7eb"
+                                    : "#0f172a",
                               }}
                             >
                               {prettyLabel(v)}
@@ -331,40 +285,36 @@ export default function EditarPerfil() {
         {/* Enfoques musculares */}
         <Section
           title="Enfoques musculares"
-          description="Selecciona las áreas en las que te quieres enfocar."
+          description="Elige las zonas que quieres priorizar."
         >
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row flex-wrap gap-2">
             {muscleFocusOptions.map((opt) => {
-              const active = (formData.enfoque || []).includes(
-                opt.id
-              );
+              const active = (formData.enfoque || []).includes(opt.id);
               return (
                 <Pressable
                   key={opt.id}
                   onPress={() => toggleArrayValue("enfoque", opt.id)}
                   accessibilityRole="button"
-                  className="rounded-xl px-3 py-2"
+                  className="px-3 py-1.5 rounded-full"
                   style={{
                     borderWidth: 1,
                     borderColor: active
                       ? "#22c55e"
                       : isDark
-                      ? cardBorderDark
-                      : "rgba(0,0,0,0.06)",
+                        ? "rgba(148,163,184,0.35)"
+                        : "#e5e7eb",
                     backgroundColor: active
                       ? isDark
                         ? "rgba(34,197,94,0.15)"
-                        : "rgba(57,255,20,0.20)"
+                        : "#dcfce7"
                       : isDark
-                      ? "rgba(255,255,255,0.03)"
-                      : "#fff",
+                        ? "#020617"
+                        : "#ffffff",
                   }}
                 >
                   <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color: isDark ? textPrimaryDark : "#0f172a",
-                    }}
+                    className="text-xs font-medium"
+                    style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
                   >
                     {opt.name}
                   </Text>
@@ -377,9 +327,9 @@ export default function EditarPerfil() {
         {/* Días disponibles */}
         <Section
           title="Días disponibles"
-          description="¿Qué días de la semana puedes entrenar?"
+          description="Selecciona los días en los que puedes entrenar."
         >
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row flex-wrap gap-2">
             {daysOptions.map((d) => {
               const active = (formData.dias || []).includes(d.id);
               return (
@@ -387,33 +337,31 @@ export default function EditarPerfil() {
                   key={d.id}
                   onPress={() => toggleArrayValue("dias", d.id)}
                   accessibilityRole="button"
-                  className="rounded-xl px-3 py-2"
+                  className="px-3 py-1.5 rounded-full"
                   style={{
                     borderWidth: 1,
                     borderColor: active
                       ? "#22c55e"
                       : isDark
-                      ? cardBorderDark
-                      : "rgba(0,0,0,0.06)",
+                        ? "rgba(148,163,184,0.35)"
+                        : "#e5e7eb",
                     backgroundColor: active
                       ? isDark
-                        ? "rgba(34,197,94,0.15)"
-                        : "#22c55e"
+                        ? "#22c55e33"
+                        : "#16a34a"
                       : isDark
-                      ? "rgba(255,255,255,0.03)"
-                      : "#fff",
+                        ? "#020617"
+                        : "#ffffff",
                   }}
                 >
                   <Text
-                    className="text-sm font-medium"
+                    className="text-xs font-medium"
                     style={{
                       color: active
-                        ? isDark
-                          ? textPrimaryDark
-                          : "#ffffff"
+                        ? "#ffffff"
                         : isDark
-                        ? textPrimaryDark
-                        : "#0f172a",
+                          ? "#e5e7eb"
+                          : "#0f172a",
                     }}
                   >
                     {d.name}
@@ -428,73 +376,62 @@ export default function EditarPerfil() {
         {formData.lugar === "CASA" && (
           <Section
             title="Equipamiento en casa"
-            description="Selecciona el equipamiento que tienes disponible."
+            description="Indica qué material tienes disponible."
           >
-            <View className="flex-row flex-wrap gap-4">
-              {opcionesEquipamiento.map(
-                (item: EquipamientoOpcion) => {
-                  const active = (
-                    formData.equipamiento || []
-                  ).includes(item.id);
-                  return (
-                    <Pressable
-                      key={item.id}
-                      onPress={() =>
-                        toggleArrayValue("equipamiento", item.id)
-                      }
-                      accessibilityRole="button"
-                      className="items-center rounded-xl p-3"
+            <View className="flex-row flex-wrap gap-3">
+              {opcionesEquipamiento.map((item: EquipamientoOpcion) => {
+                const active = (formData.equipamiento || []).includes(
+                  item.id
+                );
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() =>
+                      toggleArrayValue("equipamiento", item.id)
+                    }
+                    accessibilityRole="button"
+                    className="items-center p-3 rounded-xl"
+                    style={{
+                      width: 108,
+                      borderWidth: 1,
+                      borderColor: active
+                        ? "#a855f7"
+                        : isDark
+                          ? "rgba(148,163,184,0.35)"
+                          : "#e5e7eb",
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
+                    }}
+                  >
+                    <View
+                      className="items-center justify-center mb-2 rounded-lg overflow-hidden"
                       style={{
-                        width: 110,
+                        width: 56,
+                        height: 56,
                         borderWidth: 1,
-                        borderColor: active
-                          ? "#a855f7"
-                          : isDark
-                          ? cardBorderDark
-                          : "rgba(0,0,0,0.06)",
-                        backgroundColor: active
-                          ? isDark
-                            ? "rgba(168,85,247,0.15)"
-                            : "rgba(168,85,247,0.12)"
-                          : isDark
-                          ? "rgba(255,255,255,0.03)"
-                          : "#fff",
+                        borderColor: isDark
+                          ? "rgba(148,163,184,0.35)"
+                          : "#e5e7eb",
+                        backgroundColor: isDark
+                          ? "#020617"
+                          : "#f9fafb",
                       }}
                     >
-                      <View
-                        className="items-center justify-center mb-2 rounded-xl overflow-hidden"
-                        style={{
-                          width: 56,
-                          height: 56,
-                          borderWidth: 1,
-                          borderColor: isDark
-                            ? cardBorderDark
-                            : "rgba(0,0,0,0.06)",
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.03)"
-                            : "#fafafa",
-                        }}
-                      >
-                        <Image
-                          source={{ uri: item.imagen }}
-                          resizeMode="contain"
-                          style={{ width: 52, height: 52 }}
-                        />
-                      </View>
-                      <Text
-                        className="text-xs font-medium text-center"
-                        style={{
-                          color: isDark
-                            ? textPrimaryDark
-                            : "#0f172a",
-                        }}
-                      >
-                        {item.nombre}
-                      </Text>
-                    </Pressable>
-                  );
-                }
-              )}
+                      <Image
+                        source={item.imagen}
+                        resizeMode="contain"
+                        style={{ width: 50, height: 50 }}
+                      />
+
+                    </View>
+                    <Text
+                      className="text-[11px] font-medium text-center"
+                      style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
+                    >
+                      {item.nombre}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </Section>
         )}
@@ -502,139 +439,77 @@ export default function EditarPerfil() {
         {/* Limitaciones físicas */}
         <Section
           title="Limitaciones físicas"
-          description="Indica si tienes alguna limitación para adaptar el entrenamiento."
+          description="Marca cualquier limitación relevante."
         >
-          <View className="flex-row flex-wrap gap-3">
-            {opcionesLimitaciones.map(
-              (item: LimitacionOpcion) => {
-                const active = (
-                  formData.limitaciones || []
-                ).includes(item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() =>
-                      toggleArrayValue("limitaciones", item.id)
-                    }
-                    accessibilityRole="button"
-                    className="rounded-xl px-3 py-2"
-                    style={{
-                      borderWidth: 1,
-                      borderColor: active
-                        ? "#22c55e"
-                        : isDark
-                        ? cardBorderDark
-                        : "rgba(0,0,0,0.06)",
-                      backgroundColor: active
-                        ? isDark
-                          ? "rgba(34,197,94,0.15)"
-                          : "rgba(57,255,20,0.20)"
-                        : isDark
-                        ? "rgba(255,255,255,0.03)"
-                        : "#fff",
-                    }}
+          <View className="flex-row flex-wrap gap-2">
+            {opcionesLimitaciones.map((item: LimitacionOpcion) => {
+              const active = (formData.limitaciones || []).includes(
+                item.id
+              );
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() =>
+                    toggleArrayValue("limitaciones", item.id)
+                  }
+                  accessibilityRole="button"
+                  className="px-3 py-1.5 rounded-full"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: active
+                      ? "#22c55e"
+                      : isDark
+                        ? "rgba(148,163,184,0.35)"
+                        : "#e5e7eb",
+                    backgroundColor: active
+                      ? isDark
+                        ? "rgba(34,197,94,0.15)"
+                        : "#dcfce7"
+                      : isDark
+                        ? "#020617"
+                        : "#ffffff",
+                  }}
+                >
+                  <Text
+                    className="text-xs font-medium text-center"
+                    style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
                   >
-                    <Text
-                      className="text-sm font-medium text-center"
-                      style={{
-                        color: isDark
-                          ? textPrimaryDark
-                          : "#0f172a",
-                      }}
-                    >
-                      {item.nombre}
-                    </Text>
-                  </Pressable>
-                );
-              }
-            )}
+                    {item.nombre}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </Section>
       </View>
 
       {/* CTA Guardar */}
-      <View className="pt-6 items-center">
-        <LinearGradient
-          colors={marcoGradient as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="rounded-full p-[1px]"
-          style={{ borderRadius: 15 }}
+      <View className="mt-6 items-center">
+        <Pressable
+          onPress={handleSubmit}
+          disabled={!hayCambios || saving}
+          className="px-8 py-2.5 rounded-full items-center justify-center"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !hayCambios || saving }}
+          style={{
+            backgroundColor: !hayCambios || saving ? "#6b7280" : "#22c55e",
+          }}
         >
-          {isDark ? (
-            <LinearGradient
-              colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                borderRadius: 15,
-                borderWidth: 1,
-                borderColor: cardBorderDark,
-                overflow: "hidden",
-              }}
-            >
-              <Pressable
-                onPress={handleSubmit}
-                disabled={!hayCambios || saving}
-                className="rounded-full px-8 py-2.5 items-center justify-center"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !hayCambios || saving }}
-                style={{
-                  opacity: !hayCambios || saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: textPrimaryDark }}
-                  >
-                    Guardar cambios
-                  </Text>
-                )}
-              </Pressable>
-            </LinearGradient>
+          {saving ? (
+            <ActivityIndicator color="#ffffff" />
           ) : (
-            <View
-              className="rounded-full"
-              style={{
-                backgroundColor: "#ffffff",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <Pressable
-                onPress={handleSubmit}
-                disabled={!hayCambios || saving}
-                className="rounded-full px-8 py-2.5 items-center justify-center"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !hayCambios || saving }}
-                style={{
-                  opacity: !hayCambios || saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: "#0f172a" }}
-                  >
-                    Guardar cambios
-                  </Text>
-                )}
-              </Pressable>
-            </View>
+            <Text className="text-sm font-semibold text-white">
+              Guardar cambios
+            </Text>
           )}
-        </LinearGradient>
+        </Pressable>
+
         {hayCambios && (
           <Text
             className="mt-2 text-xs"
-            style={{ color: isDark ? textSecondaryDark : "#64748b" }}
+            style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
           >
-            Se detectaron modificaciones en tu perfil.
+            Tienes cambios sin guardar.
           </Text>
         )}
       </View>

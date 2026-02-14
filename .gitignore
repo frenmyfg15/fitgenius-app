@@ -26,3 +26,4 @@ android
 android
 ./android
 app-release.apk
+.env.local

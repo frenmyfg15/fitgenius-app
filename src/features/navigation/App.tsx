@@ -1,4 +1,3 @@
-// src/features/navigation/AppNavigator.tsx
 import React from "react";
 import { View, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -18,14 +17,14 @@ import EditarPerfil from "../screens/app/perfil/EditarPerfilScreen";
 import CambiarContrasena from "../screens/app/perfil/CambiarContrasena";
 import EliminarCuenta from "../screens/app/perfil/EliminarCuenta";
 import CrearRutinaScreen from "../screens/app/rutina-manual/CrearRutina";
-
-// 👇 NUEVO: pantalla de pago Premium
 import PremiumPaymentScreen from "../screens/app/premium/PremiumPaymentScreen";
 
-/* ---------- Tipos de stacks ---------- */
+/* ---------- Tipos ---------- */
 export type HomeStackParamList = {
   Home: undefined;
-  VistaEjercicio: { slug: string; asignadoId: number; ejercicio: any } | undefined;
+  VistaEjercicio:
+    | { slug: string; asignadoId: number; ejercicio: any }
+    | undefined;
 };
 
 export type ProgresoStackParamList = {
@@ -44,7 +43,7 @@ export type PerfilStackParamList = {
   CambiarContrasena: undefined;
   EliminarCuenta: undefined;
   PremiumSuccess: undefined;
-  PremiumPayment: undefined; // 👈 NUEVO
+  PremiumPayment: undefined;
 };
 
 /* ---------- Creación de navegadores ---------- */
@@ -54,7 +53,7 @@ const ProgresoStack = createNativeStackNavigator<ProgresoStackParamList>();
 const RutinasStack = createNativeStackNavigator<RutinasStackParamList>();
 const PerfilStack = createNativeStackNavigator<PerfilStackParamList>();
 
-/* ---------- Pantallas dummy (sustituye por las reales) ---------- */
+/* ---------- Pantalla dummy ---------- */
 function ScreenStub({ title }: { title: string }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -81,9 +80,9 @@ function ScreenStub({ title }: { title: string }) {
   );
 }
 
-/* ---------- Opciones comunes de Stack (slide) ---------- */
+/* ---------- Opciones comunes stack ---------- */
 const stackOptions = {
-  headerShown: false, // usamos el header estático global
+  headerShown: false,
   animation: "slide_from_right" as const,
 };
 
@@ -129,17 +128,19 @@ function PerfilStackNavigator() {
   return (
     <PerfilStack.Navigator screenOptions={stackOptions}>
       <PerfilStack.Screen name="Cuenta">{() => <Cuenta />}</PerfilStack.Screen>
+
       <PerfilStack.Screen name="EditarPerfil">
         {() => <EditarPerfil />}
       </PerfilStack.Screen>
+
       <PerfilStack.Screen name="CambiarContrasena">
         {() => <CambiarContrasena />}
       </PerfilStack.Screen>
+
       <PerfilStack.Screen name="EliminarCuenta">
         {() => <EliminarCuenta />}
       </PerfilStack.Screen>
 
-      {/* 👇 Pantalla de pago Premium */}
       <PerfilStack.Screen
         name="PremiumPayment"
         component={PremiumPaymentScreen}
@@ -159,7 +160,7 @@ function PerfilStackNavigator() {
   );
 }
 
-/* ---------- Iconos del tab (elige manualmente) ---------- */
+/* ---------- Iconos ---------- */
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Inicio: "barbell-outline",
   Progreso: "bar-chart-outline",
@@ -167,7 +168,7 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Perfil: "person-outline",
 };
 
-/* ---------- AppNavigator (SIN NavigationContainer) ---------- */
+/* ---------- AppNavigator ---------- */
 export default function AppNavigator() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -182,12 +183,25 @@ export default function AppNavigator() {
     >
       <Tab.Screen name="Inicio" component={HomeStackNavigator} />
       <Tab.Screen name="Rutinas" component={RutinasStackNavigator} />
+
       <Tab.Screen
         name="Progreso"
         component={ProgresoStackNavigator}
         options={{ tabBarBadge: 3 }}
       />
-      <Tab.Screen name="Perfil" component={PerfilStackNavigator} />
+
+      {/* ⭐ FIX: siempre vuelve a Cuenta al pulsar tab Perfil */}
+      <Tab.Screen
+        name="Perfil"
+        component={PerfilStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("Perfil", {
+              screen: "Cuenta",
+            });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

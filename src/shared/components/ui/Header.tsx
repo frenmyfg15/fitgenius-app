@@ -1,199 +1,243 @@
 // src/shared/components/ui/Header.tsx
-import React, { useMemo } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import { View, Text, Image, Pressable, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
-import { Sparkles, Lock, Gift } from "lucide-react-native";
+import { Sparkles, Lock, Gift, ChevronRight } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 import logo from "../../../../assets/logo.png";
 import ThemeToggle from "./ThemeToggle";
 
-export default function Header() {
-    const { colorScheme } = useColorScheme();
-    const isDark = colorScheme === "dark";
-    const navigation = useNavigation();
+type PlanState = "PREMIUM_ACTIVE" | "PREMIUM_UNPAID" | "FREE";
 
-    // ✅ Selectores primitivos del store
-    const nombre = useUsuarioStore((s) => s.usuario?.nombre ?? "");
-    const imagenPerfil = useUsuarioStore((s) => s.usuario?.imagenPerfil ?? "");
-    const planActual = useUsuarioStore((s) => s.usuario?.planActual);
-    const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
+function PlanChip({ state }: { state: PlanState }) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-    const { isPremiumActive, isPremiumUnpaid } = useMemo(() => {
-        const active = planActual === "PREMIUM" && haPagado;
-        const unpaid = planActual === "PREMIUM" && !haPagado;
-        return { isPremiumActive: active, isPremiumUnpaid: unpaid };
-    }, [planActual, haPagado]);
+  if (state === "FREE") return null;
 
-    // Fallback de avatar por inicial
-    const avatarUrl = useMemo(() => {
-        const n = nombre || "U";
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            n
-        )}&background=111827&color=FFFFFF&bold=true&uppercase=true&size=96&length=1&rounded=true`;
-    }, [nombre]);
+  const isActive = state === "PREMIUM_ACTIVE";
+  const label = isActive ? "Premium" : "Premium (pendiente)";
+  const Icon = isActive ? Sparkles : Lock;
 
-    const goRutinasTab = () => {
-        // navega al tab "Rutinas" (ajústalo si tu tab tiene otro nombre)
-        // @ts-ignore - usamos names de tabs simples
-        navigation.navigate("Rutinas");
-    };
-
-    const goPerfilTab = () => {
-        // @ts-ignore
-        navigation.navigate("Perfil");
-    };
-
-    return (
-        <SafeAreaView edges={["top"]} style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}>
-
-            <View
-                style={{
-                    height: 56,
-                    paddingHorizontal: 12,
-                    backgroundColor: isDark ? "#0b1220" : "#ffffff",
-                    borderBottomWidth: 1,
-                    borderBottomColor: isDark ? "#1f2937" : "#e5e7eb",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                {/* Logo */}
-                <TouchableOpacity
-                    onPress={goRutinasTab}
-                    activeOpacity={0.7}
-                    style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}
-                >
-                    <Image
-                        source={logo}
-                        resizeMode="contain"
-                        style={{ width: 58, height: 58 }}
-                    />
-                </TouchableOpacity>
-
-                <ThemeToggle text={false} />
-
-
-                {(nombre || imagenPerfil) ? (
-                    <TouchableOpacity
-                        onPress={goPerfilTab}
-                        activeOpacity={0.7}
-                        style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-                    >
-                        <View style={{ alignItems: "flex-end" }}>
-                            <Text
-                                numberOfLines={1}
-                                style={{
-                                    maxWidth: 180,
-                                    fontSize: 14,
-                                    fontWeight: "600",
-                                    color: isDark ? "#e5e7eb" : "#0f172a",
-                                }}
-                            >
-                                {nombre}
-                            </Text>
-
-                            {isPremiumActive && (
-                                <View
-                                    style={{
-                                        marginTop: 2,
-                                        paddingHorizontal: 6,
-                                        paddingVertical: 2,
-                                        backgroundColor: "rgba(17,24,39,0.9)",
-                                        borderRadius: 999,
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        gap: 4,
-                                    }}
-                                >
-                                    <Sparkles size={12} color="#fff" />
-                                    <Text style={{ fontSize: 10, color: "#fff" }}>Premium</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        {/* Avatar con gradiente */}
-                        <LinearGradient
-                            colors={["#a78bfa", "#f472b6", "#60a5fa"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 999,
-                                padding: 3,
-                                shadowColor: "#000",
-                                shadowOpacity: 0.1,
-                                shadowRadius: 2,
-                                shadowOffset: { width: 0, height: 1 },
-                                elevation: 2,
-                            }}
-                        >
-                            <View
-                                style={{
-                                    flex: 1,
-                                    borderRadius: 999,
-                                    overflow: "hidden",
-                                    backgroundColor: "#fff",
-                                }}
-                            >
-                                <Image
-                                    source={imagenPerfil ? { uri: imagenPerfil } : { uri: avatarUrl }}
-                                    resizeMode="cover"
-                                    style={{
-                                        width: "100%",
-                                        height: "100%",
-                                    }}
-                                />
-                            </View>
-
-                            {/* Badge de plan */}
-                            <View
-                                style={{
-                                    position: "absolute",
-                                    bottom: -6,
-                                    left: -6,
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 999,
-                                    backgroundColor: "#fff",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    shadowColor: "#000",
-                                    shadowOpacity: 0.15,
-                                    shadowRadius: 3,
-                                    shadowOffset: { width: 0, height: 1 },
-                                    elevation: 3,
-                                    borderWidth: 1,
-                                    borderColor: isDark ? "#1f2937" : "#e5e7eb",
-                                }}
-                                accessibilityLabel={
-                                    isPremiumActive
-                                        ? "Plan Premium activo"
-                                        : isPremiumUnpaid
-                                            ? "Suscripción pendiente o expirada"
-                                            : "Plan Gratuito"
-                                }
-                            >
-                                {isPremiumActive ? (
-                                    <Sparkles size={16} color="#7c3aed" strokeWidth={2} />
-                                ) : isPremiumUnpaid ? (
-                                    <Lock size={16} color="#b45309" strokeWidth={2} />
-                                ) : (
-                                    <Gift size={16} color={isDark ? "#9ca3af" : "#525252"} strokeWidth={2} />
-                                )}
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                ) : (
-                    // Si no hay usuario, puedes dejar solo el logo o un placeholder
-                    <View style={{ width: 56, height: 56 }} />
-                )}
-            </View>
-        </SafeAreaView>
-    );
+  return (
+    <View
+      style={{
+        marginTop: 4,
+        alignSelf: "flex-end",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.10)",
+        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+      }}
+      accessibilityLabel={label}
+    >
+      <Icon size={12} color={isActive ? "#a78bfa" : "#f59e0b"} />
+      <Text
+        style={{
+          marginLeft: 6,
+          fontSize: 10,
+          fontWeight: "700",
+          color: isDark ? "#e5e7eb" : "#0f172a",
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
 }
+
+function Avatar({
+  uri,
+  planState,
+}: {
+  uri: string;
+  planState: PlanState;
+}) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const ring =
+    planState === "PREMIUM_ACTIVE"
+      ? ["#a78bfa", "#f472b6", "#60a5fa"]
+      : isDark
+      ? ["rgba(255,255,255,0.12)", "rgba(255,255,255,0.06)"]
+      : ["rgba(15,23,42,0.10)", "rgba(15,23,42,0.06)"];
+
+  const badge = useMemo(() => {
+    if (planState === "PREMIUM_ACTIVE") return { Icon: Sparkles, color: "#7c3aed", a11y: "Plan Premium activo" };
+    if (planState === "PREMIUM_UNPAID") return { Icon: Lock, color: "#b45309", a11y: "Suscripción pendiente o expirada" };
+    return { Icon: Gift, color: isDark ? "#9ca3af" : "#525252", a11y: "Plan Gratuito" };
+  }, [planState, isDark]);
+
+  return (
+    <LinearGradient
+      colors={ring as any}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 999,
+        padding: 2.5,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          borderRadius: 999,
+          overflow: "hidden",
+          backgroundColor: isDark ? "#0b1220" : "#ffffff",
+          borderWidth: 1,
+          borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.10)",
+        }}
+      >
+        <Image source={{ uri }} resizeMode="cover" style={{ width: "100%", height: "100%" }} />
+      </View>
+
+      {/* Badge */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: -6,
+          left: -6,
+          width: 26,
+          height: 26,
+          borderRadius: 999,
+          backgroundColor: isDark ? "#0b1220" : "#ffffff",
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 1,
+          borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.10)",
+          shadowColor: "#000",
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 3,
+        }}
+        accessibilityLabel={badge.a11y}
+      >
+        <badge.Icon size={14} color={badge.color} strokeWidth={2.2} />
+      </View>
+    </LinearGradient>
+  );
+}
+
+function Header() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const navigation = useNavigation();
+
+  // Selectores (primitivos) para minimizar renders
+  const nombre = useUsuarioStore((s) => s.usuario?.nombre ?? "");
+  const imagenPerfil = useUsuarioStore((s) => s.usuario?.imagenPerfil ?? "");
+  const planActual = useUsuarioStore((s) => s.usuario?.planActual);
+  const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
+
+  const planState: PlanState = useMemo(() => {
+    if (planActual === "PREMIUM" && haPagado) return "PREMIUM_ACTIVE";
+    if (planActual === "PREMIUM" && !haPagado) return "PREMIUM_UNPAID";
+    return "FREE";
+  }, [planActual, haPagado]);
+
+  const avatarUrl = useMemo(() => {
+    const n = (nombre?.trim() || "U").slice(0, 1);
+    // ui-avatars: simple, rápido. Si prefieres offline, puedo cambiarlo por inicial local.
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      n
+    )}&background=111827&color=FFFFFF&bold=true&uppercase=true&size=96&length=1&rounded=true`;
+  }, [nombre]);
+
+  const avatarSrc = imagenPerfil?.trim() ? imagenPerfil : avatarUrl;
+
+  const goRutinasTab = useCallback(() => {
+    // @ts-ignore
+    navigation.navigate("Rutinas");
+  }, [navigation]);
+
+  const goPerfilTab = useCallback(() => {
+    // @ts-ignore
+    navigation.navigate("Perfil");
+  }, [navigation]);
+
+  const hasUser = !!(nombre || imagenPerfil);
+
+  return (
+    <SafeAreaView edges={["top"]} style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}>
+      <View
+        style={{
+          height: 60,
+          paddingHorizontal: 14,
+          backgroundColor: isDark ? "#0b1220" : "#ffffff",
+          borderBottomWidth: 1,
+          borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.08)",
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+        {/* Left: Logo */}
+        <Pressable
+          onPress={goRutinasTab}
+          hitSlop={10}
+          style={{ width: 52, height: 52, alignItems: "center", justifyContent: "center" }}
+          accessibilityRole="button"
+          accessibilityLabel="Ir a Rutinas"
+        >
+          <Image source={logo} resizeMode="contain" style={{ width: 54, height: 54 }} />
+        </Pressable>
+
+        {/* Center: Toggle (centrado real) */}
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <ThemeToggle text={false} />
+        </View>
+
+        {/* Right: User */}
+        {hasUser ? (
+          <Pressable
+            onPress={goPerfilTab}
+            hitSlop={10}
+            style={{ flexDirection: "row", alignItems: "center" }}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+          >
+            <View style={{ alignItems: "flex-end", marginRight: 10 }}>
+              <Text
+                numberOfLines={1}
+                style={{
+                  maxWidth: 170,
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: isDark ? "#e5e7eb" : "#0f172a",
+                }}
+              >
+                {nombre}
+              </Text>
+
+              <PlanChip state={planState} />
+            </View>
+
+            <Avatar uri={avatarSrc} planState={planState} />
+
+            <ChevronRight
+              size={16}
+              color={isDark ? "rgba(226,232,240,0.75)" : "rgba(15,23,42,0.55)"}
+              style={{ marginLeft: 8 }}
+            />
+          </Pressable>
+        ) : (
+          // Placeholder estable (evita saltos)
+          <View style={{ width: 52, height: 52 }} />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+export default memo(Header);

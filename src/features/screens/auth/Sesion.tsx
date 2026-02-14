@@ -1,4 +1,3 @@
-// src/features/screens/auth/Sesion.tsx
 import {
   View,
   Text,
@@ -6,7 +5,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Linking,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,10 +18,10 @@ import clsx from "clsx";
 import GoogleSignInButton from "@/shared/components/ui/GoogleSignInButton";
 import { useLogin } from "@/shared/hooks/useLogin";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import PasswordResetModal from "@/shared/components/auth/PasswordResetModal";
 
 export default function Sesion() {
-
   const {
     nav,
     isDark,
@@ -35,20 +33,26 @@ export default function Sesion() {
     bgGradient,
     handleSubmit,
     submitLogin,
-    startGoogleLogin,
     loginConGoogle,
   } = useLogin();
 
   const setShowWizard = useRegistroStore((s) => s.setShowWizard);
 
+  // ✅ estado modal
+  const [openReset, setOpenReset] = useState(false);
+
   useEffect(() => {
-    setShowWizard(false);       // ⬅️ ocultar en Sesion
+    setShowWizard(false); // ⬅️ ocultar en Sesion
   }, [setShowWizard]);
 
+  // ✅ Navega a Legal (registrada en RootAuthStack en App.tsx)
+  const openLegal = () => {
+    // @ts-ignore
+    nav.navigate("Legal", { initialTab: "terminos" });
+  };
 
   return (
     <View className={clsx("flex-1", isDark ? "bg-[#0b1220]" : "bg-slate-50")}>
-
       {/* Fondo degradado */}
       <LinearGradient
         colors={bgGradient as any}
@@ -62,7 +66,10 @@ export default function Sesion() {
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
             <View className="flex-1 px-4 py-6">
               <View className="flex-1 items-center justify-center">
                 <View className="w-full max-w-md">
@@ -104,7 +111,10 @@ export default function Sesion() {
                           name="correo"
                           rules={{
                             required: "El correo es obligatorio",
-                            pattern: { value: /\S+@\S+\.\S+/, message: "Correo inválido" },
+                            pattern: {
+                              value: /\S+@\S+\.\S+/,
+                              message: "Correo inválido",
+                            },
                           }}
                           render={({ field: { onChange, onBlur, value } }) => (
                             <View className="relative">
@@ -135,7 +145,9 @@ export default function Sesion() {
                           )}
                         />
                         {errors.correo && (
-                          <Text className="mt-1 text-sm text-red-500">{errors.correo.message}</Text>
+                          <Text className="mt-1 text-sm text-red-500">
+                            {errors.correo.message}
+                          </Text>
                         )}
                       </View>
 
@@ -145,9 +157,9 @@ export default function Sesion() {
                           <Text className="text-sm font-medium text-slate-800 dark:text-slate-200">
                             Contraseña
                           </Text>
-                          <Pressable
-                            onPress={() => Linking.openURL("https://tu-dominio.com/auth/forgot")}
-                          >
+
+                          {/* ✅ Abrir modal */}
+                          <Pressable onPress={() => setOpenReset(true)}>
                             <Text className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                               ¿Olvidaste tu contraseña?
                             </Text>
@@ -193,14 +205,25 @@ export default function Sesion() {
                             hitSlop={10}
                           >
                             {showPassword ? (
-                              <Feather name="eye-off" size={20} color={isDark ? "#e2e8f0" : "#0f172a"} />
+                              <Feather
+                                name="eye-off"
+                                size={20}
+                                color={isDark ? "#e2e8f0" : "#0f172a"}
+                              />
                             ) : (
-                              <Feather name="eye" size={20} color={isDark ? "#e2e8f0" : "#0f172a"} />
+                              <Feather
+                                name="eye"
+                                size={20}
+                                color={isDark ? "#e2e8f0" : "#0f172a"}
+                              />
                             )}
                           </Pressable>
                         </View>
+
                         {errors.contrasena && (
-                          <Text className="mt-1 text-sm text-red-500">{errors.contrasena.message}</Text>
+                          <Text className="mt-1 text-sm text-red-500">
+                            {errors.contrasena.message}
+                          </Text>
                         )}
                       </View>
 
@@ -240,11 +263,16 @@ export default function Sesion() {
                     <View className="relative my-6">
                       <View className="absolute inset-0 flex-row items-center">
                         <View
-                          className={clsx("w-full border-t", isDark ? "border-slate-700" : "border-slate-300")}
+                          className={clsx(
+                            "w-full border-t",
+                            isDark ? "border-slate-700" : "border-slate-300"
+                          )}
                         />
                       </View>
                       <View className="relative items-center">
-                        <Text className="px-3 text-xs text-slate-600 dark:text-slate-400">o</Text>
+                        <Text className="px-3 text-xs text-slate-600 dark:text-slate-400">
+                          o
+                        </Text>
                       </View>
                     </View>
 
@@ -263,7 +291,7 @@ export default function Sesion() {
                       ¿No tienes cuenta?{" "}
                       <Text
                         className="font-semibold text-indigo-600 dark:text-indigo-400"
-                        onPress={() => nav.navigate("Objetivo")}
+                        onPress={() => nav.navigate("Registro")}
                       >
                         Regístrate
                       </Text>
@@ -277,26 +305,24 @@ export default function Sesion() {
                 <Text className="text-xs text-slate-500 dark:text-slate-400">
                   © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
                 </Text>
-                <View className="mt-2 flex-row items-center justify-center gap-3">
-                  <Text
-                    className="text-xs underline underline-offset-2 text-slate-700 dark:text-slate-300"
-                    onPress={() => Linking.openURL("https://tu-dominio.com/legal/terminos")}
-                  >
-                    Términos y Condiciones
+
+                <Pressable onPress={openLegal} className="mt-2" hitSlop={10}>
+                  <Text className="text-xs underline underline-offset-2 text-slate-700 dark:text-slate-300">
+                    Legal (Términos y Privacidad)
                   </Text>
-                  <Text className="text-xs text-slate-400">•</Text>
-                  <Text
-                    className="text-xs underline underline-offset-2 text-slate-700 dark:text-slate-300"
-                    onPress={() => Linking.openURL("https://tu-dominio.com/legal/privacidad")}
-                  >
-                    Política de Privacidad
-                  </Text>
-                </View>
+                </Pressable>
               </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* ✅ Modal recuperar contraseña */}
+      <PasswordResetModal
+        visible={openReset}
+        onClose={() => setOpenReset(false)}
+        onSuccess={() => setOpenReset(false)}
+      />
     </View>
   );
 }

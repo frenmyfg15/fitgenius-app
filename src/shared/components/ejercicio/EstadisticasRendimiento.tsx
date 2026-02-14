@@ -4,40 +4,46 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-type Props = {
-  detallesSeries: {
-    pesoKg: number | null;
-    repeticiones: number | null;
-  }[];
+type SerieDetalle = {
+  pesoKg: number | null;
+  repeticiones: number | null; // en cardio = segundos
 };
 
-export default function EstadisticasRendimiento({ detallesSeries }: Props) {
+type Props = {
+  detallesSeries: SerieDetalle[];
+  esCardio?: boolean;
+};
+
+export default function EstadisticasRendimiento({
+  detallesSeries,
+  esCardio,
+}: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const unit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
+  const unit =
+    (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
 
-  const {
-    totalSeries,
-    totalReps,
-    totalPeso,
-    pesoPromedio,
-    repsPromedio,
-    maxPeso,
-    maxReps,
-  } = useMemo(() => {
+  const isCardio = Boolean(esCardio);
+
+  // ────────────────────────────
+  //       CÁLCULO MÉTRICAS
+  // ────────────────────────────
+  const stats = useMemo(() => {
     const sets = detallesSeries ?? [];
     const totalSeries = sets.length;
 
-    let totalReps = 0;
-    let totalPeso = 0;
+    let totalReps = 0;   // en fuerza = reps, en cardio = segundos totales
+    let totalPeso = 0;   // tonelaje (peso * reps)
     let maxPeso = 0;
-    let maxReps = 0;
+    let maxReps = 0;     // en cardio = máximo tiempo de una serie
 
     for (const s of sets) {
       const reps = Number(s.repeticiones ?? 0);
       const peso = Number(s.pesoKg ?? 0);
+
       totalReps += reps;
       totalPeso += peso * reps;
+
       if (peso > maxPeso) maxPeso = peso;
       if (reps > maxReps) maxReps = reps;
     }
@@ -45,82 +51,171 @@ export default function EstadisticasRendimiento({ detallesSeries }: Props) {
     const pesoPromedio = totalReps ? totalPeso / totalReps : 0;
     const repsPromedio = totalSeries ? totalReps / totalSeries : 0;
 
-    return { totalSeries, totalReps, totalPeso, pesoPromedio, repsPromedio, maxPeso, maxReps };
+    return {
+      totalSeries,
+      totalReps,           // fuerza: reps totales, cardio: segundos totales
+      totalPeso,           // tonelaje
+      pesoPromedio,
+      repsPromedio,        // fuerza: reps/serie, cardio: seg/serie
+      maxPeso,
+      maxReps,             // fuerza: reps máx, cardio: seg máx
+      tiempoTotal: totalReps,                // alias cardio
+      tiempoMedioSerie: repsPromedio,        // alias cardio
+      tiempoMaxSerie: maxReps,               // alias cardio
+    };
   }, [detallesSeries]);
 
-  const items = [
-    { label: "Sets", value: totalSeries, suffix: "" },
-    { label: "Reps totales", value: totalReps, suffix: "" },
-    { label: "Volumen total", value: totalPeso.toFixed(1), suffix: ` ${unit}` },
-    { label: "Peso promedio / rep", value: pesoPromedio.toFixed(1), suffix: ` ${unit}` },
-    { label: "Reps promedio / set", value: repsPromedio.toFixed(1), suffix: "" },
-    { label: "Peso máximo", value: maxPeso.toFixed(1), suffix: ` ${unit}` },
-    { label: "Reps máximas", value: maxReps, suffix: "" },
+  // ────────────────────────────
+  //       ITEMS A MOSTRAR
+  // ────────────────────────────
+  const items = isCardio
+    ? [
+        { label: "Series", value: stats.totalSeries, suffix: "" },
+        {
+          label: "Tiempo total",
+          value: stats.tiempoTotal.toFixed(0),
+          suffix: " s",
+        },
+        {
+          label: "Tiempo / serie",
+          value: stats.tiempoMedioSerie.toFixed(1),
+          suffix: " s",
+        },
+        {
+          label: "Tiempo máx. serie",
+          value: stats.tiempoMaxSerie.toFixed(0),
+          suffix: " s",
+        },
+        // Solo mostramos peso si realmente hay carga
+        ...(stats.maxPeso > 0
+          ? [
+              {
+                label: "Máximo peso",
+                value: stats.maxPeso.toFixed(1),
+                suffix: ` ${unit}`,
+              },
+            ]
+          : []),
+      ]
+    : [
+        { label: "Series", value: stats.totalSeries, suffix: "" },
+        { label: "Reps totales", value: stats.totalReps, suffix: "" },
+        {
+          label: "Volumen",
+          value: stats.totalPeso.toFixed(1),
+          suffix: ` ${unit}`,
+        },
+        {
+          label: "Peso / rep",
+          value: stats.pesoPromedio.toFixed(1),
+          suffix: ` ${unit}`,
+        },
+        {
+          label: "Reps / serie",
+          value: stats.repsPromedio.toFixed(1),
+          suffix: "",
+        },
+        {
+          label: "Máximo peso",
+          value: stats.maxPeso.toFixed(1),
+          suffix: ` ${unit}`,
+        },
+        { label: "Máximas reps", value: stats.maxReps, suffix: "" },
+      ];
+
+  const marcoBorder = [
+    "rgba(0,255,64,0.5)",
+    "rgba(94,230,157,0.45)",
+    "rgba(178,0,255,0.4)",
   ];
 
-  const hasData = totalSeries > 0 && (totalReps > 0 || totalPeso > 0);
-
-  const marcoColors = isDark ? ["#111a2b", "#0b1220", "#111a2b"] : ["#39ff14", "#14ff80", "#22c55e"];
+  const hasData = isCardio
+    ? stats.totalSeries > 0 && stats.tiempoTotal > 0
+    : stats.totalSeries > 0 &&
+      (stats.totalReps > 0 || stats.totalPeso > 0);
 
   return (
-    <View accessibilityLabel="Estadísticas de rendimiento" className="w-full">
-      {/* Marco degradado elegante */}
-      <LinearGradient colors={marcoColors as any} className="rounded-2xl p-[2px]"
-        style={{ borderRadius: 15, overflow: "hidden" }}
+    <View className="w-full mt-6">
+      <LinearGradient
+        colors={marcoBorder as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="rounded-2xl p-[1.5px]"
+        style={{ borderRadius: 18, overflow: "hidden" }}
       >
-        {/* Panel glass */}
+        {/* Tarjeta interna */}
         <View
           className={
-            "rounded-2xl shadow-md " +
-            (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white/90 border border-white/60")
+            "rounded-2xl px-5 py-5 " +
+            (isDark
+              ? "bg-[#0d1320]/70 border border-white/5 backdrop-blur-md"
+              : "bg-white/90 border border-slate-200/60")
           }
         >
           {/* Header */}
-          <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-            <Text className={isDark ? "text-white font-semibold" : "text-slate-900 font-semibold"}>
-              Resumen del rendimiento
-            </Text>
-            <Text className={isDark ? "text-[#94a3b8] text-[11px]" : "text-neutral-500 text-[11px]"}>
-              Unidad: <Text className={isDark ? "text-white font-medium" : "text-slate-700 font-medium"}>{unit}</Text>
-            </Text>
-          </View>
+          <Text
+            className={
+              (isDark ? "text-slate-200" : "text-slate-900") +
+              " text-[15px] font-medium mb-4"
+            }
+          >
+            Rendimiento general
+          </Text>
 
           {/* Contenido */}
-          <View className="px-4 pb-5">
-            {hasData ? (
-              <View className="flex-row flex-wrap gap-3">
-                {items.map((it) => (
-                  <View
-                    key={it.label}
+          {hasData ? (
+            <View className="flex-row flex-wrap justify-between gap-3">
+              {items.map((it) => (
+                <View
+                  key={it.label}
+                  className={
+                    "rounded-xl px-4 py-3 " +
+                    (isDark
+                      ? "bg-white/5 border border-white/5"
+                      : "bg-slate-50 border border-slate-200/50")
+                  }
+                  style={{ width: "47%" }}
+                >
+                  <Text
                     className={
-                      "rounded-xl px-4 py-3 " +
-                      (isDark ? "bg-white/5 border border-white/10" : "bg-white/80 border border-white/60")
+                      (isDark ? "text-slate-400" : "text-slate-500") +
+                      " text-xs"
                     }
-                    style={{ width: "48%" }} // 2 columnas responsivas
-                    accessibilityLabel={`${it.label}: ${it.value}${it.suffix}`}
                   >
-                    <Text className={isDark ? "text-[#94a3b8] text-[11px] font-semibold" : "text-neutral-500 text-[11px] font-semibold"}>
-                      {it.label}
-                    </Text>
+                    {it.label}
+                  </Text>
+
+                  <Text
+                    className={
+                      (isDark ? "text-white" : "text-slate-900") +
+                      " text-lg font-semibold mt-0.5"
+                    }
+                  >
+                    {it.value}
                     <Text
-                      className={isDark ? "text-white text-xl font-extrabold mt-1" : "text-slate-900 text-xl font-extrabold mt-1"}
+                      className={
+                        (isDark ? "text-slate-500" : "text-slate-400") +
+                        " text-[11px] ml-1"
+                      }
                     >
-                      {it.value}
-                      <Text className={isDark ? "text-[#94a3b8] text-xs font-semibold ml-1" : "text-neutral-500 text-xs font-semibold ml-1"}>
-                        {it.suffix}
-                      </Text>
+                      {it.suffix}
                     </Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View className="h-24 items-center justify-center">
-                <Text className={isDark ? "text-[#94a3b8] text-sm" : "text-neutral-500 text-sm"}>
-                  Aún no hay datos suficientes para calcular estadísticas.
-                </Text>
-              </View>
-            )}
-          </View>
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View className="py-10 items-center">
+              <Text
+                className={
+                  (isDark ? "text-slate-400" : "text-slate-500") +
+                  " text-sm"
+                }
+              >
+                No hay datos suficientes aún.
+              </Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
     </View>

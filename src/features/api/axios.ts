@@ -9,7 +9,7 @@ const URL = __DEV__
 export const api = axios.create({
   baseURL: "https://fitgenius-server-production-c4c8.up.railway.app",
   headers: { "Content-Type": "application/json" },
-  timeout: 50000,
+  timeout: 200000,
   withCredentials: true,
 });
 

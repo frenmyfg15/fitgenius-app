@@ -1,61 +1,67 @@
-// app/features/registro/PesoScreen.tsx
-import React, { useState, useCallback } from "react";
+// app/features/registro/PesoObjetivoScreen.tsx
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 
 import BtnAprobe from "@/shared/components/ui/BtnAprobe";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
-import WigthInput from "@/shared/components/ui/WigthInput"; // ✅ input controlado
+import WeightRulerPicker, { UnidadPeso } from "@/shared/components/ui/WeightRulerPicker";
 
-// Ajusta a tu stack real
-type RegistroStackParamList = {
-  Peso: undefined;
-  PesoObjetivo: undefined;
-};
+function normalizePesoKg(input: number, min = 30, max = 200) {
+  if (typeof input !== "number" || !Number.isFinite(input)) return 60;
+  const rounded = Math.round(input);
+  return Math.max(min, Math.min(max, rounded));
+}
 
-type UnidadPeso = "KG" | "LB";
-
-export default function PesoObjetivo() {
+export default function PesoObjetivoScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RegistroStackParamList>>();
 
-  // Store registro
   const usuario = useRegistroStore((s) => s.usuario);
   const setField = useRegistroStore((s) => s.setField);
 
-  // Unidad a mostrar (fallback a "KG" por si viene vacío)
   const unit: UnidadPeso = (usuario?.medidaPeso as UnidadPeso) || "KG";
 
-  // El input emite siempre KG base
-  const handleChangePeso = useCallback(
-    (kgBase: number) => {
-      setField("pesoObjetivo", kgBase);
-    },
-    [setField]
-  );
-
-  // Valor controlado a mostrar:
-  // 1) si ya hay objetivo, úsalo
-  // 2) si no, usa el peso actual como punto de partida
-  // 3) fallback a 50
-  const valueKg =
+  const storeKg =
     typeof usuario?.pesoObjetivo === "number"
       ? usuario.pesoObjetivo
       : typeof usuario?.peso === "number"
       ? usuario.peso
       : 50;
 
-  // Validez del objetivo (en KG base)
-  const pesoObjetivoValido = (usuario?.pesoObjetivo ?? 0) >= 30;
+  const [localKg, setLocalKg] = useState<number>(() => normalizePesoKg(storeKg));
+  const lastLocalKgRef = useRef(localKg);
+  useEffect(() => {
+    lastLocalKgRef.current = localKg;
+  }, [localKg]);
+
+  useEffect(() => {
+    setLocalKg(normalizePesoKg(storeKg));
+  }, [storeKg]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const finalKg = normalizePesoKg(lastLocalKgRef.current);
+        const currentStore =
+          typeof usuario?.pesoObjetivo === "number" ? usuario.pesoObjetivo : 0;
+        if (currentStore !== finalKg) {
+          setField("pesoObjetivo", finalKg);
+        }
+      };
+    }, [setField])
+  );
+
+  const valido = localKg >= 30;
+
+  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const labelColor = isDark ? "#E5E7EB" : "#111827";
+  const hintColor = isDark ? "#9CA3AF" : "#6B7280";
 
   return (
     <>
-      {/* Botón fijo abajo-izquierda cuando hay un valor válido */}
-      {pesoObjetivoValido && <BtnAprobe step="Edad" placement="left" />}
+      {valido && <BtnAprobe step="Edad" placement="left" />}
 
       <ScrollView
         className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
@@ -80,19 +86,23 @@ export default function PesoObjetivo() {
           </Text>
         </View>
 
-        {/* Input de peso objetivo (controlado, siempre emite KG base) */}
         <View className="px-2 items-center">
-          <WigthInput
-            unit={unit}                 // "KG" | "LB"
-            valueKg={valueKg}           // ✅ valor controlado en KG base
-            onChange={handleChangePeso} // devuelve KG base
+          <WeightRulerPicker
+            unit={unit}
+            valueKg={localKg}
             minKg={30}
             maxKg={200}
+            stepKg={1}
+            onChange={(kg) => setLocalKg(normalizePesoKg(kg))}
+            onChangeEnd={(kg) => setLocalKg(normalizePesoKg(kg))}
             label="Indica tu peso objetivo"
+            rulerStyle={{ width: "100%", backgroundColor: bgColor }}
+            labelColor={labelColor}
+            hintColor={hintColor}
+            indicatorColor="#22C55E"
           />
         </View>
       </ScrollView>
     </>
   );
 }
-

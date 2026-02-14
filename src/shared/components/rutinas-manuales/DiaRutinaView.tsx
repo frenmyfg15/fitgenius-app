@@ -1,8 +1,11 @@
 // src/shared/components/rutina/DiaRutinaView.tsx
-import React, { useMemo, useRef, useState } from "react";
-import { View, Text, Image, Pressable, ScrollView } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
+import DraggableFlatList, { RenderItemParams } from "react-native-draggable-flatlist";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+
 import type {
   CompuestoItem,
   DiaSemana,
@@ -17,9 +20,27 @@ type Props = {
   onEdit?: (ejercicio: EjercicioAsignadoInput) => void;
   dispatch: React.Dispatch<any>;
   onSelectionChange?: (orden: number | null, item: Item | null) => void;
+  selectedOrden?: number | null;
 };
 
-const LONG_PRESS_DELAY = 500;
+/** Key estable (NO usar orden) */
+function getStableKey(item: Item): string {
+  const anyItem = item as any;
+
+  if (anyItem?.id != null) return `id:${String(anyItem.id)}`;
+
+  const esCompuesto = "compuesto" in anyItem && !!anyItem.compuesto;
+  if (esCompuesto) {
+    const ejercicios = (anyItem as CompuestoItem).ejerciciosCompuestos ?? [];
+    const ids = ejercicios
+      .map((e: any) => e?.ejercicioId ?? e?.ejercicioInfo?.id ?? "x")
+      .join("|");
+    return `cmp:${ids}`;
+  }
+
+  const ejId = anyItem?.ejercicioId ?? anyItem?.ejercicioInfo?.id ?? "x";
+  return `ej:${String(ejId)}`;
+}
 
 export default function DiaRutinaView({
   dia,
@@ -27,187 +48,211 @@ export default function DiaRutinaView({
   onEdit,
   dispatch,
   onSelectionChange,
+  selectedOrden,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const sorted = useMemo(() => [...(ejercicios ?? [])].sort((a, b) => a.orden - b.orden), [ejercicios]);
-  const [activeItemOrden, setActiveItemOrden] = useState<number | null>(null);
+  const { usuario } = useUsuarioStore();
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase(); // "kg" | "lb"
 
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
-  const isLongPress = useRef(false);
+  const sorted = useMemo(
+    () => [...(ejercicios ?? [])].sort((a, b) => a.orden - b.orden),
+    [ejercicios]
+  );
 
-  const selectOrden = (orden: number | null) => {
-    setActiveItemOrden(orden);
-    if (onSelectionChange) {
-      const item = orden == null ? null : sorted.find((i) => i.orden === orden) ?? null;
-      onSelectionChange(orden, item);
-    }
-  };
+  const [data, setData] = useState<Item[]>(sorted);
 
-  const handlePressIn = (orden: number) => {
-    isLongPress.current = false;
-    pressTimer.current && clearTimeout(pressTimer.current);
-    pressTimer.current = setTimeout(() => {
-      selectOrden(orden);
-      isLongPress.current = true;
-    }, LONG_PRESS_DELAY);
-  };
+  useEffect(() => {
+    const currentKeys = data.map(getStableKey).join(",");
+    const nextKeys = sorted.map(getStableKey).join(",");
+    if (currentKeys !== nextKeys) setData(sorted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted]);
 
-  const handlePressOut = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-  };
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
-  const handlePress = (orden: number) => {
-    if (isLongPress.current) {
-      isLongPress.current = false;
+  useEffect(() => {
+    if (typeof selectedOrden === "undefined") return;
+
+    if (selectedOrden == null) {
+      setActiveKey(null);
       return;
     }
-    selectOrden(activeItemOrden === orden ? null : orden);
+
+    const it = data.find((x) => x.orden === selectedOrden) ?? null;
+    setActiveKey(it ? getStableKey(it) : null);
+  }, [selectedOrden, data]);
+
+  useEffect(() => {
+    if (!activeKey) return;
+    const exists = data.some((it) => getStableKey(it) === activeKey);
+    if (!exists) setActiveKey(null);
+  }, [data, activeKey]);
+
+  const selectItem = (itemOrNull: Item | null) => {
+    const key = itemOrNull ? getStableKey(itemOrNull) : null;
+    setActiveKey(key);
+    onSelectionChange?.(itemOrNull ? itemOrNull.orden : null, itemOrNull);
   };
 
-  if (sorted.length === 0) {
+  const toggleSelectByItem = (item: Item) => {
+    const key = getStableKey(item);
+    selectItem(activeKey === key ? null : item);
+  };
+
+  const frameGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
+  const cardBg = isDark ? "#020617" : "#ffffff";
+  const cardBorder = isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.12)";
+  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
+
+  const onDragEnd = useCallback(
+    ({ data: newData }: { data: Item[] }) => {
+      const reordered = newData.map((it, idx) => ({
+        ...it,
+        orden: idx + 1,
+      }));
+
+      setData(reordered);
+
+      dispatch({
+        type: "REORDER_EJERCICIOS",
+        payload: { diaSemana: dia, ejercicios: reordered },
+      });
+    },
+    [dispatch, dia]
+  );
+
+  const renderItem = useCallback(
+    ({ item, drag }: RenderItemParams<Item>) => {
+      const key = getStableKey(item);
+      const isSelected = activeKey === key;
+
+      const anyItem = item as any;
+      const esCompuesto = "compuesto" in anyItem && !!anyItem.compuesto;
+
+      const ejerciciosDelItem = (esCompuesto
+        ? (item as CompuestoItem).ejerciciosCompuestos
+        : [item as EjercicioItem]) as EjercicioAsignadoInput[];
+
+      const principal = ejerciciosDelItem[0];
+      const imageSize = esCompuesto ? 60 : 110;
+
+      return (
+        <View style={{ width: "95%", borderRadius: 16, padding: 1, alignSelf: "center", flex: 1 }}>
+          {isSelected && (
+            <LinearGradient
+              colors={frameGradient as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            />
+          )}
+
+          <View style={{ borderRadius: 16, overflow: "hidden" }}>
+            <Pressable
+              onPress={() => toggleSelectByItem(item)}
+              onLongPress={drag}
+              delayLongPress={250}
+              style={{
+                borderRadius: 16,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                backgroundColor: cardBg,
+                borderWidth: 1,
+                borderColor: isSelected ? "transparent" : cardBorder,
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+            >
+              <View
+                style={{
+                  minWidth: 120,
+                  flexDirection: esCompuesto ? "row" : "column",
+                  gap: esCompuesto ? 8 : 0,
+                }}
+              >
+                {ejerciciosDelItem.map((ej) => (
+                  <View
+                    key={`${key}-${ej.ejercicioId}`}
+                    style={{
+                      width: imageSize,
+                      height: imageSize,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      borderWidth: 1,
+                      borderColor: cardBorder,
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
+                    }}
+                  >
+                    <Image
+                      source={{
+                        uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ej.ejercicioInfo?.idGif ?? ""
+                          }.gif`,
+                      }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View style={{ flex: 1, minWidth: 0 as any }}>
+                <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: textPrimary }}>
+                  {esCompuesto ? `Compuesto (${ejerciciosDelItem.length})` : principal.ejercicioInfo?.nombre}
+                </Text>
+
+                <View
+                  style={{
+                    marginTop: 6,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+                  <Chip isDark={isDark}>Series: {principal.seriesSugeridas ?? "-"}</Chip>
+                  <Chip isDark={isDark}>Reps: {principal.repeticionesSugeridas ?? "-"}</Chip>
+                  <Chip isDark={isDark}>
+                    Peso: {principal.pesoSugerido ?? "-"} {weightUnit}
+                  </Chip>
+                </View>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      );
+    },
+    [activeKey, cardBg, cardBorder, frameGradient, isDark, textPrimary, weightUnit]
+  );
+
+  if (data.length === 0) {
     return (
-      <View style={{ paddingBottom: 80 }}>
+      <View style={{ paddingBottom: 80, flex: 1 }}>
         <Explicacion />
       </View>
     );
   }
 
-  const frameGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.80)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.60)";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#475569";
-
   return (
-    <ScrollView
-      style={{ width: "100%", marginTop: 16 }}
-      contentContainerStyle={{
-        alignItems: "center",
-        gap: 12,
-        paddingBottom: 120,
-      }}
-    >
-      {sorted.map((item) => {
-        const isActive = item.orden === activeItemOrden;
-        const esCompuesto = "compuesto" in item && (item as any).compuesto;
-        const ejerciciosDelItem = (esCompuesto
-          ? (item as CompuestoItem).ejerciciosCompuestos
-          : [item as EjercicioItem]) as EjercicioAsignadoInput[];
-
-        const principal = ejerciciosDelItem[0];
-        const imageSize = esCompuesto ? 60 : 110;
-
-        const CardInner = (
-          <Pressable
-            onPressIn={() => handlePressIn(item.orden)}
-            onPressOut={handlePressOut}
-            onPress={() => handlePress(item.orden)}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorder,
-              backgroundColor: cardBg,
-              padding: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isActive }}
-          >
-            {/* Imagen / stack compuesto */}
-            <View
-              style={{
-                minWidth: 120,
-                flexDirection: esCompuesto ? "row" : "column",
-                gap: esCompuesto ? 8 : 0,
-              }}
-            >
-              {ejerciciosDelItem.map((ej) => (
-                <View
-                  key={`${item.orden}-${ej.ejercicioId}`}
-                  style={{
-                    width: imageSize,
-                    height: imageSize,
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    borderWidth: 1,
-                    borderColor: cardBorder,
-                    backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#ffffff",
-                  }}
-                >
-                  <Image
-                    source={{
-                      uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ej.ejercicioInfo?.idGif ?? ""}.gif`,
-                    }}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode="contain"
-                  />
-                </View>
-              ))}
-            </View>
-
-            {/* Información */}
-            <View style={{ flex: 1, minWidth: 0 as any }}>
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: textPrimary,
-                  textAlign: "left",
-                }}
-              >
-                {esCompuesto
-                  ? `Compuesto (${ejerciciosDelItem.length})`
-                  : principal.ejercicioInfo?.nombre}
-              </Text>
-
-              <View
-                style={{
-                  marginTop: 6,
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 8,
-                }}
-              >
-                <Chip>Series: {principal.seriesSugeridas ?? "-"}</Chip>
-                <Chip>Reps: {principal.repeticionesSugeridas ?? "-"}</Chip>
-                <Chip>Peso: {principal.pesoSugerido ?? "-"} kg</Chip>
-              </View>
-            </View>
-          </Pressable>
-        );
-
-        return (
-          <View key={`item-${item.orden}`} style={{ width: "95%" }}>
-            {isActive ? (
-              <LinearGradient
-                colors={frameGradient as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ borderRadius: 16, padding: 1 }}
-              >
-                {CardInner}
-              </LinearGradient>
-            ) : (
-              CardInner
-            )}
-          </View>
-        );
-      })}
-    </ScrollView>
+    <View style={{ width: "100%", marginTop: 16, flex: 1, minHeight: 0 }}>
+      <DraggableFlatList
+        data={data}
+        keyExtractor={getStableKey}
+        renderItem={renderItem}
+        onDragEnd={onDragEnd}
+        activationDistance={8}
+        scrollEnabled
+        nestedScrollEnabled
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 }
 
-/* ---------- Subcomponentes ---------- */
-
-function Chip({ children }: { children: React.ReactNode }) {
+function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
       style={{
@@ -215,16 +260,23 @@ function Chip({ children }: { children: React.ReactNode }) {
         paddingVertical: 6,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.60)",
-        backgroundColor: "rgba(255,255,255,0.70)",
+        borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.12)",
+        backgroundColor: isDark ? "#020617" : "#ffffff",
       }}
     >
-      <Text style={{ fontSize: 12, color: "#475569", fontWeight: "600" }}>{children as any}</Text>
+      <Text
+        style={{
+          fontSize: 12,
+          color: isDark ? "#cbd5e1" : "#475569",
+          fontWeight: "600",
+        }}
+      >
+        {children as any}
+      </Text>
     </View>
   );
 }
 
-/** Placeholder mínimo del Explicacion original (puedes reemplazar por el tuyo real) */
 function Explicacion() {
   return (
     <View style={{ alignItems: "center", gap: 6 }}>

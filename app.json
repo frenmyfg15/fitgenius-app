@@ -18,6 +18,21 @@
           "merchantIdentifier": "merchant.com.fitgenius",
           "enableGooglePay": true
         }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "novaforge-2v"
+        }
       ]
     ],
     "orientation": "portrait",
@@ -33,9 +48,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.novaforge.fitgenius"
+      "bundleIdentifier": "com.novaforge.fitgenius",
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
     },
     "android": {
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

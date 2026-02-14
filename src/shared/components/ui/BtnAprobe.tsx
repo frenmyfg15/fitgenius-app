@@ -1,10 +1,10 @@
 // src/shared/components/ui/BtnAprobe.tsx
-import React from "react";
+import React, { useCallback } from "react";
 import { Pressable, Vibration } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { LinearGradient } from "expo-linear-gradient";
 
 type RegistroStackParamList = {
   Objetivo: undefined;
@@ -25,28 +25,50 @@ type RegistroStackParamList = {
 
 type Props = {
   step: keyof RegistroStackParamList;
-  placement?: "left" | "right"; // permite elegir esquina
+  placement?: "left" | "right";
+
+  /**
+   * ✅ Recomendado: evita depender del contexto de navegación dentro del botón.
+   * Pásalo desde la pantalla: onPress={() => navigation.navigate(step)}
+   */
+  onPress?: () => void;
 };
 
-export default function BtnAprobe({ step, placement = "right" }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RegistroStackParamList>>();
+export default function BtnAprobe({ step, placement = "right", onPress }: Props) {
+  // OJO: useNavigation puede no existir si el componente se monta fuera del container.
+  // Por eso lo usamos en try/catch y NO dependemos de él si nos pasan onPress.
+  let navigation: NativeStackNavigationProp<RegistroStackParamList> | null = null;
 
-  const handleNext = () => {
-    // vibración corta al pulsar
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    navigation = useNavigation<NativeStackNavigationProp<RegistroStackParamList>>();
+  } catch {
+    navigation = null;
+  }
+
+  const handleNext = useCallback(() => {
     Vibration.vibrate(40);
-    setTimeout(() => navigation.navigate(step), 300);
-  };
+
+    // si te pasan onPress, úsalo siempre (modo seguro)
+    if (onPress) {
+      setTimeout(onPress, 300);
+      return;
+    }
+
+    // fallback: navegar si hay contexto
+    if (navigation) {
+      setTimeout(() => navigation?.navigate(step), 300);
+    }
+  }, [onPress, navigation, step]);
 
   return (
     <Pressable
       onPress={handleNext}
       className="absolute z-20 rounded-full active:opacity-80"
       style={{
-        bottom: 60, // misma posición
+        bottom: 60,
         ...(placement === "right" ? { right: 40 } : { left: 40 }),
 
-        // sombra más suave y elegante
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 6,
@@ -65,7 +87,6 @@ export default function BtnAprobe({ step, placement = "right" }: Props) {
           justifyContent: "center",
         }}
       >
-        {/* icono un poco más pequeño */}
         <Feather name="check" size={22} color="#fff" />
       </LinearGradient>
     </Pressable>

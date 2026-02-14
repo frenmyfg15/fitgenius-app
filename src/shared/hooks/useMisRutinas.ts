@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Toast from "react-native-toast-message";
@@ -14,7 +12,6 @@ export function useMisRutinas() {
   const [rutinas, setRutinas] = useState<Rutina[]>([]);
   const [ver, setVer] = useState(false);
   const [idMostrar, setIdMostrar] = useState<number | null>(null);
-  const [reloadKey, setReloadKey] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const routineRev = useSyncStore((s) => s.routineRev);
@@ -27,15 +24,9 @@ export function useMisRutinas() {
     cacheSetRef.current = rutinasCache.set;
   }, [rutinasCache]);
 
-  const planActual = useUsuarioStore((s) => s.usuario?.planActual);
-  const haPagado = useUsuarioStore((s) => s.usuario?.haPagado ?? false);
   const totalIA = useUsuarioStore((s) => s.usuario?.rutinasIACreadas ?? 0);
-  const totalManual = useUsuarioStore((s) => s.usuario?.rutinasManualCreadas ?? 0);
-
-  const isPremiumActive = planActual === "PREMIUM" && haPagado;
-  const maxManual = isPremiumActive ? 50 : 5;
-  const maxIA = isPremiumActive ? 15 : 1;
-  const lockedManual = totalManual >= maxManual;
+  const isPremium = useUsuarioStore().usuario?.haPagado;
+  const maxIA = isPremium ? Number.POSITIVE_INFINITY : 1;
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -43,11 +34,18 @@ export function useMisRutinas() {
       mountedRef.current = false;
     };
   }, []);
-  const setIfMounted = useCallback(<T,>(setter: (v: T) => void, v: T) => {
-    if (mountedRef.current) setter(v);
-  }, []);
 
-  const getReadableError = (err: unknown, fallback = "No se pudieron cargar tus rutinas.") => {
+  const setIfMounted = useCallback<<T,>(setter: (v: T) => void, v: T) => void>(
+    (setter, v) => {
+      if (mountedRef.current) setter(v);
+    },
+    []
+  );
+
+  const getReadableError = (
+    err: unknown,
+    fallback = "No se pudieron cargar tus rutinas."
+  ) => {
     if (axios.isAxiosError(err)) {
       if (err.request && !err.response) {
         return "No se pudo contactar al servidor. Revisa tu conexión.";
@@ -57,9 +55,12 @@ export function useMisRutinas() {
         (err.response?.data as any)?.message ??
         (err.response?.data as any)?.msg;
       if (serverMsg) return serverMsg;
-      if (err.response?.status === 401) return "No estás autorizado para ver estas rutinas.";
-      if (err.response?.status === 404) return "No se encontraron rutinas.";
-      if (err.response?.status === 500) return "Fallo interno del servidor al cargar rutinas.";
+      if (err.response?.status === 401)
+        return "No estás autorizado para ver estas rutinas.";
+      if (err.response?.status === 404)
+        return "No se encontraron rutinas.";
+      if (err.response?.status === 500)
+        return "Fallo interno del servidor al cargar rutinas.";
       return err.message || fallback;
     }
     if (err instanceof Error) return err.message || fallback;
@@ -86,45 +87,70 @@ export function useMisRutinas() {
     setTimeout(() => setIdMostrar(null), 300);
   }, []);
 
-  const fetchRutinas = useCallback(async () => {
-    setIfMounted(setLoading, true);
-    try {
-      const res = await obtenerRutinas();
-      const list: Rutina[] = res?.data?.rutinas ?? [];
-      setIfMounted(setRutinas, list);
-      cacheSetRef.current?.(list);
-    } catch (err) {
-      const msg = getReadableError(err);
-      logWarning("MisRutinasFetchError", err, msg);
-      Toast.show({
-        type: "error",
-        text1: "Error al cargar rutinas",
-        text2: msg,
-      });
-    } finally {
-      setIfMounted(setLoading, false);
-    }
-  }, [setIfMounted]);
+  // ✅ fetch con opción force para ignorar cache
+  const fetchRutinas = useCallback(
+    async (opts?: { force?: boolean }) => {
+      setIfMounted(setLoading, true);
+      try {
+        const res = await obtenerRutinas();
+        const list: Rutina[] = Array.isArray(res)
+          ? res
+          : (res as any)?.rutinas ?? [];
 
+        setIfMounted(setRutinas, list);
+        cacheSetRef.current?.(list);
+      } catch (err) {
+        const msg = getReadableError(err);
+        logWarning("MisRutinasFetchError", err, msg);
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: msg,
+        });
+
+        // fallback cache si falla red
+        if (!opts?.force) {
+          const cached = cacheGetRef.current?.();
+          if (cached && Array.isArray(cached) && cached.length) {
+            setIfMounted(setRutinas, cached);
+          }
+        }
+      } finally {
+        setIfMounted(setLoading, false);
+      }
+    },
+    [setIfMounted]
+  );
+
+  // ✅ al montar: usa cache si existe, pero NO bloquees la posibilidad de fetch
   useEffect(() => {
     const cached = cacheGetRef.current?.();
     if (cached && Array.isArray(cached) && cached.length) {
       setRutinas(cached);
+      // opcional: refresco silencioso en background:
+      fetchRutinas({ force: true });
       return;
     }
-    fetchRutinas();
+    fetchRutinas({ force: true });
   }, [fetchRutinas]);
 
+  // ✅ si cambia revision global → recarga forzada
   useEffect(() => {
-    fetchRutinas();
-  }, [routineRev, reloadKey, fetchRutinas]);
+    fetchRutinas({ force: true });
+  }, [routineRev, fetchRutinas]);
+
+  // ✅ función que sí se puede await (para refreshControl / IA button)
+  const reloadRutinas = useCallback(async () => {
+    await fetchRutinas({ force: true });
+  }, [fetchRutinas]);
 
   const rutinaSeleccionada = useMemo(
-    () => (idMostrar != null ? rutinas.find((r) => r.id === idMostrar) ?? null : null),
+    () =>
+      idMostrar != null
+        ? rutinas.find((r) => r.id === idMostrar) ?? null
+        : null,
     [idMostrar, rutinas]
   );
-
-  const toggleReload = useCallback(() => setReloadKey((p) => !p), []);
 
   return {
     rutinas,
@@ -134,12 +160,9 @@ export function useMisRutinas() {
     idMostrar,
     mostrar,
     cerrarVisor,
-    toggleReload,
-    isPremiumActive,
-    maxManual,
-    maxIA,
-    lockedManual,
+    reloadRutinas, // ✅ en vez de toggleReload
     totalIA,
-    totalManual,
+    maxIA,
+    isPremium,
   };
 }

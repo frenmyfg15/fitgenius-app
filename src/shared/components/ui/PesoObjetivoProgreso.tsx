@@ -18,14 +18,18 @@ const C = 2 * Math.PI * R;
 const CX = 90;
 const CY = 90;
 
+type UnidadPeso = "KG" | "LB";
+
 type PesoObjetivoProgresoProps = {
   peso?: number | string | null;
   objetivo?: number | string | null;
+  medidaPeso?: UnidadPeso;
 };
 
 export default function PesoObjetivoProgreso({
   peso,
   objetivo,
+  medidaPeso = "KG",
 }: PesoObjetivoProgresoProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -39,6 +43,8 @@ export default function PesoObjetivoProgreso({
   const haPagado = usuario?.haPagado ?? false;
   const isPremiumActive = planActual === "PREMIUM" && haPagado;
   const locked = !isPremiumActive;
+
+  const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
 
   // 🎨 Paleta visual (igual que PesoIdeal / TMB)
   const marcoGradient = [
@@ -181,15 +187,15 @@ export default function PesoObjetivoProgreso({
       : Math.min(objetivoNum / pesoNum, 1);
   }, [rumbo, objetivoNum, pesoNum]);
 
-  const deltaKg = objetivoNum - pesoNum;
+  const delta = objetivoNum - pesoNum;
   const alcanzado = rumbo === "igual";
   const dash = C * (1 - pct);
 
   const estado = alcanzado
     ? "¡Has alcanzado tu objetivo!"
-    : deltaKg < 0
-    ? `Te sobran ${Math.abs(deltaKg).toFixed(1)} kg`
-    : `Te faltan ${Math.abs(deltaKg).toFixed(1)} kg`;
+    : delta < 0
+    ? `Te sobran ${Math.abs(delta).toFixed(1)} ${unidadPesoLabel}`
+    : `Te faltan ${Math.abs(delta).toFixed(1)} ${unidadPesoLabel}`;
 
   // Si no hay datos válidos, no mostramos nada
   if (!pesoNum || !objetivoNum) return null;
@@ -255,19 +261,19 @@ export default function PesoObjetivoProgreso({
           <View className="mt-3 grid grid-cols-3 gap-3">
             <Chip
               label="Actual"
-              value={`${round1(pesoNum)} kg`}
+              value={`${round1(pesoNum)} ${unidadPesoLabel}`}
               isDark={isDark}
             />
             <Chip
               label="Objetivo"
-              value={`${round1(objetivoNum)} kg`}
+              value={`${round1(objetivoNum)} ${unidadPesoLabel}`}
               isDark={isDark}
             />
             <Chip
               label="Diferencia"
               value={`${
-                objetivoNum - pesoNum > 0 ? "+" : ""
-              }${round1(objetivoNum - pesoNum)} kg`}
+                delta > 0 ? "+" : ""
+              }${round1(delta)} ${unidadPesoLabel}`}
               isDark={isDark}
             />
           </View>

@@ -10,6 +10,9 @@ import { useSyncStore } from "@/features/store/useSyncStore";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { crearRutinaPersonalizada } from "@/features/api/rutinas.api";
 
+/* ---- Ads ---- */
+import { useRewardedAd } from "@/shared/lib/ads/useRewardedAd";
+
 /* ---- Tipos ---- */
 import type {
   DiaSemana,
@@ -21,13 +24,25 @@ import type {
 } from "@/features/type/crearRutina";
 import { useRutinaReducer } from "@/shared/hooks/useRutinaReducer";
 
-const DIAS: DiaSemana[] = ["LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO","DOMINGO"];
+const DIAS: DiaSemana[] = [
+  "LUNES",
+  "MARTES",
+  "MIERCOLES",
+  "JUEVES",
+  "VIERNES",
+  "SABADO",
+  "DOMINGO",
+];
 
 const getValidId = (raw: unknown): number | undefined => {
   if (raw == null) return undefined;
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : undefined;
 };
+
+// helper para reintentos
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useCrearRutinaState() {
   const { colorScheme } = useColorScheme();
@@ -42,8 +57,10 @@ export function useCrearRutinaState() {
   /* ---------- UI flags ---------- */
   const [mostrarBuscador, setMostrarBuscador] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [mostrarFormularioCompuesto, setMostrarFormularioCompuesto] = useState(false);
-  const [mostrarFormularioNombre, setMostrarFormularioNombre] = useState(false);
+  const [mostrarFormularioCompuesto, setMostrarFormularioCompuesto] =
+    useState(false);
+  const [mostrarFormularioNombre, setMostrarFormularioNombre] =
+    useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -57,11 +74,14 @@ export function useCrearRutinaState() {
 
   /* ---------- Compuesto ---------- */
   const [modoCompuesto, setModoCompuesto] = useState(false);
-  const [compuestoTemporal, setCompuestoTemporal] = useState<EjercicioCompuestoTemporal[]>([]);
-  const [ejercicioEnCompuestoActual, setEjercicioEnCompuestoActual] = useState<{
-    id: number;
-    info: EjercicioVisualInfo;
-  } | null>(null);
+  const [compuestoTemporal, setCompuestoTemporal] = useState<
+    EjercicioCompuestoTemporal[]
+  >([]);
+  const [ejercicioEnCompuestoActual, setEjercicioEnCompuestoActual] =
+    useState<{
+      id: number;
+      info: EjercicioVisualInfo;
+    } | null>(null);
 
   const [editarCompuesto, setEditarCompuesto] = useState<null | {
     compuestoId: number;
@@ -74,21 +94,33 @@ export function useCrearRutinaState() {
 
   /* ---------- Selección lista ---------- */
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const ejerciciosDia =
-    (state.dias.find((d: any) => d.diaSemana === diaSelect)?.ejercicios ?? []) as Item[];
+  const ejerciciosDia = useMemo(() => {
+  const dia = (state.dias ?? []).find((d: any) => d.diaSemana === diaSelect);
+  // Importante: devuelve la MISMA referencia si no cambia
+  return (dia?.ejercicios ?? []) as Item[];
+}, [state.dias, diaSelect]);
 
   const haySeleccion =
-    selectedIndex !== null && selectedIndex >= 0 && selectedIndex < ejerciciosDia.length;
+    selectedIndex !== null &&
+    selectedIndex >= 0 &&
+    selectedIndex < ejerciciosDia.length;
 
   const puedeSubir = !!haySeleccion && selectedIndex! > 0;
-  const puedeBajar = !!haySeleccion && selectedIndex! < ejerciciosDia.length - 1;
+  const puedeBajar =
+    !!haySeleccion && selectedIndex! < ejerciciosDia.length - 1;
 
-  const puedePegar = Boolean((state as any).clipboard && (state as any).clipboard.length > 0);
+  const puedePegar = Boolean(
+    (state as any).clipboard && (state as any).clipboard.length > 0
+  );
 
   /* ---------- UI constants ---------- */
   const ui = useMemo(
     () => ({
-      marcoGradient: ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"],
+      marcoGradient: [
+        "rgb(0,255,64)",
+        "rgb(94,230,157)",
+        "rgb(178,0,255)",
+      ],
       bg: isDark ? "#0b1220" : "#ffffff",
       textPrimary: isDark ? "#e5e7eb" : "#0f172a",
       textSecondary: isDark ? "#94a3b8" : "#64748b",
@@ -116,6 +148,15 @@ export function useCrearRutinaState() {
     })();
   }, [route?.params?.id]);
 
+  /* ---------- Ads & modales ---------- */
+  const { mostrarAnuncioYObtenerToken } = useRewardedAd(
+    "feature:crear-rutina-manual"
+  );
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+
+  const [noAdsModalVisible, setNoAdsModalVisible] = useState(false);
+  const [noAdsRetrying, setNoAdsRetrying] = useState(false);
+
   /* ---------- Acciones compuesto ---------- */
   const iniciarCompuesto = () => {
     setModoCompuesto(true);
@@ -127,61 +168,222 @@ export function useCrearRutinaState() {
     setMostrarFormularioCompuesto(true);
   };
 
-  /* ---------- Crear / Actualizar rutina ---------- */
+  /* ---------- Flujo de éxito común ---------- */
+  const onSuccess = useCallback(async () => {
+    if (!isEdit) {
+      const { usuario, setUsuario } = useUsuarioStore.getState();
+      if (usuario) {
+        setUsuario({
+          ...usuario,
+          rutinasManualCreadas:
+            (usuario.rutinasManualCreadas ?? 0) + 1,
+        });
+      }
+      Toast.show({
+        type: "success",
+        text1: "Rutina creada exitosamente",
+      });
+      dispatch({ type: "CLEAR" });
+    } else {
+      await AsyncStorage.removeItem("rutinaEditId");
+      Toast.show({ type: "success", text1: "Rutina actualizada" });
+    }
+
+    useSyncStore.getState().bumpRoutineRev();
+    nav.navigate("MisRutinas");
+  }, [dispatch, isEdit, nav]);
+
+  /* ---------- Crear / Actualizar rutina (con anuncios) ---------- */
   const handleCrearRutina = useCallback(async () => {
     if (!state.nombre.trim()) {
-      Toast.show({ type: "error", text1: "El nombre de la rutina es obligatorio" });
       return;
     }
-    setLoading(true);
-    try {
-      await crearRutinaPersonalizada(
-        { nombre: state.nombre, descripcion: state.descripcion, dias: state.dias },
-        editId
-      );
 
-      if (!isEdit) {
-        const { usuario, setUsuario } = useUsuarioStore.getState();
-        if (usuario) {
-          setUsuario({ ...usuario, rutinasManualCreadas: (usuario.rutinasManualCreadas ?? 0) + 1 });
+    const payload = {
+      nombre: state.nombre,
+      descripcion: state.descripcion,
+      dias: state.dias,
+    };
+
+    setLoading(true);
+
+    try {
+      // 1) Intento sin anuncio
+      try {
+        await crearRutinaPersonalizada(payload, editId);
+        await onSuccess();
+        return;
+      } catch (error: any) {
+        if (error?.errorCode !== "AD_REQUIRED") {
+          // otros errores ya los maneja handleApiError
+          throw error;
         }
-        Toast.show({ type: "success", text1: "Rutina creada exitosamente" });
-        dispatch({ type: "CLEAR" });
-      } else {
-        await AsyncStorage.removeItem("rutinaEditId");
-        Toast.show({ type: "success", text1: "Rutina actualizada" });
       }
 
-      useSyncStore.getState().bumpRoutineRev();
-      nav.navigate("MisRutinas");
-    } catch (e: any) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: e?.message || (isEdit ? "Error al actualizar la rutina" : "Error al crear la rutina"),
-      });
+      // 2) Ver anuncio y reintentar con token
+      try {
+        const adToken = await mostrarAnuncioYObtenerToken();
+
+        // Usuario canceló o no se consiguió token
+        if (!adToken) {
+          setPremiumModalVisible(true);
+          return;
+        }
+
+        await crearRutinaPersonalizada(payload, editId, adToken);
+        await onSuccess();
+      } catch (error: any) {
+        console.error(
+          "❌ crearRutinaPersonalizada (con anuncio) error:",
+          error
+        );
+
+        const isNoInventory =
+          error?.code === "NO_AD_AVAILABLE" ||
+          error?.code === "NO_FILL" ||
+          error?.reason === "no-ad";
+
+        const isAdLoadError =
+          typeof error?.message === "string" &&
+          error.message.includes("No se pudo cargar el anuncio");
+
+        if (isNoInventory || isAdLoadError) {
+          setNoAdsModalVisible(true);
+          return;
+        }
+      }
     } finally {
       setLoading(false);
     }
-  }, [state, editId, isEdit, nav, dispatch]);
+  }, [state, editId, mostrarAnuncioYObtenerToken, onSuccess]);
 
-  const handleCancelarEdicion = useCallback(async () => {
-    try {
-      dispatch({ type: "SET_NOMBRE", payload: "" });
-      dispatch({ type: "SET_DESCRIPCION", payload: "" });
+  /* ---------- Reintento desde modal "no hay anuncios" (1 minuto) ---------- */
+  const reintentarAnuncioRutina = useCallback(async () => {
+    if (noAdsRetrying) return;
 
-      const diasPresentes = (state.dias ?? []).map((d: any) => d.diaSemana);
-      diasPresentes.forEach((ds: any) => {
-        dispatch({ type: "REORDER_EJERCICIOS", payload: { diaSemana: ds, ejercicios: [] } });
+    if (!state.nombre.trim()) {
+      Toast.show({
+        type: "info",
+        text1: "Falta el nombre",
+        text2: "Ponle nombre a la rutina antes de reintentar.",
       });
-
-      await AsyncStorage.multiRemove(["crearRutinaState", "rutinaEditId"]);
-      setEditId(undefined);
-      Toast.show({ type: "info", text1: "Edición cancelada" });
-    } catch {
-      // noop
+      return;
     }
-  }, [state.dias, dispatch]);
+
+    const payload = {
+      nombre: state.nombre,
+      descripcion: state.descripcion,
+      dias: state.dias,
+    };
+
+    setNoAdsRetrying(true);
+    const start = Date.now();
+
+    try {
+      let adToken: string | null = null;
+
+      while (!adToken && Date.now() - start < 60_000) {
+        try {
+          adToken = await mostrarAnuncioYObtenerToken();
+          if (adToken) break;
+        } catch (error: any) {
+          const isNoInventory =
+            error?.code === "NO_AD_AVAILABLE" ||
+            error?.code === "NO_FILL" ||
+            error?.reason === "no-ad";
+
+          const isAdLoadError =
+            typeof error?.message === "string" &&
+            error.message.includes("No se pudo cargar el anuncio");
+
+          if (isNoInventory || isAdLoadError) {
+            console.log(
+              "[CrearRutina][reintentarAnuncio] sin anuncios o error de carga, reintentando en 5s…"
+            );
+            await sleep(5000);
+            continue;
+          }
+
+          console.error(
+            "[CrearRutina][reintentarAnuncio] Error cargando anuncio:",
+            error
+          );
+          Toast.show({
+            type: "error",
+            text1: "Error al cargar el anuncio",
+            text2: "Vuelve a intentarlo en unos segundos.",
+          });
+          return;
+        }
+      }
+
+      if (!adToken) {
+        Toast.show({
+          type: "info",
+          text1: "Seguimos sin anuncios",
+          text2:
+            "No hemos encontrado anuncios ahora mismo. Prueba más tarde o usa la versión Premium desde tu perfil.",
+        });
+        return;
+      }
+
+      // Tenemos anuncio → intentamos crear/actualizar con token
+      setLoading(true);
+      try {
+        await crearRutinaPersonalizada(payload, editId, adToken);
+        await onSuccess();
+        setNoAdsModalVisible(false);
+      } catch (error: any) {
+        console.error(
+          "[CrearRutina][reintentarAnuncio] Error creando rutina con anuncio:",
+          error
+        );
+        Toast.show({
+          type: "error",
+          text1: "No se pudo guardar la rutina",
+          text2: "Inténtalo de nuevo en unos minutos.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    } finally {
+      setNoAdsRetrying(false);
+    }
+  }, [
+    noAdsRetrying,
+    state,
+    editId,
+    mostrarAnuncioYObtenerToken,
+    onSuccess,
+  ]);
+
+  const handleCancelarEdicion = useCallback(
+    async () => {
+      try {
+        dispatch({ type: "SET_NOMBRE", payload: "" });
+        dispatch({ type: "SET_DESCRIPCION", payload: "" });
+
+        const diasPresentes = (state.dias ?? []).map(
+          (d: any) => d.diaSemana
+        );
+        diasPresentes.forEach((ds: any) => {
+          dispatch({
+            type: "REORDER_EJERCICIOS",
+            payload: { diaSemana: ds, ejercicios: [] },
+          });
+        });
+
+        await AsyncStorage.multiRemove([
+          "crearRutinaState",
+          "rutinaEditId",
+        ]);
+        setEditId(undefined);
+      } catch {
+        // noop
+      }
+    },
+    [state.dias, dispatch]
+  );
 
   /* ---------- Helpers selección ---------- */
   const handleEditarSeleccion = () => {
@@ -190,7 +392,8 @@ export function useCrearRutinaState() {
 
     if ("compuesto" in ej && ej.compuesto) {
       setEditarCompuesto({
-        compuestoId: ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
+        compuestoId:
+          ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
         orden: ej.orden,
         ejercicios: ej.ejerciciosCompuestos!,
         nombre: ej.nombreCompuesto!,
@@ -213,10 +416,17 @@ export function useCrearRutinaState() {
     const ej = ejerciciosDia[selectedIndex!];
 
     if ("compuesto" in ej && ej.compuesto) {
-      const compuestoId = ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!;
-      dispatch({ type: "REMOVE_EJERCICIO", payload: { diaSemana: diaSelect, compuestoId } });
+      const compuestoId =
+        ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!;
+      dispatch({
+        type: "REMOVE_EJERCICIO",
+        payload: { diaSemana: diaSelect, compuestoId },
+      });
     } else {
-      dispatch({ type: "REMOVE_EJERCICIO", payload: { diaSemana: diaSelect, orden: ej.orden } });
+      dispatch({
+        type: "REMOVE_EJERCICIO",
+        payload: { diaSemana: diaSelect, orden: ej.orden },
+      });
     }
     setSelectedIndex(null);
   };
@@ -224,18 +434,30 @@ export function useCrearRutinaState() {
   const handleSubirSeleccion = () => {
     if (!puedeSubir) return;
     const nueva = [...ejerciciosDia];
-    [nueva[selectedIndex! - 1], nueva[selectedIndex!]] = [nueva[selectedIndex!], nueva[selectedIndex! - 1]];
+    [nueva[selectedIndex! - 1], nueva[selectedIndex!]] = [
+      nueva[selectedIndex!],
+      nueva[selectedIndex! - 1],
+    ];
     const reorden = nueva.map((e, i) => ({ ...e, orden: i + 1 }));
-    dispatch({ type: "REORDER_EJERCICIOS", payload: { diaSemana: diaSelect, ejercicios: reorden } });
+    dispatch({
+      type: "REORDER_EJERCICIOS",
+      payload: { diaSemana: diaSelect, ejercicios: reorden },
+    });
     setSelectedIndex(selectedIndex! - 1);
   };
 
   const handleBajarSeleccion = () => {
     if (!puedeBajar) return;
     const nueva = [...ejerciciosDia];
-    [nueva[selectedIndex!], nueva[selectedIndex! + 1]] = [nueva[selectedIndex! + 1], nueva[selectedIndex!]];
+    [nueva[selectedIndex!], nueva[selectedIndex! + 1]] = [
+      nueva[selectedIndex! + 1],
+      nueva[selectedIndex!],
+    ];
     const reorden = nueva.map((e, i) => ({ ...e, orden: i + 1 }));
-    dispatch({ type: "REORDER_EJERCICIOS", payload: { diaSemana: diaSelect, ejercicios: reorden } });
+    dispatch({
+      type: "REORDER_EJERCICIOS",
+      payload: { diaSemana: diaSelect, ejercicios: reorden },
+    });
     setSelectedIndex(selectedIndex! + 1);
   };
 
@@ -304,7 +526,17 @@ export function useCrearRutinaState() {
     handleSubirSeleccion,
     handleBajarSeleccion,
 
+    // modal premium
+    premiumModalVisible,
+    setPremiumModalVisible,
+
+    // modal "no hay anuncios"
+    noAdsModalVisible,
+    setNoAdsModalVisible,
+    noAdsRetrying,
+    reintentarAnuncioRutina,
+
     // utilidades externas
-    Toast, // por si quieres toasts locales en la pantalla
+    Toast,
   };
 }

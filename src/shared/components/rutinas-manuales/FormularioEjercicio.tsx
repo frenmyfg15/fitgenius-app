@@ -30,6 +30,8 @@ type Props = {
   onConfirm: (data: EjercicioAsignadoInput) => void;
   onClose: () => void; // (renombrado desde onClick)
   esParteDeCompuesto?: boolean;
+  // 👇 nuevo: indica si el ejercicio es de CARDIO
+  esCardio?: boolean;
 };
 
 type FormErrors = Partial<
@@ -46,6 +48,7 @@ export default function FormularioEjercicio({
   onConfirm,
   onClose,
   esParteDeCompuesto,
+  esCardio,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -56,6 +59,8 @@ export default function FormularioEjercicio({
   const [descansoSeg, setDescanso] = useState<string>("");
   const [notaIA, setNota] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const isCardio = Boolean(esCardio);
 
   // 🎛️ Paleta y “glass”
   const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
@@ -80,8 +85,8 @@ export default function FormularioEjercicio({
     descansoSeg: esParteDeCompuesto
       ? z.number().optional()
       : z
-          .number({ required_error: "Ingresa el descanso" })
-          .min(0, "No puede ser negativo"),
+        .number({ required_error: "Ingresa el descanso" })
+        .min(0, "No puede ser negativo"),
   });
 
   const clearError = (k: keyof FormErrors) =>
@@ -131,7 +136,7 @@ export default function FormularioEjercicio({
         justifyContent: "center",
         alignItems: "center",
         padding: 16,
-        zIndex: 100
+        zIndex: 100,
       }}
       accessibilityViewIsModal
       accessibilityLabel="Formulario de ejercicio"
@@ -172,9 +177,13 @@ export default function FormularioEjercicio({
                 borderRadius: 999,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: isDark ? "rgba(148,163,184,0.18)" : "#f1f5f9",
+                backgroundColor: isDark
+                  ? "rgba(148,163,184,0.18)"
+                  : "#f1f5f9",
                 borderWidth: 1,
-                borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+                borderColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "#e2e8f0",
               }}
             >
               <X size={18} color={textSecondary} />
@@ -218,15 +227,16 @@ export default function FormularioEjercicio({
                 keyboardType="numeric"
                 isDark={isDark}
               />
-              {/* Repeticiones */}
+
+              {/* Repeticiones / Tiempo (seg) si es cardio */}
               <Field
-                label="Repeticiones"
+                label={isCardio ? "Tiempo (seg)" : "Repeticiones"}
                 value={repeticionesSugeridas}
                 onChangeText={(t) => {
                   setReps(t.replace(/[^\d]/g, ""));
                   if (t !== "") clearError("repeticionesSugeridas");
                 }}
-                placeholder="Ej: 10"
+                placeholder={isCardio ? "Ej: 30" : "Ej: 10"}
                 error={errors.repeticionesSugeridas}
                 inputBg={inputBg}
                 inputBorder={inputBorder}
@@ -235,9 +245,10 @@ export default function FormularioEjercicio({
                 keyboardType="numeric"
                 isDark={isDark}
               />
+
               {/* Peso */}
               <Field
-                label="Peso (kg)"
+                label="Peso"
                 value={pesoSugerido}
                 onChangeText={(t) => {
                   setPeso(t.replace(/[^\d.]/g, ""));
@@ -252,6 +263,7 @@ export default function FormularioEjercicio({
                 keyboardType="decimal-pad"
                 isDark={isDark}
               />
+
               {/* Descanso (si NO es compuesto) */}
               {!esParteDeCompuesto && (
                 <Field
@@ -400,7 +412,11 @@ function Field({
         }}
       />
       {error ? (
-        <Text style={{ marginTop: 4, fontSize: 11, color: "#ef4444" }}>{error}</Text>
+        <Text
+          style={{ marginTop: 4, fontSize: 11, color: "#ef4444" }}
+        >
+          {error}
+        </Text>
       ) : null}
     </View>
   );

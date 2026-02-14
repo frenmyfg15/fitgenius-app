@@ -1,6 +1,6 @@
 // app/features/registro/EnfoqueScreen.tsx
 import React, { useMemo, useCallback } from "react";
-import { View, Text, ScrollView, Image, Pressable } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { enfoque as ENFOQUES } from "@/shared/constants/register/enfoque";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
 import BtnAprobe from "@/shared/components/ui/BtnAprobe";
+import CardMultipleSelection from "@/shared/components/ui/CardMultipleSelection";
 
 type RegistroStackParamList = {
   Enfoque: undefined;
@@ -34,6 +35,28 @@ const TODOS_SIN_COMPLETO: Enfoque[] = [
   "PIERNAS",
 ];
 
+/**
+ * Images generated previously (PNG with transparent background)
+ */
+const MUSCLE_IMAGES: Record<Exclude<Enfoque, "COMPLETO">, any> = {
+  ESPALDA: require("../../../../assets/register/enfoque/espalda.png"),
+  HOMBROS: require("../../../../assets/register/enfoque/hombro.png"),
+  PECHOS: require("../../../../assets/register/enfoque/pecho.png"),
+  BRAZOS: require("../../../../assets/register/enfoque/brazos.png"),
+  ABS: require("../../../../assets/register/enfoque/abs.png"),
+  GLUTEOS: require("../../../../assets/register/enfoque/gluteos.png"),
+  PIERNAS: require("../../../../assets/register/enfoque/piernas.png"),
+};
+
+// ✅ add an image for COMPLETO (use your preferred asset)
+const COMPLETO_IMAGE = require("../../../../assets/register/enfoque/completo.png");
+
+type CardItem = {
+  id: Enfoque;
+  nombre: string;
+  imagen: any;
+};
+
 export default function EnfoqueScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -43,12 +66,10 @@ export default function EnfoqueScreen() {
   const usuario = useRegistroStore((s) => s.usuario);
   const setField = useRegistroStore((s) => s.setField);
 
-  const opciones = useMemo(() => ENFOQUES, []);
-
   const handleSelect = useCallback(
     (select: Enfoque) => {
       let next = Array.isArray(usuario?.enfoque) ? [...usuario.enfoque] : [];
-      const tieneCompleto = next.includes("COMPLETO" as Enfoque);
+      const tieneCompleto = next.includes("COMPLETO");
       const estaSeleccionado = next.includes(select);
 
       if (select === "COMPLETO") {
@@ -57,8 +78,13 @@ export default function EnfoqueScreen() {
         if (tieneCompleto) {
           next = TODOS_SIN_COMPLETO.filter((e) => e !== select);
         } else {
-          next = estaSeleccionado ? next.filter((e) => e !== select) : [...next, select];
-          const todosSeleccionados = TODOS_SIN_COMPLETO.every((e) => next.includes(e));
+          next = estaSeleccionado
+            ? next.filter((e) => e !== select)
+            : [...next, select];
+
+          const todosSeleccionados = TODOS_SIN_COMPLETO.every((e) =>
+            next.includes(e)
+          );
           if (todosSeleccionados) next = ["COMPLETO"];
         }
       }
@@ -72,9 +98,31 @@ export default function EnfoqueScreen() {
     ? (usuario!.enfoque as Enfoque[])
     : [];
 
+  /**
+   * ✅ Build cards INCLUDING COMPLETO as an option
+   * Keep order from ENFOQUES (so COMPLETO appears where your constants define it)
+   */
+  const cards: CardItem[] = useMemo(() => {
+    return ENFOQUES.map((o: any) => {
+      if (o.id === "COMPLETO") {
+        return {
+          id: "COMPLETO" as Enfoque,
+          nombre: o.nombre,
+          imagen: COMPLETO_IMAGE,
+        };
+      }
+
+      const id = o.id as Exclude<Enfoque, "COMPLETO">;
+      return {
+        id: id as Enfoque,
+        nombre: o.nombre,
+        imagen: MUSCLE_IMAGES[id],
+      };
+    });
+  }, []);
+
   return (
     <>
-      {/* Botón fijo abajo a la IZQUIERDA, sólo si hay selección */}
       {selectedList.length > 0 && <BtnAprobe step="Nivel" placement="left" />}
 
       <ScrollView
@@ -84,11 +132,10 @@ export default function EnfoqueScreen() {
           paddingTop: 24,
           paddingBottom: 32,
         }}
-        keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center">
+        <View className="items-center mb-4">
           <Text
-            className={`text-center text-lg font-semibold p-3 ${
+            className={`text-center text-lg font-semibold p-2 ${
               isDark ? "text-white" : "text-neutral-900"
             }`}
           >
@@ -96,56 +143,21 @@ export default function EnfoqueScreen() {
           </Text>
 
           <Text
-            className={`text-center p-1 pb-4 text-sm ${
+            className={`text-center text-sm ${
               isDark ? "text-neutral-300" : "text-neutral-600"
             }`}
           >
-            Si quieres mejorar uno o varios músculos en específico, indícalo y nos
-            enfocaremos.
+            Selecciona uno o varios músculos que quieras priorizar.
           </Text>
         </View>
 
-        <View className="flex-row justify-center items-end h-full gap-5">
-          {/* Solo la imagen — SIN puntos/marcadores */}
-          <View className="relative">
-            {usuario?.sexo === "MASCULINO" ? (
-              <Image
-                source={require("../../../../assets/register/enfoque/enfoque.png")}
-                resizeMode="contain"
-                style={{ width: 250, height: 600 }}
-              />
-            ) : (
-              <Image
-                source={require("../../../../assets/register/enfoque/enfoque-mujer.png")}
-                resizeMode="contain"
-                style={{ width: 250, height: 600 }}
-              />
-            )}
-          </View>
-
-          {/* Columna de botones */}
-          <View className="flex-col pb-20 pr-5 h-full justify-center gap-2">
-            {opciones.map((i: any) => {
-              const isActive =
-                selectedList.includes(i.id) || selectedList.includes("COMPLETO");
-              return (
-                <Pressable
-                  key={`btn-${i.id}`}
-                  onPress={() => handleSelect(i.id as Enfoque)}
-                  className={[
-                    "font-semibold shadow",
-                    "w-[120px] h-[44px] rounded-2xl items-center justify-center mb-3",
-                    isActive ? "bg-neon-400" : "bg-neutral-100",
-                  ].join(" ")}
-                >
-                  <Text className={isActive ? "text-white" : "text-black"}>
-                    {i.nombre}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <CardMultipleSelection
+          Usuario={cards}
+          multiple
+          image
+          select={selectedList}
+          onClic={(id) => handleSelect(id as Enfoque)}
+        />
       </ScrollView>
     </>
   );
