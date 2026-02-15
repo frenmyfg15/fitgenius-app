@@ -22,18 +22,21 @@ import { useCuenta } from "@/shared/hooks/useCuenta";
 import { cancelPremiumSubscription } from "@/features/api/stripe.api";
 import Toast from "react-native-toast-message";
 
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { getMe } from "@/features/api/usuario.api";
+
 export default function Cuenta() {
-  const {
-    isDark,
-    isPremium,
-    haPagado,
-    closing,
-    go,
-    cerrarSesion,
-    usuario,
-  } = useCuenta();
+  const { isDark, isPremium, haPagado, closing, go, cerrarSesion, usuario } =
+    useCuenta();
+
+  const setUsuario = useUsuarioStore((s) => s.setUsuario);
 
   const [canceling, setCanceling] = useState(false);
+
+  const refreshUsuario = async () => {
+    const me = await getMe();
+    if (me) setUsuario(me);
+  };
 
   const handleCancelSubscription = () => {
     Alert.alert(
@@ -50,15 +53,15 @@ export default function Cuenta() {
               const res = await cancelPremiumSubscription();
               console.log("[Cuenta] Suscripción cancelada:", res);
 
+              // Refresca usuario para reflejar cancel_at_period_end y/o fechas en el store
+              await refreshUsuario().catch(() => { });
+
               Toast.show({
                 type: "success",
                 text1: "Suscripción cancelada",
                 text2:
                   "Tu suscripción seguirá activa hasta el final del periodo actual.",
               });
-
-              // 💡 Si tu `useCuenta` tiene algún método de refresco del usuario,
-              // aquí sería buen sitio para llamarlo (ej: refetchUsuario()).
             } catch (e: any) {
               console.warn("[Cuenta] Error al cancelar suscripción", e);
               Toast.show({
@@ -121,7 +124,6 @@ export default function Cuenta() {
         medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
       />
 
-      {/* Acciones (móvil) */}
       <View
         style={{
           gap: 12,
@@ -131,7 +133,6 @@ export default function Cuenta() {
           alignSelf: "center",
         }}
       >
-        {/* Configuración */}
         <ActionButton onPress={() => go("EditarPerfil")} isDark={isDark}>
           <Settings size={18} color={isDark ? "#e5e7eb" : "#334155"} />
           <Text
@@ -146,7 +147,6 @@ export default function Cuenta() {
           </Text>
         </ActionButton>
 
-        {/* Cambiar contraseña */}
         <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
           <Lock size={18} color={isDark ? "#e5e7eb" : "#334155"} />
           <Text
@@ -161,7 +161,6 @@ export default function Cuenta() {
           </Text>
         </ActionButton>
 
-        {/* Cancelar suscripción (solo premium pagado) */}
         {isPremium && haPagado && (
           <ActionButton
             onPress={handleCancelSubscription}
@@ -183,7 +182,6 @@ export default function Cuenta() {
           </ActionButton>
         )}
 
-        {/* Dar de baja (destructivo) */}
         <ActionButton
           onPress={() => go("EliminarCuenta")}
           isDark={isDark}
@@ -202,7 +200,6 @@ export default function Cuenta() {
           </Text>
         </ActionButton>
 
-        {/* Cerrar sesión */}
         <ActionButton onPress={cerrarSesion} isDark={isDark} loading={closing}>
           {closing ? (
             <ActivityIndicator color={isDark ? "#e5e7eb" : "#0f172a"} />
@@ -225,7 +222,6 @@ export default function Cuenta() {
   );
 }
 
-/* ----------------- Botón con borde degradado (reutilizable) ----------------- */
 function ActionButton({
   children,
   onPress,

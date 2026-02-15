@@ -32,7 +32,7 @@ export default function Perfil() {
     <View style={{ width: "100%", maxWidth: 480, alignSelf: "center" }}>
       {/* Marco degradado */}
       <LinearGradient
-        colors={frameGradient}
+        colors={frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: 16, padding: 1 }}
@@ -45,8 +45,6 @@ export default function Perfil() {
             borderWidth: 1,
             borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
             padding: 20,
-            // Nota: solo RN web respeta backdropFilter
-            backdropFilter: "blur(12px)" as any,
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", columnGap: 16 }}>

@@ -1,5 +1,5 @@
-// src/shared/lib/handleApiError.ts
 import { showGlobalError } from "@/shared/components/ui/GlobalErrorModalProvider";
+import { forceLogout } from "./forceLogout";
 
 export function handleApiError(
   error: any,
@@ -8,8 +8,9 @@ export function handleApiError(
   const backendMessage =
     error?.response?.data?.message || error?.response?.data?.error;
 
-  const finalMessage = backendMessage || fallbackMessage;
   const errorCode = error?.response?.data?.errorCode;
+
+  const finalMessage = backendMessage || fallbackMessage;
 
   console.error("[API ERROR]", {
     message: finalMessage,
@@ -17,7 +18,15 @@ export function handleApiError(
     raw: error,
   });
 
-  // Mostrar modal global
+  if (
+    errorCode === "AUTH_TOKEN_EXPIRED" ||
+    errorCode === "AUTH_INVALID_TOKEN" ||
+    errorCode === "AUTH_TOKEN_MISSING"
+  ) {
+    forceLogout();
+    throw new Error("Sesión expirada");
+  }
+
   showGlobalError(finalMessage, errorCode);
 
   throw new Error(finalMessage);

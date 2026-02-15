@@ -31,8 +31,10 @@ import LegalScreen from "@/features/screens/auth/LegalScreen";
 
 import * as Sentry from "@sentry/react-native";
 
-// ✅ Tema persistido (default dark si no hay nada guardado)
+// Tema persistido
 import { usePersistedColorScheme } from "@/theme/usePersistedColorScheme";
+import { getMe } from "@/features/api/usuario.api";
+
 
 Sentry.init({
   dsn: "https://4c6aa91122ad7f362c9aa79df79e428b@o4510526940577792.ingest.de.sentry.io/4510526942609488",
@@ -74,7 +76,6 @@ type RootAuthStackParamList = {
 
 const RootAuthStack = createNativeStackNavigator<RootAuthStackParamList>();
 
-// ✅ Navigation ref para etiquetar la screen actual en Sentry
 const navigationRef = createNavigationContainerRef<any>();
 
 function getActiveRouteName(state: any): string | null {
@@ -86,10 +87,8 @@ function getActiveRouteName(state: any): string | null {
 }
 
 export default Sentry.wrap(function App() {
-  const { usuario, rehydrated } = useUsuarioStore();
+  const { usuario, rehydrated, setUsuario } = useUsuarioStore();
 
-  // ✅ Aplica preferencia guardada; si no existe, fuerza "dark" y la guarda.
-  // Devuelve themeReady para evitar “flash” del tema al inicio.
   const { isReady: themeReady } = usePersistedColorScheme();
 
   useEffect(() => {
@@ -100,7 +99,6 @@ export default Sentry.wrap(function App() {
       });
   }, []);
 
-  // ✅ Vincula usuario + tags a Sentry
   useEffect(() => {
     if (!rehydrated) return;
 
@@ -111,7 +109,7 @@ export default Sentry.wrap(function App() {
       });
 
       Sentry.setTag("auth", "logged_in");
-      Sentry.setTag("plan", (usuario as any).esPremium ? "premium" : "free");
+      Sentry.setTag("plan", (usuario as any).planActual === "PREMIUM" ? "premium" : "free");
     } else {
       Sentry.setUser(null);
       Sentry.setTag("auth", "logged_out");
@@ -119,19 +117,30 @@ export default Sentry.wrap(function App() {
     }
   }, [rehydrated, usuario]);
 
-  // ✅ Loader hasta que zustand haya rehidratado y el tema esté listo
+  useEffect(() => {
+    if (!rehydrated) return;
+    if (!usuario) return;
+
+    // Sincroniza el usuario persistido con el backend (planActual, haPagado, etc.)
+    getMe()
+      .then((me) => {
+        if (me) setUsuario(me);
+      })
+      .catch(() => { });
+  }, [rehydrated, usuario?.id, setUsuario]);
+
   if (!rehydrated || !themeReady) {
     return (
       <StripeProvider
         publishableKey={PUBLISHABLE_KEY}
-        merchantIdentifier="merchant.com.fitgenius" // iOS (Apple Pay)
+        merchantIdentifier="merchant.com.fitgenius"
         urlScheme="fitgenius"
       >
         <GlobalErrorModalProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
               <SafeAreaView
-                style={{ flex: 1, backgroundColor: "#0B0F1A" }} // ✅ evita fondo blanco mientras carga
+                style={{ flex: 1, backgroundColor: "#0B0F1A" }}
                 edges={["top", "right", "left", "bottom"]}
               >
                 <ActivityIndicator style={{ flex: 1 }} />
@@ -174,11 +183,7 @@ export default Sentry.wrap(function App() {
                   }}
                 >
                   <RootAuthStack.Screen name="Sesion" component={Sesion} />
-
-                  {/* ✅ AuthNavigator (wizard) SIN Legal */}
                   <RootAuthStack.Screen name="Registro" component={AuthNavigator} />
-
-                  {/* ✅ Legal SOLO aquí */}
                   <RootAuthStack.Screen name="Legal" component={LegalScreen} />
                 </RootAuthStack.Navigator>
               )}
