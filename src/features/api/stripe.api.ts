@@ -1,11 +1,8 @@
 // src/features/api/stripe.api.ts
 import { api } from "./axios";
 import { handleApiError } from "@/shared/lib/handleApiError";
-import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid"; // ✅ NUEVO
+import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid";
 
-/* ============================================================
-   Tipos
-   ============================================================ */
 export type CreatePremiumSubscriptionResponse = {
   clientSecret: string;
   customerId: string;
@@ -24,9 +21,14 @@ export type CancelPremiumSubscriptionResponse = {
   currentPeriodEnd: string | null;
 };
 
-/* ============================================================
-   Crear suscripción Premium
-   ============================================================ */
+export type ReactivatePremiumSubscriptionResponse = {
+  message: string;
+  subscriptionId: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+};
+
 export const createPremiumSubscription =
   async (): Promise<CreatePremiumSubscriptionResponse> => {
     try {
@@ -35,18 +37,11 @@ export const createPremiumSubscription =
       );
       return res.data;
     } catch (error) {
-      checkAuthTokenInvalid(error); // ✅ limpia el store si el token es inválido
-
-      return handleApiError(
-        error,
-        "No se pudo iniciar el pago Premium"
-      );
+      checkAuthTokenInvalid(error);
+      return handleApiError(error, "No se pudo iniciar el pago Premium");
     }
   };
 
-/* ============================================================
-   Cancelar suscripción Premium
-   ============================================================ */
 export const cancelPremiumSubscription =
   async (): Promise<CancelPremiumSubscriptionResponse> => {
     try {
@@ -55,11 +50,20 @@ export const cancelPremiumSubscription =
       );
       return res.data;
     } catch (error) {
-      checkAuthTokenInvalid(error); // ✅ limpia el store si el token es inválido
+      checkAuthTokenInvalid(error);
+      return handleApiError(error, "No se pudo cancelar la suscripción");
+    }
+  };
 
-      return handleApiError(
-        error,
-        "No se pudo cancelar la suscripción"
+export const reactivatePremiumSubscription =
+  async (): Promise<ReactivatePremiumSubscriptionResponse> => {
+    try {
+      const res = await api.post<ReactivatePremiumSubscriptionResponse>(
+        "/stripe/subscription/reactivate"
       );
+      return res.data;
+    } catch (error) {
+      checkAuthTokenInvalid(error);
+      return handleApiError(error, "No se pudo reactivar la suscripción");
     }
   };

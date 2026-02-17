@@ -1,5 +1,6 @@
+// File: src/shared/components/home/TarjetaHome.tsx
 import React, { useMemo, memo } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
@@ -7,17 +8,60 @@ import { useNavigation } from "@react-navigation/native";
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-/* ---------------- Tipos ---------------- */
-type GrupoMuscular =
-  | "BRAZOS"
-  | "CARDIO"
-  | "CORE"
-  | "ESPALDA"
-  | "GLUTEO"
-  | "HOMBROS"
-  | "PECHOS"
-  | "PIERNAS";
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
 
+    // Card
+    cardBgDark: "#0F1829",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.07)",
+    cardBorderLight: "rgba(0,0,0,0.08)",
+
+    // Thumbnail
+    thumbBgDark: "rgba(255,255,255,0.06)",
+    thumbBgLight: "#F8FAFC",
+    thumbBorderDark: "rgba(255,255,255,0.10)",
+    thumbBorderLight: "rgba(0,0,0,0.07)",
+
+    // Tag grupo muscular
+    tagBgDark: "rgba(255,255,255,0.05)",
+    tagBgLight: "#F1F5F9",
+    tagBorderDark: "rgba(255,255,255,0.10)",
+    tagBorderLight: "rgba(0,0,0,0.07)",
+    tagTextDark: "#64748B",
+    tagTextLight: "#64748B",
+
+    // Texto
+    nameDark: "#F1F5F9",
+    nameLight: "#0F172A",
+    detailsDark: "#64748B",
+    detailsLight: "#64748B",
+
+    // Check completado
+    checkBgDark: "rgba(0,232,90,0.12)",
+    checkBgLight: "rgba(0,196,77,0.10)",
+    checkBorderDark: "rgba(0,232,90,0.30)",
+    checkBorderLight: "rgba(0,196,77,0.25)",
+    checkColor: "#22C55E",
+  },
+  radius: { lg: 16, md: 10, sm: 6, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
+} as const;
+
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos — sin cambios ───────────────────────────────────────────────────────
+type GrupoMuscular =
+  | "BRAZOS" | "CARDIO" | "CORE" | "ESPALDA"
+  | "GLUTEO" | "HOMBROS" | "PECHOS" | "PIERNAS";
 type MedidaPeso = "kg" | "lb" | string;
 
 interface EjercicioSimple {
@@ -33,14 +77,9 @@ interface EjercicioCompuesto {
 interface EjercicioDia {
   id?: string | number;
   orden?: number;
-
-  // ✅ OJO: ya NO dependemos de completadoHoy para pintar días no-hoy
   completadoHoy?: boolean;
-
-  // ✅ historial que devuelve tu backend
   fechasCompletadasAsignacion?: string[];
   ultimaFechaCompletado?: string | null;
-
   ejercicio?: EjercicioSimple;
   ejercicioCompuesto?: EjercicioCompuesto | null;
   seriesSugeridas?: number;
@@ -57,7 +96,7 @@ interface Rutina {
 }
 type Props = { rutina?: Rutina | null; dia?: string; selectedYMD?: string };
 
-/* ---------------- Utils de imagen ---------------- */
+// ── Assets — sin cambios ──────────────────────────────────────────────────────
 const brazos = require("../../../../assets/fit/rutina/brazos.png");
 const cardio = require("../../../../assets/fit/rutina/cardio.png");
 const core = require("../../../../assets/fit/rutina/core.png");
@@ -69,14 +108,8 @@ const piernas = require("../../../../assets/fit/rutina/piernas.png");
 const circuito = require("../../../../assets/fit/rutina/circuito.png");
 
 const IMAGENES_GRUPO: Record<GrupoMuscular, any> = {
-  BRAZOS: brazos,
-  CARDIO: cardio,
-  CORE: core,
-  ESPALDA: espalda,
-  GLUTEO: gluteo,
-  HOMBROS: hombros,
-  PECHOS: pechos,
-  PIERNAS: piernas,
+  BRAZOS: brazos, CARDIO: cardio, CORE: core, ESPALDA: espalda,
+  GLUTEO: gluteo, HOMBROS: hombros, PECHOS: pechos, PIERNAS: piernas,
 };
 
 const isGrupoMuscular = (v: string): v is keyof typeof IMAGENES_GRUPO =>
@@ -88,11 +121,9 @@ const imagenPorGrupo = (grupo?: string) => {
   return isGrupoMuscular(key) ? IMAGENES_GRUPO[key] : undefined;
 };
 
+// ── Utils — sin cambios ───────────────────────────────────────────────────────
 const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
-  if (i.ejercicioCompuesto) {
-    const descanso = i.descansoSeg ?? 0;
-    return `${descanso} s descanso`;
-  }
+  if (i.ejercicioCompuesto) return `${i.descansoSeg ?? 0} s descanso`;
   const sets = i.seriesSugeridas ?? "—";
   const reps = i.repeticionesSugeridas ?? "—";
   const peso = i.pesoSugerido ?? "—";
@@ -102,57 +133,36 @@ const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
 const toMadridYMD = (() => {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    year: "numeric", month: "2-digit", day: "2-digit",
   });
   return (d: Date) => fmt.format(d);
 })();
 
-/** Devuelve el routeName y params para React Navigation */
-const routeForEjercicio = (e: EjercicioDia) => {
-  const asignadoId = e.id != null ? String(e.id) : undefined;
-  const nombre =
-    e.ejercicioCompuesto?.nombre ?? e.ejercicio?.nombre ?? "ejercicio";
-
-  if (e.ejercicioCompuesto?.id) {
-    return {
-      routeName: "VistaEjercicio",
-      params: {
-        id: String(e.ejercicioCompuesto.id),
-        ...(asignadoId && { asignadoId }),
-        nombre,
-        ejercicio: e,
-      },
-    };
-  }
-
-  return {
-    routeName: "VistaEjercicio",
-    params: {
-      slug: encodeURIComponent(nombre),
-      ...(asignadoId && { asignadoId }),
-      nombre,
-      ejercicio: e,
-    },
-  };
-};
-
-// ✅ completado por fecha seleccionada (histórico)
 const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
   if (!selectedYMD) return Boolean(ej.completadoHoy);
-
   const fechas = ej.fechasCompletadasAsignacion ?? [];
   if (Array.isArray(fechas) && fechas.includes(selectedYMD)) return true;
-
-  // fallback: si estamos viendo HOY y backend marcó completadoHoy
   const hoy = toMadridYMD(new Date());
   if (selectedYMD === hoy) return Boolean(ej.completadoHoy);
-
   return false;
 };
 
-/* ---------------- Tarjeta ---------------- */
+const routeForEjercicio = (e: EjercicioDia) => {
+  const asignadoId = e.id != null ? String(e.id) : undefined;
+  const nombre = e.ejercicioCompuesto?.nombre ?? e.ejercicio?.nombre ?? "ejercicio";
+  if (e.ejercicioCompuesto?.id) {
+    return {
+      routeName: "VistaEjercicio",
+      params: { id: String(e.ejercicioCompuesto.id), ...(asignadoId && { asignadoId }), nombre, ejercicio: e },
+    };
+  }
+  return {
+    routeName: "VistaEjercicio",
+    params: { slug: encodeURIComponent(nombre), ...(asignadoId && { asignadoId }), nombre, ejercicio: e },
+  };
+};
+
+// ── TarjetaEjercicio ──────────────────────────────────────────────────────────
 const TarjetaEjercicio = memo(function TarjetaEjercicio({
   ejercicio,
   medidaPeso = "kg",
@@ -171,96 +181,63 @@ const TarjetaEjercicio = memo(function TarjetaEjercicio({
   const nombre = isCompuesto
     ? ejercicio.ejercicioCompuesto!.nombre
     : ejercicio.ejercicio?.nombre ?? "Ejercicio";
-
   const tagSuperior = isCompuesto
     ? ejercicio.ejercicioCompuesto!.tipoCompuesto
     : ejercicio.ejercicio?.grupoMuscular ?? "";
-
-  const img = isCompuesto
-    ? circuito
-    : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
-
+  const img = isCompuesto ? circuito : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
   const detalles = formateaDetalles(ejercicio, medidaPeso);
-
-  // ✅ aquí está el cambio importante
   const completado = isCompletedOnDate(ejercicio, selectedYMD);
-
   const { routeName, params } = routeForEjercicio(ejercicio);
 
-  const marcoGradient = completado
-    ? (["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as any)
-    : null;
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+      borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+    },
+  ];
 
-  const CardInner = (
-    <ContenidoTarjeta
-      img={img}
-      nombre={nombre}
-      tagSuperior={tagSuperior}
-      detalles={detalles}
-      completado={completado}
-      completedLabel={
-        selectedYMD
-          ? `Completado (${selectedYMD})`
-          : "Completado"
-      }
-    />
-  );
-
-  const Card = (
+  const inner = (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={0.85}
       onPress={() => onPressNavegar?.(routeName, params)}
       accessibilityRole="button"
-      accessibilityState={{ disabled: false }}
-      accessibilityLabel={`${isCompuesto ? "compuesto" : "ejercicio"} ${nombre}`}
-      className="w-full"
+      accessibilityLabel={`${isCompuesto ? "Ejercicio compuesto" : "Ejercicio"}: ${nombre}${completado ? ", completado" : ""}`}
+      accessibilityState={{ checked: completado }}
+      style={styles.touchable}
     >
-      {CardInner}
+      <ContenidoTarjeta
+        img={img}
+        nombre={nombre}
+        tagSuperior={tagSuperior}
+        detalles={detalles}
+        completado={completado}
+        completedLabel={selectedYMD ? `Completado el ${selectedYMD}` : "Completado"}
+        isDark={isDark}
+      />
     </TouchableOpacity>
   );
 
-  return (
-    <View className="list-none">
-      {marcoGradient ? (
-        <LinearGradient
-          colors={marcoGradient}
-          className="rounded-2xl p-[1px]"
-          style={{ borderRadius: 15, overflow: "hidden" }}
-        >
-          <View
-            className={
-              "rounded-2xl shadow-md p-4 relative " +
-              (isDark
-                ? "bg-[#0b1220] border border-white/10"
-                : "bg-white border border-neutral-200")
-            }
-          >
-            {Card}
-          </View>
-        </LinearGradient>
-      ) : (
-        <View
-          className={
-            "rounded-2xl shadow-md p-4 relative " +
-            (isDark
-              ? "bg-[#0b1220] border border-white/10"
-              : "bg-white border border-neutral-200")
-          }
-        >
-          {Card}
-        </View>
-      )}
-    </View>
-  );
+  // Completado → borde gradiente; sin completar → card simple
+  if (completado) {
+    return (
+      <LinearGradient
+        colors={GRADIENT as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBorder}
+      >
+        <View style={cardStyle}>{inner}</View>
+      </LinearGradient>
+    );
+  }
+
+  return <View style={cardStyle}>{inner}</View>;
 });
 
+// ── ContenidoTarjeta ──────────────────────────────────────────────────────────
 function ContenidoTarjeta({
-  img,
-  nombre,
-  tagSuperior,
-  detalles,
-  completado,
-  completedLabel,
+  img, nombre, tagSuperior, detalles, completado, completedLabel, isDark,
 }: {
   img?: any;
   nombre: string;
@@ -268,83 +245,89 @@ function ContenidoTarjeta({
   detalles: string;
   completado: boolean;
   completedLabel: string;
+  isDark: boolean;
 }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
   return (
-    <View className="flex-row items-center gap-4">
+    <View style={styles.row}>
+      {/* Thumbnail */}
       <View
-        className={
-          "h-16 w-16 rounded-xl border grid place-items-center overflow-hidden " +
-          (isDark ? "border-white/60 bg-white/10" : "border-neutral-200 bg-white")
-        }
+        style={[
+          styles.thumb,
+          {
+            backgroundColor: isDark ? tokens.color.thumbBgDark : tokens.color.thumbBgLight,
+            borderColor: isDark ? tokens.color.thumbBorderDark : tokens.color.thumbBorderLight,
+          },
+        ]}
       >
         {img ? (
-          <Image source={img} className="h-16 w-16" resizeMode="contain" />
+          <Image source={img} style={styles.thumbImage} resizeMode="contain" />
         ) : (
-          <Text className="text-[11px] text-neutral-400">Sin imagen</Text>
+          <Text style={styles.thumbFallback}>—</Text>
         )}
       </View>
 
-      <View className="min-w-0 flex-1">
-        <View className="mb-1">
-          <View
-            className={
-              "self-start rounded-md px-2 py-0.5 ring-1 " +
-              (isDark ? "bg-white/5 ring-white/15" : "bg-neutral-100 ring-neutral-200")
-            }
+      {/* Info */}
+      <View style={styles.info}>
+        {/* Tag grupo muscular */}
+        <View
+          style={[
+            styles.tag,
+            {
+              backgroundColor: isDark ? tokens.color.tagBgDark : tokens.color.tagBgLight,
+              borderColor: isDark ? tokens.color.tagBorderDark : tokens.color.tagBorderLight,
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            style={[styles.tagText, { color: isDark ? tokens.color.tagTextDark : tokens.color.tagTextLight }]}
           >
-            <Text
-              className={
-                "text-[11px] font-medium " +
-                (isDark ? "text-[#94a3b8]" : "text-neutral-700")
-              }
-              numberOfLines={1}
-            >
-              {`Grupo · ${tagSuperior || "—"}`}
-            </Text>
-          </View>
+            {tagSuperior || "—"}
+          </Text>
         </View>
 
+        {/* Nombre */}
         <Text
-          className={(isDark ? "text-white" : "text-slate-900") + " font-semibold"}
           numberOfLines={1}
+          style={[styles.name, { color: isDark ? tokens.color.nameDark : tokens.color.nameLight }]}
         >
           {nombre}
         </Text>
 
+        {/* Detalles */}
         <Text
-          className={
-            (isDark ? "text-[#94a3b8]" : "text-neutral-600") + " text-[12px]"
-          }
           numberOfLines={2}
+          style={[styles.details, { color: isDark ? tokens.color.detailsDark : tokens.color.detailsLight }]}
         >
           {detalles}
         </Text>
       </View>
 
+      {/* Check de completado — semántico y con color propio */}
       {completado && (
         <View
-          className={
-            "ml-auto h-6 w-6 rounded-full items-center justify-center " +
-            (isDark ? "bg-white/10 ring-1 ring-white/15" : "bg-white ring-1 ring-neutral-200")
-          }
+          style={[
+            styles.checkCircle,
+            {
+              backgroundColor: isDark ? tokens.color.checkBgDark : tokens.color.checkBgLight,
+              borderColor: isDark ? tokens.color.checkBorderDark : tokens.color.checkBorderLight,
+            },
+          ]}
           accessibilityLabel={completedLabel}
         >
-          <Text className="text-[12px]">✓</Text>
+          <Text style={styles.checkMark}>✓</Text>
         </View>
       )}
     </View>
   );
 }
 
-/* ---------------- Principal ---------------- */
+// ── TarjetaHome (principal) ───────────────────────────────────────────────────
 export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const navigation = useNavigation();
   const rutinaActivaId = useUsuarioStore((s) => s.usuario?.rutinaActivaId);
   const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso ?? "kg");
-
   const hasRutinaActiva = Boolean(rutinaActivaId);
 
   const rutinaDia = useMemo(() => {
@@ -371,32 +354,142 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
   }
 
   if (!rutinaDia) return null;
+  // ── Fin lógica original ───────────────────────────────────────────────────
 
   return (
-    <View className="w-full px-2">
-      <View style={{ gap: 12 }}>
+    <View style={styles.listRoot}>
+      <View style={styles.list}>
         {ejercicios.map((item, index) => {
           const key = String(
             (item.id as any) ??
-              item.ejercicioCompuesto?.id ??
-              `${item.ejercicio?.nombre}-${item.orden ?? "x"}-${index}`
+            item.ejercicioCompuesto?.id ??
+            `${item.ejercicio?.nombre}-${item.orden ?? "x"}-${index}`
           );
-
           return (
-            <View key={key}>
-              <TarjetaEjercicio
-                ejercicio={item}
-                medidaPeso={medidaPeso}
-                selectedYMD={selectedYMD}
-                onPressNavegar={(routeName, params) =>
-                  // @ts-ignore
-                  (navigation as any).navigate(routeName, params)
-                }
-              />
-            </View>
+            <TarjetaEjercicio
+              key={key}
+              ejercicio={item}
+              medidaPeso={medidaPeso}
+              selectedYMD={selectedYMD}
+              onPressNavegar={(routeName, params) =>
+                // @ts-ignore
+                (navigation as any).navigate(routeName, params)
+              }
+            />
           );
         })}
       </View>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  listRoot: {
+    width: "100%",
+    paddingHorizontal: tokens.spacing.sm,
+  },
+  list: {
+    gap: tokens.spacing.md,
+  },
+
+  // Card
+  gradientBorder: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+  card: {
+    borderRadius: tokens.radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: tokens.spacing.lg,
+    overflow: "hidden",
+    // Sombra sutil
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  touchable: {
+    width: "100%",
+  },
+
+  // Fila interior de la card
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+
+  // Thumbnail
+  thumb: {
+    width: 60,
+    height: 60,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    overflow: "hidden",
+  },
+  thumbImage: {
+    width: 52,
+    height: 52,
+  },
+  thumbFallback: {
+    fontSize: 12,
+    color: "#94A3B8",
+  },
+
+  // Info
+  info: {
+    flex: 1,
+    minWidth: 0,
+    gap: tokens.spacing.xs,
+  },
+
+  // Tag grupo muscular
+  tag: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+
+  // Nombre ejercicio
+  name: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+
+  // Detalles (series · reps · peso)
+  details: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  // Check completado
+  checkCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  checkMark: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: tokens.color.checkColor,
+  },
+});

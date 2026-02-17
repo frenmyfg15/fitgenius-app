@@ -1,130 +1,167 @@
-// src/features/cuenta/components/Perfil.tsx
+// File: src/features/cuenta/components/Perfil.tsx
 import React, { useMemo } from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    // Frame gradient
+    frameGradientDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
+    frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+
+    // Card interior
+    cardBgDark: "rgba(15,24,41,0.70)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    // Avatar
+    avatarRingDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
+    avatarRingLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+    avatarBgDark: "rgba(255,255,255,0.06)",
+    avatarBgLight: "#F5F5F5",
+    avatarBorderDark: "rgba(255,255,255,0.08)",
+    avatarInitialsDark: "#CBD5E1",
+    avatarInitialsLight: "#6B7280",
+
+    // Texto
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+
+    // Chip normal (métricas)
+    chipBgDark: "rgba(148,163,184,0.12)",
+    chipBgLight: "#F1F5F9",
+    chipBorderDark: "rgba(255,255,255,0.06)",
+    chipBorderLight: "rgba(0,0,0,0.06)",
+    chipTextDark: "#CBD5E1",
+    chipTextLight: "#475569",
+
+    // ChipSoft (objetivo)
+    chipSoftBgDark: "rgba(15,24,41,0.60)",
+    chipSoftBgLight: "#FFFFFF",
+    chipSoftBorderDark: "rgba(255,255,255,0.09)",
+    chipSoftBorderLight: "rgba(0,0,0,0.06)",
+  },
+  radius: { lg: 16, full: 999 },
+  spacing: { xs: 6, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function Perfil() {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
   const { usuario } = useUsuarioStore();
-  if (!usuario) return null;
 
   const iniciales = useMemo(() => {
-    const n = (usuario.nombre?.[0] ?? "").toUpperCase();
-    const a = (usuario.apellido?.[0] ?? "").toUpperCase();
+    const n = (usuario?.nombre?.[0] ?? "").toUpperCase();
+    const a = (usuario?.apellido?.[0] ?? "").toUpperCase();
     return (n + a) || "U";
   }, [usuario?.nombre, usuario?.apellido]);
 
-  // 🎛️ Paleta “glass” para dark
-  const frameGradient = isDark
-    ? ["#111a2b", "#0b1220", "#111a2b"] // marco sutil en dark
-    : ["#39ff14", "#14ff80", "#22c55e"];
+  if (!usuario) return null;
+  // ── Fin lógica original ───────────────────────────────────────────────────
 
-  const cardBgDark = "rgba(20, 28, 44, 0.6)"; // un poco más claro que #0b1220
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
+  const frameGradient = isDark ? tokens.color.frameGradientDark : tokens.color.frameGradientLight;
+  const avatarRing = isDark ? tokens.color.avatarRingDark : tokens.color.avatarRingLight;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
 
   return (
-    <View style={{ width: "100%", maxWidth: 480, alignSelf: "center" }}>
-      {/* Marco degradado */}
+    <View style={styles.root}>
       <LinearGradient
         colors={frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1 }}
+        style={styles.frame}
       >
-        {/* Card */}
         <View
-          style={{
-            borderRadius: 15,
-            backgroundColor: isDark ? cardBgDark : "#ffffff",
-            borderWidth: 1,
-            borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-            padding: 20,
-          }}
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", columnGap: 16 }}>
-            {/* Avatar con aro degradado */}
-            <View style={{ position: "relative" }}>
-              <LinearGradient
-                colors={
-                  isDark
-                    ? ["#0e1729", "#0b1220", "#0e1729"]
-                    : ["#39ff14", "#14ff80", "#22c55e"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ borderRadius: 999, padding: 2 }}
-              >
-                <View
-                  style={{
-                    height: 80,
-                    width: 80,
-                    borderRadius: 999,
-                    overflow: "hidden",
-                    backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f5f5f5",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: isDark ? 1 : 0,
-                    borderColor: isDark ? "rgba(255,255,255,0.08)" : "transparent",
-                  }}
-                >
-                  {usuario.imagenPerfil ? (
-                    <Image
-                      source={{ uri: usuario.imagenPerfil }}
-                      resizeMode="cover"
-                      style={{ width: "100%", height: "100%" }}
-                      accessibilityLabel={`Foto de ${usuario.nombre ?? "usuario"}`}
-                    />
-                  ) : (
-                    <Text
-                      accessibilityLabel="Avatar por defecto"
-                      style={{ fontSize: 22, fontWeight: "800", color: isDark ? "#cbd5e1" : "#6b7280" }}
-                    >
-                      {iniciales}
-                    </Text>
-                  )}
-                </View>
-              </LinearGradient>
-            </View>
+          <View style={styles.row}>
 
-            {/* Info principal */}
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                numberOfLines={1}
-                style={{ fontSize: 14, fontWeight: "700", color: isDark ? textPrimaryDark : "#0f172a" }}
+            {/* ── Avatar ──────────────────────────────────────────────────── */}
+            <LinearGradient
+              colors={avatarRing as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatarRing}
+            >
+              <View
+                style={[
+                  styles.avatarInner,
+                  {
+                    backgroundColor: isDark ? tokens.color.avatarBgDark : tokens.color.avatarBgLight,
+                    borderColor: isDark ? tokens.color.avatarBorderDark : "transparent",
+                    borderWidth: isDark ? 1 : 0,
+                  },
+                ]}
               >
+                {usuario.imagenPerfil ? (
+                  <Image
+                    source={{ uri: usuario.imagenPerfil }}
+                    resizeMode="cover"
+                    style={styles.avatarImage}
+                    accessibilityLabel={`Foto de ${usuario.nombre ?? "usuario"}`}
+                  />
+                ) : (
+                  <Text
+                    accessibilityLabel="Avatar por defecto"
+                    style={[
+                      styles.avatarInitials,
+                      { color: isDark ? tokens.color.avatarInitialsDark : tokens.color.avatarInitialsLight },
+                    ]}
+                  >
+                    {iniciales}
+                  </Text>
+                )}
+              </View>
+            </LinearGradient>
+
+            {/* ── Info ─────────────────────────────────────────────────────── */}
+            <View style={styles.infoCol}>
+              {/* Nombre completo */}
+              <Text numberOfLines={1} style={[styles.name, { color: textPrimary }]}>
                 {usuario.nombre} {usuario.apellido}
               </Text>
-              <Text
-                numberOfLines={1}
-                style={{ marginTop: 2, fontSize: 12, color: isDark ? textSecondaryDark : "#475569" }}
-              >
+
+              {/* Email */}
+              <Text numberOfLines={1} style={[styles.email, { color: textSecondary }]}>
                 {usuario.correo}
               </Text>
 
-              {/* Chips métricas rápidas */}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-                <Chip>{usuario.edad} años</Chip>
-                <Chip>
+              {/* Métricas (edad, peso, altura) */}
+              <View style={styles.metricsRow}>
+                <Chip isDark={isDark}>{usuario.edad} años</Chip>
+                <Chip isDark={isDark}>
                   {usuario.peso} {usuario.medidaPeso}
                 </Chip>
-                <Chip>
+                <Chip isDark={isDark}>
                   {usuario.altura} {usuario.medidaAltura}
                 </Chip>
               </View>
 
-              {/* Objetivo y contexto */}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                <ChipSoft>
+              {/* Objetivo (peso + lugar) */}
+              <View style={styles.goalsRow}>
+                <ChipSoft isDark={isDark}>
                   Meta: {usuario.pesoObjetivo} {usuario.medidaPeso}
                 </ChipSoft>
+
                 {"lugarEntrenamiento" in usuario && (
-                  <ChipSoft>Lugar: {(usuario as any).lugarEntrenamiento}</ChipSoft>
+                  <ChipSoft isDark={isDark}>
+                    Lugar: {(usuario as any).lugarEntrenamiento}
+                  </ChipSoft>
                 )}
               </View>
             </View>
@@ -135,46 +172,147 @@ export default function Perfil() {
   );
 }
 
-/* ---------- Subcomponentes ---------- */
-
-function Chip({ children }: { children: React.ReactNode }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+// ── Chip (métricas) ───────────────────────────────────────────────────────────
+function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
-      style={{
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 999,
-        backgroundColor: isDark ? "rgba(148,163,184,0.16)" : "#f3f4f6", // glassy en dark
-        borderWidth: 1,
-        borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb",
-      }}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
+          borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
+        },
+      ]}
     >
-      <Text style={{ fontSize: 11, color: isDark ? "#e5e7eb" : "#374151" }}>
+      <Text style={[styles.chipText, { color: isDark ? tokens.color.chipTextDark : tokens.color.chipTextLight }]}>
         {children}
       </Text>
     </View>
   );
 }
 
-function ChipSoft({ children }: { children: React.ReactNode }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+// ── ChipSoft (objetivo) ───────────────────────────────────────────────────────
+function ChipSoft({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
-      style={{
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 999,
-        backgroundColor: isDark ? "rgba(20,28,44,0.55)" : "#ffffff",
-        borderWidth: 1,
-        borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
-      }}
+      style={[
+        styles.chipSoft,
+        {
+          backgroundColor: isDark ? tokens.color.chipSoftBgDark : tokens.color.chipSoftBgLight,
+          borderColor: isDark ? tokens.color.chipSoftBorderDark : tokens.color.chipSoftBorderLight,
+        },
+      ]}
     >
-      <Text style={{ fontSize: 11, color: isDark ? "#e5e7eb" : "#0f172a" }}>
+      <Text style={[styles.chipSoftText, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
         {children}
       </Text>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: {
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+  },
+
+  // Frame gradiente
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+  },
+
+  // Card interior
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    padding: tokens.spacing.xl,
+  },
+
+  // Fila principal
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.lg,
+  },
+
+  // Avatar
+  avatarRing: {
+    borderRadius: tokens.radius.full,
+    padding: 2,
+  },
+  avatarInner: {
+    width: 80,
+    height: 80,
+    borderRadius: tokens.radius.full,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarInitials: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  // Info
+  infoCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: tokens.spacing.xs,
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  email: {
+    fontSize: 12,
+  },
+
+  // Métricas
+  metricsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.xs,
+    marginTop: tokens.spacing.xs,
+  },
+
+  // Chips de métricas
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  // Objetivos
+  goalsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.xs,
+    marginTop: 2,
+  },
+
+  // ChipSoft
+  chipSoft: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+  },
+  chipSoftText: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+});

@@ -1,4 +1,5 @@
 // src/features/fit/screens/app/rutinas/MisRutinas.tsx
+
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
@@ -8,11 +9,16 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  StyleSheet,
+  Platform,
+  Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
+// ... (tus otros imports se mantienen igual)
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
 import { Rutina } from "@/features/type/rutinas";
@@ -22,14 +28,32 @@ import MostrarRutina from "@/shared/components/misRutinas/MostrarRutina";
 import MisRutinasSkeleton from "@/shared/components/skeleton/MisRutinasSkeleton";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-/* -------- Paleta y glass -------- */
-const marcoGradient = [
-  "rgb(0,255,64)",
-  "rgb(94,230,157)",
-  "rgb(178,0,255)",
-] as const;
-
-const cardBorderDark = "rgba(255,255,255,0.08)";
+const tokens = {
+  color: {
+    bgDark: "#080D17",
+    bgLight: "#F8FAFC",
+    surfaceDark: "#0F1829",
+    surfaceLight: "#FFFFFF",
+    primary: "#00E85A",
+    textPrimaryDark: "#F1F5F9",
+    textSecondaryDark: "#64748B",
+    textPrimaryLight: "#0F172A",
+    textSecondaryLight: "#475569",
+    borderDark: "rgba(255,255,255,0.07)",
+    borderLight: "rgba(15,23,42,0.08)",
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
+    overlay: "rgba(0,0,0,0.55)",
+  },
+  radius: { full: 999, lg: 16 },
+  spacing: {
+    md: 16,
+    lg: 24,
+    xl: 32,
+    tabBarSafe: Platform.OS === "ios" ? 140 : 120,
+  },
+} as const;
 
 export default function MisRutinasScreen() {
   const navigation = useNavigation<any>();
@@ -40,181 +64,144 @@ export default function MisRutinasScreen() {
     loading,
     mostrar,
     cerrarVisor,
-    reloadRutinas, // ✅ antes: toggleReload
+    reloadRutinas,
     totalIA,
     maxIA,
   } = useMisRutinas();
 
   const isPremium = useUsuarioStore((s) => s.usuario?.haPagado === true);
-
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const screenH = useMemo(() => Dimensions.get("window").height, []);
-  const slideY = useRef(new Animated.Value(screenH)).current;
+  // --- LÓGICA DE ANIMACIÓN DEL FAB ---
+  const [menuOpen, setMenuOpen] = useState(false);
+  const animValue = useRef(new Animated.Value(0)).current;
 
+  const toggleMenu = () => {
+    const toValue = menuOpen ? 0 : 1;
+    Animated.spring(animValue, {
+      toValue,
+      friction: 5,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+    setMenuOpen(!menuOpen);
+  };
+
+  const closeMenu = () => {
+    if (menuOpen) toggleMenu();
+  };
+
+  // Interpolaciones para los botones que emergen
+  const translateY = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  });
+  const opacity = animValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 1],
+  });
+  const rotation = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "45deg"],
+  });
+
+  // --- RESTO DE LÓGICA (VISOR, REFRESH) ---
+  const screenH = Dimensions.get("window").height;
+  const slideY = useRef(new Animated.Value(screenH)).current;
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animación visor
   useEffect(() => {
-    const toValue = ver && rutinaSeleccionada ? 0 : screenH;
     Animated.timing(slideY, {
-      toValue,
+      toValue: ver && rutinaSeleccionada ? 0 : screenH,
       duration: 250,
       useNativeDriver: true,
     }).start();
-  }, [ver, rutinaSeleccionada, screenH, slideY]);
+  }, [ver, rutinaSeleccionada]);
 
-  // Navegación
-  const goToManual = () => navigation.navigate("CrearRutina");
-
-  // Pull-to-refresh (✅ ahora sí espera a la API)
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await reloadRutinas();
-    } finally {
-      setRefreshing(false);
-    }
+    try { await reloadRutinas(); } finally { setRefreshing(false); }
   }, [reloadRutinas]);
 
+  const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+
   return (
-    <View
-      className={`flex-1 items-center ${isDark ? "bg-[#0b1220]" : "bg-white"}`}
-    >
+    <View style={[styles.flex1, { backgroundColor: bg }]}>
+      {/* Overlay para cerrar al tocar fuera */}
+      {menuOpen && (
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeMenu} />
+      )}
+
       <ScrollView
-        style={{ flex: 1, width: "100%" }}
-        contentContainerStyle={{
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingTop: 32,
-          paddingBottom: 140,
-        }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={isDark ? "#e5e7eb" : "#0f172a"}
-            colors={[isDark ? "#22c55e" : "#16a34a"]}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* Título */}
-        <View className="mb-6 items-center w-full max-w-[600px]">
-          <Text
-            className={`text-2xl font-bold text-center ${
-              isDark ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
             Tus rutinas
-          </Text>
-          <Text
-            className={`${
-              isDark ? "text-gray-400" : "text-gray-600"
-            } text-center mt-1`}
-          >
-            Consulta, gestiona y crea nuevas rutinas personalizadas
           </Text>
         </View>
 
-        {/* Contenido principal */}
-        {loading ? (
-          <View className="w-full max-w-[600px]">
+        <View style={styles.content}>
+          {loading ? (
             <MisRutinasSkeleton />
-          </View>
-        ) : (
-          <View className="w-full mt-2 max-w-[600px]">
-            {rutinas.length > 0 ? (
-              <MisRutinas rutinas={rutinas as Rutina[]} mostrar={mostrar} />
-            ) : (
-              <MensajeVacio
-                titulo="Aún no tienes una rutina"
-                descripcion="Crea tu primera rutina manual o genera una con IA según tus objetivos."
-                textoBoton="Crear mi rutina"
-                rutaDestino="/crear-rutina"
-                nombreImagen="rutinas"
-                mostrarBoton={false}
-              />
-            )}
-          </View>
-        )}
+          ) : rutinas.length > 0 ? (
+            <MisRutinas rutinas={rutinas as Rutina[]} mostrar={mostrar} />
+          ) : (
+            <MensajeVacio
+              titulo="Aún no tienes una rutina"
+              descripcion="Crea tu primera rutina manual o genera una con IA según tus objetivos."
+              textoBoton="Crear mi rutina"
+              rutaDestino="/crear-rutina"
+              nombreImagen="rutinas"
+              mostrarBoton={false}
+            />
+          )}
+        </View>
       </ScrollView>
 
-      {/* CTA flotantes */}
+      {/* --- MENU FLOTANTE ACCIONABLE --- */}
       {!loading && (
-        <View className="absolute bottom-5 z-30 flex-row gap-7 items-center justify-center">
-          {/* Crear rutina manual */}
-          <LinearGradient
-            colors={marcoGradient as any}
-            className="rounded-2xl p-[1px]"
-            style={{ borderRadius: 15, overflow: "hidden" }}
-          >
+        <View style={styles.fabContainer}>
+          {/* Botones que aparecen */}
+          <Animated.View style={[styles.optionsMenu, { opacity, transform: [{ translateY }] }]}>
+            <IaGenerate onCreate={() => { reloadRutinas(); closeMenu(); }} />
+            {/* Opción Manual */}
             <TouchableOpacity
-              onPress={goToManual}
-              className={
-                "px-6 py-2 rounded-full flex-row items-center justify-center " +
-                (isDark ? "bg-[#0f172a]" : "bg-white")
-              }
-              activeOpacity={0.9}
+              onPress={() => { navigation.navigate("CrearRutina"); closeMenu(); }}
+              style={[styles.manualBtn, { backgroundColor: isDark ? tokens.color.surfaceDark : "#fff" }]}
             >
-              <Text
-                className={
-                  "text-sm font-semibold " +
-                  (isDark ? "text-white" : "text-gray-900")
-                }
-              >
-                Rutina manual
-              </Text>
+              <Ionicons name="create-outline" size={20} color={tokens.color.primary} />
+              <Text style={[styles.manualText, { color: isDark ? "#fff" : "#000" }]}>Manual</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </Animated.View>
 
-          {/* Crear con IA */}
-          <View className="relative">
-            {/* ✅ ahora dispara recarga real */}
-            <IaGenerate onCreate={reloadRutinas} />
-
-            <View
-              className="absolute -top-9 -right-2 min-w-[40px] px-2 h-6 rounded-full border text-[12px] font-semibold grid place-items-center shadow"
-              style={{
-                backgroundColor: isDark ? "rgba(20,28,44,0.9)" : "#ffffff",
-                borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-              }}
+          {/* Botón Gatillo (FAB) */}
+          <TouchableOpacity activeOpacity={0.9} onPress={toggleMenu}>
+            <LinearGradient
+              colors={[tokens.color.gradientStart, tokens.color.gradientMid, tokens.color.gradientEnd]}
+              style={styles.fabCircle}
             >
-              <Text style={{ color: isDark ? "#ffffff" : "#111827" }}>
-                IA usadas: {totalIA}
-                {isPremium ? " / ∞" : ` / ${maxIA}`}
-              </Text>
-            </View>
-          </View>
+              <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+                <Ionicons name="add" size={32} color="#fff" />
+              </Animated.View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* Overlay visor rutina */}
-      <Animated.View
-        pointerEvents={ver && rutinaSeleccionada ? "auto" : "none"}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: screenH,
-          transform: [{ translateY: slideY }],
-          backgroundColor: "rgba(0,0,0,0.4)",
-          zIndex: 50,
-        }}
-      >
-        <View className="flex-1 pt-10 items-center">
+      {/* --- VISOR --- */}
+      <Animated.View style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}>
+        <View style={styles.visorContent}>
           {rutinaSeleccionada && (
             <MostrarRutina
-              key={rutinaSeleccionada.id}
               rutinas={rutinaSeleccionada}
               setVer={(v: boolean) => !v && cerrarVisor()}
-              onDelete={async () => {
-                // ✅ recarga real antes de cerrar
-                await reloadRutinas();
-                cerrarVisor();
-              }}
+              onDelete={async () => { await reloadRutinas(); cerrarVisor(); }}
             />
           )}
         </View>
@@ -222,3 +209,74 @@ export default function MisRutinasScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  flex1: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.tabBarSafe,
+  },
+  header: { marginBottom: tokens.spacing.lg, alignItems: "center" },
+  title: { fontSize: 26, fontWeight: "800" },
+  content: { width: "100%" },
+
+  // --- ESTILOS FAB ---
+  fabContainer: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 100 : 90, // Posicionado sobre tu menú actual
+    right: 20,
+    alignItems: "flex-end",
+  },
+  fabCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  optionsMenu: {
+    marginBottom: 15,
+    gap: 12,
+    alignItems: "flex-end",
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  manualBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  manualText: { fontSize: 14, fontWeight: "700" },
+  iaBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  visorOverlay: {
+    position: "absolute",
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: tokens.color.overlay,
+    zIndex: 100
+  },
+  visorContent: { flex: 1, paddingTop: 50 },
+});

@@ -1,6 +1,6 @@
 // src/features/fit/components/GastoCalorico.tsx
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import Svg, {
   Circle,
   Defs,
@@ -17,27 +17,71 @@ const FACTORES: Record<string, number> = {
   "muy activo": 1.725,
 };
 
-const R = 64; // radio del anillo
+const R = 64;
 const C = 2 * Math.PI * R;
+
+const tokens = {
+  color: {
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
+
+    cardBgDark: "rgba(15,24,41,1)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    chipBgDark: "rgba(148,163,184,0.12)",
+    chipBgLight: "#F1F5F9",
+    chipBorderDark: "rgba(255,255,255,0.06)",
+    chipBorderLight: "rgba(0,0,0,0.06)",
+
+    metricBgDark: "rgba(15,24,41,0.55)",
+    metricBgLight: "#FFFFFF",
+    metricBorderDark: "rgba(255,255,255,0.06)",
+    metricBorderLight: "rgba(0,0,0,0.06)",
+
+    ringTrackDark: "rgba(148,163,184,0.22)",
+    ringTrackLight: "#E5E7EB",
+
+    barTrackDark: "rgba(148,163,184,0.18)",
+    barTrackLight: "#E5E7EB",
+    barBorderDark: "rgba(255,255,255,0.06)",
+    barBorderLight: "#E5E7EB",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#94A3B8",
+    textSecondaryLight: "#475569",
+    textMutedDark: "#64748B",
+    textMutedLight: "#6B7280",
+  },
+  radius: { lg: 16, md: 12, sm: 10, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
 
 type GastoCaloricoProps = {
   peso?: number | string | null;
   altura?: number | string | null;
   edad?: number | string | null;
   sexo?: string | null;
-  actividadInicial?: string | null; // ahora puede venir como SEDENTARIO, LIGERAMENTE_ACTIVO...
+  actividadInicial?: string | null;
 };
 
-// 🔁 Helper para mapear el valor crudo a key + label legible
-function mapActividad(actividadInicial?: string | null):
-  | { key: keyof typeof FACTORES; label: string }
-  | null {
+function mapActividad(
+  actividadInicial?: string | null
+): { key: keyof typeof FACTORES; label: string } | null {
   if (!actividadInicial) return null;
 
-  const rawTrim = actividadInicial.trim();
-  const upper = rawTrim.toUpperCase();
+  const raw = actividadInicial.trim();
+  const upper = raw.toUpperCase();
 
-  // Nuevos enums
   switch (upper) {
     case "SEDENTARIO":
       return { key: "sedentario", label: "Sedentario" };
@@ -49,17 +93,59 @@ function mapActividad(actividadInicial?: string | null):
       return { key: "muy activo", label: "Muy activo" };
   }
 
-  // Soporte para valores antiguos tipo "sedentario", "ligero", "muy activo"...
-  const lower = rawTrim.toLowerCase() as keyof typeof FACTORES;
-  if (FACTORES[lower] != null) {
-    const label = lower
-      .split(" ")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-    return { key: lower, label };
-  }
+  const lower = raw.toLowerCase() as keyof typeof FACTORES;
+  const factor = FACTORES[lower];
+  if (factor == null) return null;
 
-  return null;
+  const label = lower
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+  return { key: lower, label };
+}
+
+function stripTrailingZeros(n: number) {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function Metric({
+  label,
+  value,
+  isDark,
+}: {
+  label: string;
+  value: string;
+  isDark: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.metric,
+        {
+          backgroundColor: isDark ? tokens.color.metricBgDark : tokens.color.metricBgLight,
+          borderColor: isDark ? tokens.color.metricBorderDark : tokens.color.metricBorderLight,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.metricLabel,
+          { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textMutedLight },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[
+          styles.metricValue,
+          { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
 }
 
 export default function GastoCalorico({
@@ -72,409 +158,393 @@ export default function GastoCalorico({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const actividad = useMemo(
-    () => mapActividad(actividadInicial),
-    [actividadInicial]
-  );
+  const actividad = useMemo(() => mapActividad(actividadInicial), [actividadInicial]);
 
-  // 🎛️ Paleta glass en dark
-  const marcoGradient = [
-    "rgb(0,255,64)",
-    "rgb(94,230,157)",
-    "rgb(178,0,255)",
-  ];
-  const cardBgDark = "rgba(20, 28, 44, 0.6)"; // un poco más claro que #0b1220
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const chipBgDark = "rgba(148,163,184,0.16)";
-  const chipRingDark = "rgba(255,255,255,0.06)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
-  // TMB Mifflin–St Jeor (asume métricas)
   const tmb = useMemo(() => {
     if (!peso || !altura || !edad || !sexo) return null;
-    const base =
-      10 * Number(peso) + 6.25 * Number(altura) - 5 * Number(edad);
-    return Math.round(
-      sexo?.toLowerCase() === "masculino" ? base + 5 : base - 161
-    );
+    const base = 10 * Number(peso) + 6.25 * Number(altura) - 5 * Number(edad);
+    return Math.round(sexo?.toLowerCase() === "masculino" ? base + 5 : base - 161);
   }, [peso, altura, edad, sexo]);
 
-  const factor = useMemo(
-    () => (actividad ? FACTORES[actividad.key] ?? 1.2 : null),
-    [actividad]
-  );
+  const factor = useMemo(() => {
+    if (!actividad) return null;
+    return FACTORES[actividad.key] ?? 1.2;
+  }, [actividad]);
 
   const gasto = useMemo(() => {
     if (!tmb || !factor) return null;
     return Math.round(tmb * factor);
   }, [tmb, factor]);
 
-  // Escala del anillo (cap suave para la UI, no para el cálculo)
+  const hasData = Boolean(tmb && actividad && factor);
+
   const maxRef = 4200;
   const pct = gasto ? Math.min(gasto / maxRef, 1) : 0;
   const dash = C * (1 - pct);
 
-  // --------- Sin datos suficientes ----------
-  if (!tmb || !actividad || !factor) {
-    return (
-      <View className="w-full max-w-[520px]">
-        <LinearGradient
-          colors={marcoGradient as any}
-          className="rounded-2xl p-[1px]"
-          style={{ borderRadius: 15, overflow: "hidden" }}
-        >
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: isDark ? cardBgDark : "#ffffff",
-              borderWidth: 1,
-              borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-              padding: 20,
-            }}
-          >
-            <View className="flex-row items-center justify-between">
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
-                Gasto calórico diario
-              </Text>
-              <View
-                style={{
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  backgroundColor: isDark ? chipBgDark : "#f5f5f5",
-                  borderWidth: 1,
-                  borderColor: isDark ? chipRingDark : "#e5e7eb",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: isDark ? textSecondaryDark : "#334155",
-                  }}
-                >
-                  Datos insuficientes
-                </Text>
-              </View>
-            </View>
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
 
-            <Text
-              style={{
-                marginTop: 12,
-                fontSize: 13,
-                color: isDark ? textSecondaryDark : "#475569",
-              }}
+  return (
+    <View style={styles.root}>
+      <LinearGradient
+        colors={GRADIENT as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.frame}
+      >
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: textPrimary }]}>Gasto calórico diario</Text>
+
+            <View
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
+                  borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
+                },
+              ]}
             >
+              {hasData ? (
+                <Text style={[styles.chipText, { color: textSecondary }]}>
+                  Actividad:{" "}
+                  <Text style={[styles.chipTextStrong, { color: textPrimary }]}>
+                    {actividad!.label}
+                  </Text>
+                </Text>
+              ) : (
+                <Text style={[styles.chipText, { color: textSecondary }]}>Datos insuficientes</Text>
+              )}
+            </View>
+          </View>
+
+          {!hasData ? (
+            <Text style={[styles.emptyText, { color: textSecondary }]}>
               Completa tu{" "}
-              <Text
-                style={{
-                  fontWeight: "700",
-                  color: isDark ? textPrimaryDark : "#0f172a",
-                }}
-              >
+              <Text style={[styles.emptyTextStrong, { color: textPrimary }]}>
                 peso, altura, edad, sexo y nivel de actividad
               </Text>{" "}
               para estimar tu gasto calórico diario.
             </Text>
-          </View>
-        </LinearGradient>
-      </View>
-    );
-  }
-
-  return (
-    <View className="w-full max-w-[520px]">
-      {/* Marco degradado coherente */}
-      <LinearGradient
-        colors={marcoGradient as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1 }}
-      >
-        <View
-          style={{
-            borderRadius: 16,
-            backgroundColor: isDark ? cardBgDark : "#ffffff",
-            borderWidth: 1,
-            borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-            padding: 20,
-          }}
-        >
-          {/* Header */}
-          <View className="flex-row items-center justify-between gap-3">
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: isDark ? textPrimaryDark : "#0f172a",
-              }}
-            >
-              Gasto calórico diario
-            </Text>
-
-            {/* Chip solo lectura con la actividad actual */}
-            <View
-              style={{
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: isDark ? chipRingDark : "#e5e7eb",
-                backgroundColor: isDark
-                  ? "rgba(20,28,44,0.55)"
-                  : "#f5f5f5",
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: isDark ? textSecondaryDark : "#334155",
-                }}
-              >
-                Actividad:{" "}
-                <Text
-                  style={{
-                    fontWeight: "600",
-                    color: isDark ? textPrimaryDark : "#0f172a",
-                  }}
-                >
-                  {actividad.label}
-                </Text>
-              </Text>
-            </View>
-          </View>
-
-          {/* Métricas rápidas */}
-          <View className="mt-3 grid grid-cols-2 gap-3">
-            <Metric
-              label="Tasa basal (TMB)"
-              value={`${tmb} kcal`}
-              isDark={isDark}
-            />
-            <Metric
-              label="Factor actividad"
-              value={`× ${stripTrailingZeros(factor!)}`}
-              isDark={isDark}
-            />
-          </View>
-
-          {/* Anillo + texto */}
-          <View className="mt-4 flex-row items-center gap-6">
-            <View className="relative w-40 h-40">
-              <Svg
-                className="absolute inset-0 -rotate-90"
-                width="100%"
-                height="100%"
-                viewBox="0 0 180 180"
-                accessibilityLabel="Progreso de gasto calórico"
-                role="img"
-              >
-                {/* Base */}
-                <Circle
-                  cx="90"
-                  cy="90"
-                  r={R}
-                  stroke={isDark ? "rgba(148,163,184,0.22)" : "#e5e7eb"}
-                  strokeWidth={12}
-                  fill="transparent"
+          ) : (
+            <>
+              <View style={styles.metricsRow}>
+                <Metric label="Tasa basal (TMB)" value={`${tmb} kcal`} isDark={isDark} />
+                <Metric
+                  label="Factor actividad"
+                  value={`× ${stripTrailingZeros(factor!)}`}
+                  isDark={isDark}
                 />
-                {/* Degradado ring */}
-                <Defs>
-                  <SvgLinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0%" stopColor="rgb(0,255,64)" />
-                    <Stop offset="50%" stopColor="rgb(94,230,157)" />
-                    <Stop offset="100%" stopColor="rgb(178,0,255)" />
-                  </SvgLinearGradient>
-                </Defs>
-                <Circle
-                  cx="90"
-                  cy="90"
-                  r={R}
-                  stroke="url(#ringGrad)"
-                  strokeWidth={12}
-                  fill="transparent"
-                  strokeDasharray={C}
-                  strokeDashoffset={dash}
-                  strokeLinecap="round"
-                />
-              </Svg>
+              </View>
 
-              {/* Centro del anillo */}
-              <View className="absolute inset-0 items-center justify-center">
-                <View className="items-center">
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: isDark ? textSecondaryDark : "#64748b",
-                      lineHeight: 12,
-                    }}
+              <View style={styles.mainRow}>
+                <View style={styles.ringBox} accessibilityLabel="Progreso de gasto calórico">
+                  <Svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 180 180"
+                    style={styles.ringSvg}
+                    accessibilityLabel="Anillo de progreso"
                   >
-                    Estimado
+                    <Circle
+                      cx="90"
+                      cy="90"
+                      r={R}
+                      stroke={isDark ? tokens.color.ringTrackDark : tokens.color.ringTrackLight}
+                      strokeWidth={12}
+                      fill="transparent"
+                    />
+                    <Defs>
+                      <SvgLinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0%" stopColor={tokens.color.gradientStart} />
+                        <Stop offset="50%" stopColor={tokens.color.gradientMid} />
+                        <Stop offset="100%" stopColor={tokens.color.gradientEnd} />
+                      </SvgLinearGradient>
+                    </Defs>
+                    <Circle
+                      cx="90"
+                      cy="90"
+                      r={R}
+                      stroke="url(#ringGrad)"
+                      strokeWidth={12}
+                      fill="transparent"
+                      strokeDasharray={C}
+                      strokeDashoffset={dash}
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+
+                  <View style={styles.ringCenter} pointerEvents="none">
+                    <Text style={[styles.ringKicker, { color: textMuted }]}>Estimado</Text>
+                    <Text style={[styles.ringValue, { color: textPrimary }]}>{gasto}</Text>
+                    <Text style={[styles.ringUnit, { color: textMuted }]}>kcal / día</Text>
+                  </View>
+                </View>
+
+                <View style={styles.content}>
+                  <Text style={[styles.body, { color: textSecondary }]}>
+                    Energía total que tu cuerpo{" "}
+                    <Text style={[styles.bodyStrong, { color: textPrimary }]}>gasta a diario</Text>{" "}
+                    según tu nivel actual de actividad.
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: "800",
-                      color: isDark ? textPrimaryDark : "#0f172a",
-                      lineHeight: 26,
-                    }}
+
+                  <View style={styles.refsRow}>
+                    {[
+                      { label: "Ligero", val: 2200 },
+                      { label: "Promedio", val: 2600 },
+                      { label: "Alto", val: 3000 },
+                    ].map((r) => (
+                      <View
+                        key={r.label}
+                        style={[
+                          styles.refChip,
+                          {
+                            backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
+                            borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.refChipText, { color: textSecondary }]}>
+                          {r.label}: {r.val} kcal
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View
+                    style={[
+                      styles.barTrack,
+                      {
+                        backgroundColor: isDark ? tokens.color.barTrackDark : tokens.color.barTrackLight,
+                        borderColor: isDark ? tokens.color.barBorderDark : tokens.color.barBorderLight,
+                      },
+                    ]}
+                    accessibilityRole="progressbar"
+                    accessibilityLabel="Barra de referencia"
+                    accessibilityValue={{ min: 0, max: maxRef, now: gasto ?? 0 }}
                   >
-                    {gasto}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: isDark ? textSecondaryDark : "#64748b",
-                      marginTop: -2,
-                    }}
-                  >
-                    kcal / día
-                  </Text>
+                    <LinearGradient
+                      colors={["#8bff62", "#39ff14", "#a855f7"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.barFill, { width: `${pct * 100}%` }]}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Leyenda / estado */}
-            <View className="flex-1 min-w-0">
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: isDark ? textSecondaryDark : "#475569",
-                }}
-              >
-                Energía total que tu cuerpo{" "}
-                <Text
-                  style={{
-                    fontWeight: "700",
-                    color: isDark ? textPrimaryDark : "#0f172a",
-                  }}
-                >
-                  gasta a diario
-                </Text>{" "}
-                según tu nivel actual de actividad.
+              <Text style={[styles.footnote, { color: textMuted }]}>
+                Basado en la fórmula de Mifflin–St Jeor. Este valor es una estimación y puede variar
+                según múltiples factores.
               </Text>
-
-              {/* Chips de referencia */}
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                {[
-                  { label: "Ligero", val: 2200 },
-                  { label: "Promedio", val: 2600 },
-                  { label: "Alto", val: 3000 },
-                ].map((r) => (
-                  <View
-                    key={r.label}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      borderRadius: 999,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: isDark ? chipBgDark : "#f5f5f5",
-                      borderWidth: 1,
-                      borderColor: isDark ? chipRingDark : "#e5e7eb",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: isDark ? textSecondaryDark : "#334155",
-                      }}
-                    >
-                      {r.label}: {r.val} kcal
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Barra lineal con degradado */}
-              <View
-                className="mt-3 h-2.5 w-full rounded-full overflow-hidden"
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(148,163,184,0.18)"
-                    : "#e5e7eb",
-                  borderWidth: 1,
-                  borderColor: isDark ? chipRingDark : "#e5e7eb",
-                }}
-              >
-                <LinearGradient
-                  colors={["#8bff62", "#39ff14", "#a855f7"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ width: `${pct * 100}%`, height: "100%" }}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Nota */}
-          <Text
-            style={{
-              marginTop: 16,
-              fontSize: 11,
-              color: isDark ? textSecondaryDark : "#6b7280",
-            }}
-          >
-            Basado en la fórmula de Mifflin–St Jeor. Este valor es una
-            estimación y puede variar según múltiples factores.
-          </Text>
+            </>
+          )}
         </View>
       </LinearGradient>
     </View>
   );
 }
 
-/* ---------- utils ---------- */
-function stripTrailingZeros(n: number) {
-  return Number.isInteger(n)
-    ? n.toString()
-    : n.toFixed(3).replace(/\.?0+$/, "");
-}
+const styles = StyleSheet.create({
+  root: {
+    width: "100%",
+    maxWidth: 520,
+  },
 
-/* ---------- subcomponentes ---------- */
-function Metric({
-  label,
-  value,
-  isDark,
-}: {
-  label: string;
-  value: string;
-  isDark: boolean;
-}) {
-  return (
-    <View
-      style={{
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb",
-        backgroundColor: isDark ? "rgba(20,28,44,0.55)" : "#ffffff",
-        padding: 12,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 11,
-          color: isDark ? "#94a3b8" : "#6b7280",
-        }}
-      >
-        {label}
-      </Text>
-      <Text
-        style={{
-          marginTop: 2,
-          fontSize: 14,
-          fontWeight: "700",
-          color: isDark ? "#e5e7eb" : "#0f172a",
-        }}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    padding: tokens.spacing.xl,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.spacing.md,
+  },
+
+  title: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+
+  chip: {
+    borderRadius: tokens.radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    maxWidth: 220,
+  },
+
+  chipText: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
+
+  chipTextStrong: {
+    fontWeight: "700",
+  },
+
+  emptyText: {
+    marginTop: tokens.spacing.md,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  emptyTextStrong: {
+    fontWeight: "800",
+  },
+
+  metricsRow: {
+    marginTop: tokens.spacing.md,
+    flexDirection: "row",
+    gap: tokens.spacing.md,
+  },
+
+  metric: {
+    flex: 1,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    padding: tokens.spacing.md,
+  },
+
+  metricLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+  },
+
+  metricValue: {
+    marginTop: 2,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "800",
+    letterSpacing: 0.1,
+  },
+
+  mainRow: {
+    marginTop: tokens.spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.lg,
+  },
+
+  ringBox: {
+    width: 160,
+    height: 160,
+    position: "relative",
+    flexShrink: 0,
+  },
+
+  ringSvg: {
+    position: "absolute",
+    inset: 0,
+    transform: [{ rotate: "-90deg" }],
+  },
+
+  ringCenter: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  ringKicker: {
+    fontSize: 11,
+    lineHeight: 12,
+    fontWeight: "600",
+  },
+
+  ringValue: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: "900",
+    letterSpacing: -0.4,
+    marginTop: 2,
+  },
+
+  ringUnit: {
+    fontSize: 11,
+    lineHeight: 12,
+    fontWeight: "600",
+    marginTop: 0,
+  },
+
+  content: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  body: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  bodyStrong: {
+    fontWeight: "800",
+  },
+
+  refsRow: {
+    marginTop: tokens.spacing.md,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.sm,
+  },
+
+  refChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: tokens.radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+
+  refChipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+  },
+
+  barTrack: {
+    marginTop: tokens.spacing.md,
+    height: 10,
+    borderRadius: tokens.radius.full,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+
+  barFill: {
+    height: "100%",
+  },
+
+  footnote: {
+    marginTop: tokens.spacing.lg,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+});

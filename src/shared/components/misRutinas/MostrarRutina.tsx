@@ -66,8 +66,8 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
     actionLoading === "edit"
       ? "Abriendo editor…"
       : actionLoading === "use"
-      ? "Preparando entrenamiento…"
-      : "Vista de rutina";
+        ? "Preparando entrenamiento…"
+        : "Vista de rutina";
 
   return (
     <Modal

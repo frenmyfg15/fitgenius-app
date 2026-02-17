@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   ImageSourcePropType,
+  Platform,
 } from "react-native";
 import { useColorScheme } from "nativewind";
 
@@ -168,7 +169,7 @@ export default function EditarPerfil() {
     <ScrollView
       className={`flex-1 px-4 pt-4 ${isDark ? "bg-[#020617]" : "bg-[#f9fafb]"
         }`}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: Platform.OS === "ios" ? 140 : 120 }}
     >
       {/* Header */}
       <View className="mb-5">

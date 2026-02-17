@@ -12,52 +12,37 @@ import {
 import { useColorScheme } from "nativewind";
 import {
   Plus,
-  Layers,
-  FileText,
-  Copy,
-  ClipboardPaste,
   Pencil,
   Trash2,
-  ArrowUp,
-  ArrowDown,
   Cog,
   CheckCircle2,
   Sparkles,
-  Dumbbell,
+  X,
 } from "lucide-react-native";
 import type { Item } from "@/features/type/crearRutina";
 
 type Props = {
   onPreguntarRutina?: () => void;
-
   onCrear: () => void;
   creando?: boolean;
   puedeCrear?: boolean;
-
   onAgregarEjercicio: () => void;
   onAgregarCompuesto: () => void;
-
   onCopiarDia: () => void;
   onPegarAppend: () => void;
   onPegarReplace: () => void;
   puedePegar?: boolean;
-
   onVaciar: () => void;
   puedeVaciar?: boolean;
   onEliminarSeleccion?: () => void;
-
   haySeleccion?: boolean;
   onEditarSeleccion?: () => void;
   onSubirSeleccion?: () => void;
   onBajarSeleccion?: () => void;
   puedeSubir?: boolean;
   puedeBajar?: boolean;
-
-  selectedItem?: Item | null;
   modoEdicion?: boolean;
 };
-
-type OpenKind = null | "add" | "opts" | "delete";
 
 export default function RutinaControls({
   onPreguntarRutina,
@@ -83,213 +68,239 @@ export default function RutinaControls({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [open, setOpen] = useState<OpenKind>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fabBase =
-    "p-4 rounded-full shadow items-center justify-center " +
+    "p-4 rounded-full shadow-lg items-center justify-center " +
     (isDark
-      ? "bg-black border border-white/25"
+      ? "bg-slate-900 border border-white/20"
       : "bg-white border border-neutral-200");
 
-  const iconColor = isDark ? "#e5e7eb" : "#3f3f46";
+  const iconColor = isDark ? "#f8fafc" : "#1e293b";
 
-  const withClose = (fn?: () => void) => () => {
+  const executeAction = (fn?: () => void) => {
     fn?.();
-    setOpen(null);
+    setMenuOpen(false);
   };
 
   return (
     <>
-      {/* ---------- FABs laterales (MISMO DISEÑO) ---------- */}
-      <View style={{ position: "absolute", right: 20, bottom: 100, zIndex: 30 }}>
-        <View style={{ gap: 16 }}>
-          {/* ⭐ Preguntar IA */}
-          {onPreguntarRutina && (
-            <TouchableOpacity
-              onPress={onPreguntarRutina}
-              className={fabBase}
-              accessibilityLabel="Preguntar a la IA"
-            >
-              <Sparkles size={22} color={iconColor} />
-            </TouchableOpacity>
+      {/* ---------- BOTONES FLOTANTES (MÁS ESPACIO INFERIOR) ---------- */}
+      <View style={styles.floatingContainer}>
+
+        {/* BOTÓN SECUNDARIO: OPCIONES (Abre el menú) */}
+        <TouchableOpacity
+          onPress={() => setMenuOpen(true)}
+          className={fabBase}
+          activeOpacity={0.7}
+          style={styles.secondaryFab}
+        >
+          <Cog size={24} color={iconColor} />
+        </TouchableOpacity>
+
+        {/* BOTÓN PRINCIPAL: GUARDAR / EDITAR */}
+        <TouchableOpacity
+          onPress={onCrear}
+          disabled={creando || !puedeCrear}
+          activeOpacity={0.8}
+          style={[
+            styles.mainFab,
+            {
+              backgroundColor: isDark ? "#10b981" : "#059669", // Verde para denotar éxito/guardado
+              opacity: creando || !puedeCrear ? 0.6 : 1,
+            },
+          ]}
+        >
+          {creando ? (
+            <ActivityIndicator color="#fff" />
+          ) : modoEdicion ? (
+            <Pencil size={24} color="#fff" />
+          ) : (
+            <CheckCircle2 size={26} color="#fff" />
           )}
-
-          {/* 💪 Agregar */}
-          <TouchableOpacity
-            onPress={() => setOpen("add")}
-            className={fabBase}
-            accessibilityLabel="Agregar"
-          >
-            <Plus size={22} color={iconColor} />
-          </TouchableOpacity>
-
-          {/* ⚙️ Opciones */}
-          <TouchableOpacity
-            onPress={() => setOpen("opts")}
-            className={fabBase}
-            accessibilityLabel="Opciones"
-          >
-            <Cog size={22} color={iconColor} />
-          </TouchableOpacity>
-
-          {/* 🗑 Eliminar */}
-          <TouchableOpacity
-            onPress={() => setOpen("delete")}
-            className={fabBase}
-            accessibilityLabel="Eliminar"
-            style={{ opacity: haySeleccion || puedeVaciar ? 1 : 0.5 }}
-          >
-            <Trash2 size={22} color={haySeleccion || puedeVaciar ? "#ef4444" : iconColor} />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
 
-      {/* ---------- FAB principal (crear / guardar) ---------- */}
-      <Pressable
-        onPress={onCrear}
-        disabled={creando || !puedeCrear}
-        style={{
-          position: "absolute",
-          right: 16,
-          bottom: 35,
-          height: 56,
-          width: 56,
-          borderRadius: 999,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: isDark ? "#0b1220" : "#ffffff",
-          borderWidth: 1,
-          borderColor: isDark ? "rgba(255,255,255,0.15)" : "#e5e7eb",
-          opacity: creando ? 0.7 : 1,
-        }}
+      {/* ---------- MODAL DE ACCIONES (EL "MENÚ DELICADO") ---------- */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuOpen(false)}
       >
-        {creando ? (
-          <ActivityIndicator color={iconColor} />
-        ) : modoEdicion ? (
-          <Pencil size={22} color={iconColor} />
-        ) : (
-          <CheckCircle2 size={24} color={iconColor} />
-        )}
-      </Pressable>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuOpen(false)}
+        >
+          <View
+            style={[
+              styles.menuContent,
+              { backgroundColor: isDark ? "#0f172a" : "#ffffff" }
+            ]}
+          >
+            {/* Cabecera del Menú */}
+            <View style={styles.menuHeader}>
+              <Text style={[styles.menuTitle, { color: isDark ? "#f1f5f9" : "#0f172a" }]}>
+                Acciones de Rutina
+              </Text>
+              <TouchableOpacity onPress={() => setMenuOpen(false)}>
+                <X size={20} color={isDark ? "#94a3b8" : "#64748b"} />
+              </TouchableOpacity>
+            </View>
 
-      {/* ---------- Modales ---------- */}
-      <CenteredModal open={!!open} onClose={() => setOpen(null)} isDark={isDark}>
-        {open === "add" && (
-          <>
-            <ModalItem onPress={withClose(onAgregarEjercicio)} isDark={isDark}>
-              Agregar ejercicio
-            </ModalItem>
-            <ModalItem onPress={withClose(onAgregarCompuesto)} isDark={isDark}>
-              Agregar compuesto
-            </ModalItem>
-          </>
-        )}
+            {/* Grupo: Añadir */}
+            <Text style={styles.sectionLabel}>AÑADIR</Text>
+            <View style={styles.row}>
+              <MenuOption
+                icon={<Plus size={20} color={iconColor} />}
+                label="Ejercicio"
+                onPress={() => executeAction(onAgregarEjercicio)}
+                isDark={isDark}
+              />
+              <MenuOption
+                icon={<Plus size={20} color={iconColor} />}
+                label="Compuesto"
+                onPress={() => executeAction(onAgregarCompuesto)}
+                isDark={isDark}
+              />
+              <MenuOption
+                icon={<Sparkles size={20} color="#a855f7" />}
+                label="IA Chat"
+                onPress={() => executeAction(onPreguntarRutina)}
+                isDark={isDark}
+              />
+            </View>
 
-        {open === "opts" && (
-          <>
-            <ModalItem disabled={!haySeleccion} onPress={withClose(onEditarSeleccion)} isDark={isDark}>
-              Editar
-            </ModalItem>
-            <ModalItem disabled={!puedeSubir} onPress={withClose(onSubirSeleccion)} isDark={isDark}>
-              Subir
-            </ModalItem>
-            <ModalItem disabled={!puedeBajar} onPress={withClose(onBajarSeleccion)} isDark={isDark}>
-              Bajar
-            </ModalItem>
-            <ModalItem onPress={withClose(onCopiarDia)} isDark={isDark}>
-              Copiar día
-            </ModalItem>
-            <ModalItem disabled={!puedePegar} onPress={withClose(onPegarAppend)} isDark={isDark}>
-              Pegar (agregar)
-            </ModalItem>
-            <ModalItem disabled={!puedePegar} onPress={withClose(onPegarReplace)} isDark={isDark}>
-              Pegar (reemplazar)
-            </ModalItem>
-          </>
-        )}
+            {/* Grupo: Gestión de Selección */}
+            {haySeleccion && (
+              <>
+                <Text style={styles.sectionLabel}>SELECCIÓN</Text>
+                <View style={styles.row}>
+                  <MenuOption icon={<Pencil size={18} color={iconColor} />} label="Editar" onPress={() => executeAction(onEditarSeleccion)} isDark={isDark} />
+                  <MenuOption disabled={!puedeSubir} icon={<Plus size={18} color={iconColor} style={{ transform: [{ rotate: '180deg' }] }} />} label="Subir" onPress={onSubirSeleccion} isDark={isDark} />
+                  <MenuOption disabled={!puedeBajar} icon={<Plus size={18} color={iconColor} />} label="Bajar" onPress={onBajarSeleccion} isDark={isDark} />
+                  <MenuOption icon={<Trash2 size={18} color="#ef4444" />} label="Borrar" onPress={() => executeAction(onEliminarSeleccion)} isDark={isDark} />
+                </View>
+              </>
+            )}
 
-        {open === "delete" && (
-          <>
-            <ModalItem disabled={!haySeleccion} onPress={withClose(onEliminarSeleccion)} isDark={isDark}>
-              Eliminar selección
-            </ModalItem>
-            <ModalItem disabled={!puedeVaciar} onPress={withClose(onVaciar)} isDark={isDark}>
-              Vaciar rutina
-            </ModalItem>
-          </>
-        )}
-      </CenteredModal>
+            {/* Grupo: Día y Herramientas */}
+            <Text style={styles.sectionLabel}>HERRAMIENTAS</Text>
+            <View style={styles.row}>
+              <MenuOption icon={<Cog size={18} color={iconColor} />} label="Copiar Día" onPress={() => executeAction(onCopiarDia)} isDark={isDark} />
+              <MenuOption disabled={!puedePegar} icon={<Cog size={18} color={iconColor} />} label="Pegar" onPress={() => executeAction(onPegarAppend)} isDark={isDark} />
+              <MenuOption icon={<Trash2 size={18} color="#ef4444" />} label="Vaciar" onPress={() => executeAction(onVaciar)} isDark={isDark} />
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </>
   );
 }
 
-/* ---------------- UI helpers ---------------- */
+/* ---------------- Componentes Internos ---------------- */
 
-function CenteredModal({
-  open,
-  onClose,
-  children,
-  isDark,
-}: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  isDark: boolean;
-}) {
+function MenuOption({ icon, label, onPress, isDark, disabled }: any) {
   return (
-    <Modal visible={open} transparent animationType="fade">
-      <View style={styles.modalRoot}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View
-          style={{
-            backgroundColor: isDark ? "#0b1220" : "#ffffff",
-            borderRadius: 14,
-            padding: 16,
-            width: "90%",
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(255,255,255,0.15)" : "#e5e7eb",
-          }}
-        >
-          {children}
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function ModalItem({
-  children,
-  onPress,
-  disabled,
-  isDark,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-  isDark: boolean;
-}) {
-  return (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
-      style={{
-        paddingVertical: 12,
-        opacity: disabled ? 0.5 : 1,
-      }}
+      style={[styles.optionBtn, { opacity: disabled ? 0.4 : 1 }]}
     >
-      <Text style={{ color: isDark ? "#e5e7eb" : "#0f172a", fontSize: 14 }}>
-        {children}
+      <View style={[styles.optionIcon, { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" }]}>
+        {icon}
+      </View>
+      <Text style={[styles.optionLabel, { color: isDark ? "#cbd5e1" : "#475569" }]} numberOfLines={1}>
+        {label}
       </Text>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
+  floatingContainer: {
+    position: "absolute",
+    bottom: 90, // Elevado para dar espacio inferior (estaba en 35/100)
+    right: 20,
+    flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    gap: 12,
+    zIndex: 50,
+  },
+  mainFab: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  secondaryFab: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  menuContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40, // Más espacio abajo dentro del modal
+  },
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  menuTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#94a3b8",
+    letterSpacing: 1,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 16,
+  },
+  optionBtn: {
+    width: "22%",
+    alignItems: "center",
+    gap: 6,
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  optionLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

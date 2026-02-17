@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "908335534107-rhh3rl3vajp77g4tjlvg6p95o9k4778o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novaforge.fitgenius",
+            "certificate_hash": "9d34dddc1385215fc763f663724afb6f7a7a72b8"
+          }
+        },
+        {
           "client_id": "908335534107-sgsojiedsog8e0pa3nglfrspe4ivhi2m.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

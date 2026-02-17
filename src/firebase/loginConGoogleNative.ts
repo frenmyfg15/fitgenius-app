@@ -2,7 +2,7 @@
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import auth from "@react-native-firebase/auth";
 
-/** Web Client ID (de Google Console) */
+/** Web Client ID de google-services.json */
 const WEB_CLIENT_ID =
   "908335534107-e496lulonfali73hupjkpt1i98feklni.apps.googleusercontent.com";
 
@@ -46,7 +46,7 @@ export async function loginConGoogleNativo() {
       if (hadPrev) {
         console.log("[Google] Cerrando sesión previa…");
       }
-      await GoogleSignin.signOut().catch(() => {}); // safe: aunque no hubiera sesión
+      await GoogleSignin.signOut().catch(() => { }); // safe: aunque no hubiera sesión
     } catch (signoutErr) {
       console.warn("[Google] signOut warning:", signoutErr);
     }

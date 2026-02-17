@@ -3,7 +3,7 @@ import { getDeviceId } from "@/shared/lib/deviceId";
 import axios from "axios";
 
 const URL = __DEV__
-  ? "http://192.168.1.144:3000"
+  ? "http://192.168.1.146:3000"
   : "https://fitgenius-server-production-c4c8.up.railway.app";
 
 export const api = axios.create({

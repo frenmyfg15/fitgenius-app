@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,11 +18,9 @@ import { useCrearRutinaState } from "@/shared/hooks/useCrearRutinaState";
 import {
   EjercicioAsignadoInput,
   EjercicioVisualInfo,
-  TipoCompuesto,
 } from "@/features/type/crearRutina";
 
 import PremiumUpsellModal from "@/shared/components/premium/PremiumUpsellModal";
-import NoAdsModal from "@/shared/components/ads/NoAdsModal";
 import DiaRutinaView from "@/shared/components/rutinas-manuales/DiaRutinaView";
 
 /* ---------- Overlay reutilizable ---------- */
@@ -56,9 +54,9 @@ export default function CrearRutinaScreen() {
       ? h.ejerciciosDia[h.selectedIndex].orden
       : null;
 
-  const [chatVisible, setChatVisible] = React.useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
 
-  const rutinaJson = React.useMemo(() => {
+  const rutinaJson = useMemo(() => {
     return {
       nombre: h.state.nombre,
       descripcion: h.state.descripcion,
@@ -66,7 +64,7 @@ export default function CrearRutinaScreen() {
     };
   }, [h.state.nombre, h.state.descripcion, h.state.dias]);
 
-  const hasRutina = React.useMemo(() => {
+  const hasRutina = useMemo(() => {
     const dias = h.state.dias ?? [];
     if (!Array.isArray(dias) || dias.length === 0) return false;
     return dias.some(
@@ -76,8 +74,14 @@ export default function CrearRutinaScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: h.ui.bg, position: "relative" }}>
-      {/* ✅ SIN ScrollView: el scroll lo hace DiaRutinaView */}
-      <View style={{ flex: 1, padding: 16 }}>
+      {/* Utilizamos un ScrollView principal para que el Banner y el Selector de días 
+         también se desplacen. Se añade un paddingBottom amplio para los controles.
+      */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 160 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Banner edición */}
         {h.isEdit ? (
           <View
@@ -133,9 +137,7 @@ export default function CrearRutinaScreen() {
                     ? "rgba(255,255,255,0.08)"
                     : "#ffffff",
                   borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(255,255,255,0.12)"
-                    : "#fcd34d",
+                  borderColor: isDark ? "rgba(255,255,255,0.12)" : "#fcd34d",
                   alignSelf: "flex-start",
                 }}
                 accessibilityLabel="Cancelar edición"
@@ -228,48 +230,46 @@ export default function CrearRutinaScreen() {
           })}
         </View>
 
-        {/* ✅ Wrapper con flex:1 para que DiaRutinaView tenga altura y scrollee */}
-        <View style={{ flex: 1 }}>
-          <DiaRutinaView
-            dia={h.diaSelect}
-            ejercicios={h.ejerciciosDia}
-            selectedOrden={selectedOrden}
-            dispatch={h.dispatch}
-            onEdit={(ej) => {
-              const idx = h.ejerciciosDia.findIndex((x) => x.orden === ej.orden);
-              h.setSelectedIndex(idx >= 0 ? idx : null);
+        {/* DiaRutinaView: Ahora dentro de la ScrollView general */}
+        <DiaRutinaView
+          dia={h.diaSelect}
+          ejercicios={h.ejerciciosDia}
+          selectedOrden={selectedOrden}
+          dispatch={h.dispatch}
+          onEdit={(ej) => {
+            const idx = h.ejerciciosDia.findIndex((x) => x.orden === ej.orden);
+            h.setSelectedIndex(idx >= 0 ? idx : null);
 
-              if ("compuesto" in ej && (ej as any).compuesto) {
-                h.setEditarCompuesto({
-                  compuestoId: (ej as any).ejerciciosCompuestos?.[0]
-                    ?.ejercicioCompuestoId!,
-                  orden: ej.orden,
-                  ejercicios: (ej as any).ejerciciosCompuestos!,
-                  nombre: (ej as any).nombreCompuesto!,
-                  tipo: (ej as any).tipoCompuesto!,
-                  descansoSeg: (ej as any).descansoCompuesto ?? 0,
-                });
-              } else {
-                h.setEditarCompuesto(null);
-                h.setEjercicioSeleccionado({
-                  id: (ej as any).ejercicioId!,
-                  info: (ej as any).ejercicioInfo!,
-                  orden: ej.orden,
-                });
-                h.setEditandoEjercicio(true);
-              }
-            }}
-            onSelectionChange={(orden, _item) => {
-              if (orden == null) {
-                h.setSelectedIndex(null);
-                return;
-              }
-              const idx = h.ejerciciosDia.findIndex((x) => x.orden === orden);
-              h.setSelectedIndex(idx >= 0 ? idx : null);
-            }}
-          />
-        </View>
-      </View>
+            if ("compuesto" in ej && (ej as any).compuesto) {
+              h.setEditarCompuesto({
+                compuestoId: (ej as any).ejerciciosCompuestos?.[0]
+                  ?.ejercicioCompuestoId!,
+                orden: ej.orden,
+                ejercicios: (ej as any).ejerciciosCompuestos!,
+                nombre: (ej as any).nombreCompuesto!,
+                tipo: (ej as any).tipoCompuesto!,
+                descansoSeg: (ej as any).descansoCompuesto ?? 0,
+              });
+            } else {
+              h.setEditarCompuesto(null);
+              h.setEjercicioSeleccionado({
+                id: (ej as any).ejercicioId!,
+                info: (ej as any).ejercicioInfo!,
+                orden: ej.orden,
+              });
+              h.setEditandoEjercicio(true);
+            }
+          }}
+          onSelectionChange={(orden, _item) => {
+            if (orden == null) {
+              h.setSelectedIndex(null);
+              return;
+            }
+            const idx = h.ejerciciosDia.findIndex((x) => x.orden === orden);
+            h.setSelectedIndex(idx >= 0 ? idx : null);
+          }}
+        />
+      </ScrollView>
 
       {/* ✅ Modal Chat */}
       <RutinaQuestionModal
@@ -278,7 +278,7 @@ export default function CrearRutinaScreen() {
         rutinaJson={rutinaJson}
       />
 
-      {/* Controles del compuesto temporal (no es overlay) */}
+      {/* Controles del compuesto temporal (fijo) */}
       {h.modoCompuesto &&
         h.compuestoTemporal.length > 0 &&
         !h.ejercicioEnCompuestoActual &&
@@ -294,7 +294,7 @@ export default function CrearRutinaScreen() {
           />
         )}
 
-      {/* Controles globales */}
+      {/* Controles globales (fijos) */}
       <RutinaControls
         onPreguntarRutina={() => {
           if (!hasRutina) {
@@ -431,10 +431,7 @@ export default function CrearRutinaScreen() {
           <FormularioEjercicio
             ejercicioId={h.ejercicioSeleccionado.id}
             esParteDeCompuesto={false}
-            // 👇 NUEVO: detectar cardio por grupo muscular
-            esCardio={
-              h.ejercicioSeleccionado.info.grupoMuscular === "CARDIO"
-            }
+            esCardio={h.ejercicioSeleccionado.info.grupoMuscular === "CARDIO"}
             onClose={() => h.setEjercicioSeleccionado(null)}
             onConfirm={(data) => {
               h.dispatch({
@@ -456,16 +453,12 @@ export default function CrearRutinaScreen() {
         </Overlay>
       ) : null}
 
-
       {h.modoCompuesto && h.ejercicioEnCompuestoActual ? (
         <Overlay>
           <FormularioEjercicio
             ejercicioId={h.ejercicioEnCompuestoActual!.id}
             esParteDeCompuesto
-            // 👇 NUEVO
-            esCardio={
-              h.ejercicioEnCompuestoActual.info.grupoMuscular === "CARDIO"
-            }
+            esCardio={h.ejercicioEnCompuestoActual.info.grupoMuscular === "CARDIO"}
             onClose={() => h.setEjercicioEnCompuestoActual(null)}
             onConfirm={(detalles) => {
               const ej = h.ejercicioEnCompuestoActual!;
@@ -478,7 +471,6 @@ export default function CrearRutinaScreen() {
           />
         </Overlay>
       ) : null}
-
 
       {h.mostrarFormularioCompuesto ? (
         <Overlay>
@@ -523,24 +515,6 @@ export default function CrearRutinaScreen() {
         </Overlay>
       ) : null}
 
-      {h.modoCompuesto && h.ejercicioEnCompuestoActual ? (
-        <Overlay>
-          <FormularioEjercicio
-            ejercicioId={h.ejercicioEnCompuestoActual!.id}
-            esParteDeCompuesto
-            onClose={() => h.setEjercicioEnCompuestoActual(null)}
-            onConfirm={(detalles) => {
-              const ej = h.ejercicioEnCompuestoActual!;
-              h.setCompuestoTemporal((prev) => [
-                ...prev,
-                { id: ej.id, info: ej.info, detalles },
-              ]);
-              h.setEjercicioEnCompuestoActual(null);
-            }}
-          />
-        </Overlay>
-      ) : null}
-
       <AlertaConfirmacion
         visible={h.confirmClear}
         titulo="Vaciar rutina"
@@ -566,21 +540,12 @@ export default function CrearRutinaScreen() {
       <PremiumUpsellModal
         visible={h.premiumModalVisible}
         onClose={() => h.setPremiumModalVisible(false)}
-        featureName={h.isEdit ? "editar rutinas manuales" : "crear rutinas manuales"}
+        featureName={
+          h.isEdit ? "editar rutinas manuales" : "crear rutinas manuales"
+        }
         onGoPremium={() => {
           h.setPremiumModalVisible(false);
         }}
-      />
-
-      <NoAdsModal
-        visible={h.noAdsModalVisible}
-        loading={h.noAdsRetrying}
-        onRetry={h.reintentarAnuncioRutina}
-        onGoPremium={() => {
-          h.setNoAdsModalVisible(false);
-          h.setPremiumModalVisible(true);
-        }}
-        onClose={() => h.setNoAdsModalVisible(false)}
       />
     </View>
   );

@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, Image, StyleSheet } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Pressable } from "react-native";
 import { useColorScheme } from "nativewind";
 import {
   Rutina,
@@ -8,10 +8,11 @@ import {
   EjercicioAsignadoCompuesto,
   ComponenteEjercicioCompuesto,
 } from "@/features/type/rutinas";
-import { Layers, Shuffle, Infinity as Circuit } from "lucide-react-native";
+import { Layers, Shuffle, Infinity as Circuit, X } from "lucide-react-native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import CandadoPremium from "@/shared/components/ui/CandadoPremium";
 import { formatDescripcion } from "@/shared/utils/formatDescripcion";
+
 type Props = { dias: Rutina["dias"]; day: string };
 
 const cloudinaryGif = (idGif?: string | null) =>
@@ -19,7 +20,6 @@ const cloudinaryGif = (idGif?: string | null) =>
     ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${idGif}.gif`
     : "https://dummyimage.com/256x256/e5e7eb/9ca3af.png&text=GIF";
 
-/* --------- type guards tolerantes --------- */
 function isSimple(e: EjercicioAsignado | any): e is EjercicioAsignadoSimple {
   if (!e) return false;
   if ("tipo" in e) return e.tipo === "simple" && !!e.ejercicio;
@@ -31,24 +31,57 @@ function isCompuesto(e: EjercicioAsignado | any): e is EjercicioAsignadoCompuest
   return !!(e as any)?.ejercicioCompuesto;
 }
 
-/* --------- Chip minimal --------- */
+const tokens = {
+  color: {
+    cardBgDark: "rgba(15,24,41,1)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    surfaceDark: "rgba(148,163,184,0.10)",
+    surfaceLight: "#F8FAFC",
+    surfaceBorderDark: "rgba(255,255,255,0.06)",
+    surfaceBorderLight: "rgba(0,0,0,0.06)",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#94A3B8",
+    textSecondaryLight: "#64748B",
+
+    chipBgDark: "rgba(148,163,184,0.12)",
+    chipBgLight: "#F1F5F9",
+    chipBorderDark: "rgba(255,255,255,0.06)",
+    chipBorderLight: "rgba(0,0,0,0.06)",
+    chipTextDark: "#E2E8F0",
+    chipTextLight: "#334155",
+
+    timelineLineDark: "rgba(148,163,184,0.35)",
+    timelineLineLight: "#E5E7EB",
+    timelineDotBorderDark: "rgba(148,163,184,0.7)",
+    timelineDotBorderLight: "#E5E7EB",
+  },
+  radius: { lg: 16, md: 12, sm: 10, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
+} as const;
+
 function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
       style={[
         styles.chip,
         {
-          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6",
-          borderColor: isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb",
+          backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
+          borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
         },
       ]}
     >
-      <Text style={{ fontSize: 11, color: isDark ? "#E5E7EB" : "#334155" }}>{children}</Text>
+      <Text style={[styles.chipText, { color: isDark ? tokens.color.chipTextDark : tokens.color.chipTextLight }]}>
+        {children}
+      </Text>
     </View>
   );
 }
 
-/* --------- Rama del compuesto (timeline) --------- */
 function CompuestoBranchItem({
   index,
   total,
@@ -56,6 +89,7 @@ function CompuestoBranchItem({
   idGif,
   detalle,
   isDark,
+  onPress,
 }: {
   index: number;
   total: number;
@@ -63,82 +97,71 @@ function CompuestoBranchItem({
   idGif?: string | null;
   detalle?: string;
   isDark: boolean;
+  onPress: () => void;
 }) {
   const isLast = index === total - 1;
-  const lineColor = isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb";
-  const dotBorder = isDark ? "rgba(148,163,184,0.7)" : "#e5e7eb";
+  const lineColor = isDark ? tokens.color.timelineLineDark : tokens.color.timelineLineLight;
+  const dotBorder = isDark ? tokens.color.timelineDotBorderDark : tokens.color.timelineDotBorderLight;
 
   return (
-    <View style={{ paddingLeft: 24 }}>
-      {/* línea vertical */}
+    <View style={styles.branchWrap}>
       <View
-        style={{
-          position: "absolute",
-          left: 10,
-          top: 0,
-          bottom: isLast ? "75%" : 0,
-          width: 1,
-          backgroundColor: lineColor,
-        }}
+        style={[
+          styles.branchLine,
+          { backgroundColor: lineColor, bottom: isLast ? "75%" : 0 },
+        ]}
         pointerEvents="none"
       />
-      {/* dot */}
       <View
-        style={{
-          position: "absolute",
-          left: 9,
-          top: 6,
-          width: 8,
-          height: 8,
-          borderRadius: 999,
-          backgroundColor: isDark ? "#020617" : "#ffffff",
-          borderWidth: 1,
-          borderColor: dotBorder,
-        }}
+        style={[
+          styles.branchDot,
+          {
+            backgroundColor: isDark ? "#020617" : "#FFFFFF",
+            borderColor: dotBorder,
+          },
+        ]}
         pointerEvents="none"
       />
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          borderRadius: 12,
-          padding: 8,
-          backgroundColor: isDark ? "rgba(15,23,42,0.9)" : "#ffffff",
-          borderWidth: 1,
-          borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
-        }}
+      <Pressable
+        onPress={onPress}
+        style={[
+          styles.branchCard,
+          {
+            backgroundColor: isDark ? tokens.color.surfaceDark : tokens.color.cardBgLight,
+            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+          },
+        ]}
       >
         <View
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 10,
-            overflow: "hidden",
-            backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
-          }}
+          style={[
+            styles.branchThumb,
+            {
+              backgroundColor: isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight,
+              borderColor: isDark ? tokens.color.surfaceBorderDark : tokens.color.surfaceBorderLight,
+            },
+          ]}
         >
-          <Image
-            source={{ uri: cloudinaryGif(idGif) }}
-            style={{ width: "100%", height: "100%" }}
-            resizeMode="contain"
-          />
+          <Image source={{ uri: cloudinaryGif(idGif) }} style={styles.branchThumbImg} resizeMode="contain" />
         </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
+
+        <View style={styles.branchInfo}>
           <Text
             numberOfLines={1}
-            style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#E5E7EB" : "#0f172a" }}
+            style={[
+              styles.branchName,
+              { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+            ]}
           >
             {nombre}
           </Text>
           {detalle ? (
-            <Text style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b" }}>{detalle}</Text>
+            <Text style={[styles.branchDetail, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+              {detalle}
+            </Text>
           ) : null}
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -146,12 +169,11 @@ function CompuestoBranchItem({
 export default function Ejercicios({ dias, day }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { usuario } = useUsuarioStore();
+  const usuario = useUsuarioStore((s) => s.usuario);
   const isFreePlan = usuario?.planActual === "GRATUITO";
+  const [zoomGif, setZoomGif] = useState<string | null>(null);
 
-  // ✅ unidades del usuario (sin convertir valores)
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase(); // "kg" | "lb"
-  // const heightUnit = (usuario?.medidaAltura ?? "CM").toLowerCase(); // "cm" | "ft" (no se usa aquí)
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase();
 
   const dia = useMemo(() => (dias ?? []).find((d) => d.diaSemana === day), [dias, day]);
   if (!dia) return null;
@@ -159,45 +181,23 @@ export default function Ejercicios({ dias, day }: Props) {
   const total = dia.ejercicios.length;
   const allowed = isFreePlan ? Math.ceil(total / 2) : total;
 
-  const cardBg = isDark ? "#020617" : "#ffffff";
-  const cardBorder = isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb";
-  const cardShadow = isDark
-    ? {}
-    : {
-      shadowColor: "#000",
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 1,
-    };
+  const cardBg = isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight;
+  const cardBorder = isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight;
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        padding: 16,
-        gap: 16,
-        alignItems: "center",
-      }}
-      style={{ width: "100%" }}
-    >
+    <View style={styles.listRoot}>
       {dia.ejercicios.map((asignado, idx) => {
         const locked = idx >= allowed;
 
-        const CardWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+        const CardWrapper = ({ children }: { children: React.ReactNode }) => (
           <View
             style={[
+              styles.card,
               {
-                position: "relative",
-                borderRadius: 16,
                 backgroundColor: cardBg,
-                borderWidth: 1,
                 borderColor: cardBorder,
-                padding: 16,
-                width: "100%",
-                maxWidth: 680,
-                overflow: "hidden",
               },
-              cardShadow,
+              !isDark ? styles.cardShadow : null,
             ]}
           >
             <View style={{ opacity: locked ? 0.55 : 1 }}>{children}</View>
@@ -210,14 +210,11 @@ export default function Ejercicios({ dias, day }: Props) {
           </View>
         );
 
-        /* --------- SIMPLE --------- */
         if (isSimple(asignado)) {
           const ej = asignado.ejercicio!;
 
           const meta =
-            asignado.seriesSugeridas ||
-              asignado.repeticionesSugeridas ||
-              asignado.pesoSugerido
+            asignado.seriesSugeridas || asignado.repeticionesSugeridas || asignado.pesoSugerido
               ? [
                 asignado.seriesSugeridas ? `${asignado.seriesSugeridas} series` : null,
                 asignado.repeticionesSugeridas ? `${asignado.repeticionesSugeridas} reps` : null,
@@ -229,34 +226,32 @@ export default function Ejercicios({ dias, day }: Props) {
 
           return (
             <CardWrapper key={`s-${(asignado as any).id ?? idx}`}>
-              <View style={{ flexDirection: "column", gap: 12 }}>
-                <View
-                  style={{
-                    alignSelf: "center",
-                    width: 112,
-                    height: 112,
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
-                    borderWidth: 1,
-                    borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
-                  }}
+              <View style={styles.simpleWrap}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  disabled={locked}
+                  onPress={() => setZoomGif(cloudinaryGif(ej.idGif))}
+                  style={[
+                    styles.hero,
+                    {
+                      backgroundColor: isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight,
+                      borderColor: isDark ? tokens.color.surfaceBorderDark : tokens.color.surfaceBorderLight,
+                    },
+                  ]}
                 >
                   <Image
                     source={{ uri: cloudinaryGif(ej.idGif) }}
-                    style={{ width: "100%", height: "100%" }}
+                    style={styles.heroImg}
                     resizeMode="contain"
                   />
-                </View>
+                </TouchableOpacity>
 
-                <View style={{ gap: 6, alignItems: "center" }}>
+                <View style={styles.simpleInfo}>
                   <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: isDark ? "#E5E7EB" : "#0f172a",
-                      textAlign: "center",
-                    }}
+                    style={[
+                      styles.simpleName,
+                      { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+                    ]}
                     numberOfLines={2}
                   >
                     {ej.nombre}
@@ -264,26 +259,17 @@ export default function Ejercicios({ dias, day }: Props) {
 
                   {ej.descripcion ? (
                     <Text
-                      style={{
-                        fontSize: 12,
-                        color: isDark ? "#94a3b8" : "#64748b",
-                        textAlign: "center",
-                      }}
+                      style={[
+                        styles.simpleDesc,
+                        { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight },
+                      ]}
                       numberOfLines={2}
                     >
                       {formatDescripcion(ej.descripcion)}
                     </Text>
                   ) : null}
 
-                  <View
-                    style={{
-                      marginTop: 4,
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      justifyContent: "center",
-                    }}
-                  >
+                  <View style={styles.chipsRow}>
                     <Chip isDark={isDark}>{ej.tipoEjercicio}</Chip>
                     <Chip isDark={isDark}>{ej.grupoMuscular}</Chip>
                     {ej.nivelDificultad ? <Chip isDark={isDark}>{ej.nivelDificultad}</Chip> : null}
@@ -295,7 +281,6 @@ export default function Ejercicios({ dias, day }: Props) {
           );
         }
 
-        /* --------- COMPUESTO --------- */
         if (isCompuesto(asignado)) {
           const comp = asignado.ejercicioCompuesto!;
           const Icono =
@@ -311,54 +296,53 @@ export default function Ejercicios({ dias, day }: Props) {
 
           return (
             <CardWrapper key={`c-${(asignado as any).id ?? idx}`}>
-              <View style={{ gap: 12 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={styles.compWrap}>
+                <View style={styles.compHeader}>
                   <View
-                    style={{
-                      height: 40,
-                      width: 40,
-                      borderRadius: 12,
-                      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f9fafb",
-                      borderWidth: 1,
-                      borderColor: isDark ? "rgba(148,163,184,0.4)" : "#e5e7eb",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    style={[
+                      styles.compIcon,
+                      {
+                        backgroundColor: isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight,
+                        borderColor: isDark ? tokens.color.surfaceBorderDark : tokens.color.surfaceBorderLight,
+                      },
+                    ]}
                   >
-                    <Icono size={18} color={isDark ? "#e5e7eb" : "#334155"} />
+                    <Icono size={18} color={isDark ? "#E2E8F0" : "#334155"} />
                   </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
+
+                  <View style={styles.compHeaderInfo}>
                     <Text
                       numberOfLines={1}
-                      style={{ fontSize: 14, fontWeight: "700", color: isDark ? "#E5E7EB" : "#0f172a" }}
+                      style={[
+                        styles.compTitle,
+                        { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+                      ]}
                     >
                       {comp.nombre}
                     </Text>
-                    <Text style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b" }}>
+                    <Text style={[styles.compSub, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
                       {comp.tipoCompuesto}
                       {asignado.descansoSeg ? ` · Descanso entre bloques: ${asignado.descansoSeg}s` : ""}
                     </Text>
-                    {asignado.notaIA ? (
-                      <Text
-                        style={{
-                          marginTop: 8,
-                          fontSize: 12,
-                          color: isDark ? "#CBD5E1" : "#334155",
-                          backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#f8fafc",
-                          borderWidth: 1,
-                          borderColor: isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb",
-                          borderRadius: 12,
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                        }}
-                      >
-                        {asignado.notaIA}
-                      </Text>
-                    ) : null}
                   </View>
                 </View>
 
-                <View style={{ marginTop: 4, gap: 12 }}>
+                {asignado.notaIA ? (
+                  <Text
+                    style={[
+                      styles.note,
+                      {
+                        color: isDark ? "#CBD5E1" : "#334155",
+                        backgroundColor: isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight,
+                        borderColor: isDark ? tokens.color.surfaceBorderDark : tokens.color.surfaceBorderLight,
+                      },
+                    ]}
+                  >
+                    {asignado.notaIA}
+                  </Text>
+                ) : null}
+
+                <View style={styles.compList}>
                   {componentes.map((c, i) => {
                     const detalle = [
                       c.series ? `${c.series} series` : null,
@@ -378,6 +362,7 @@ export default function Ejercicios({ dias, day }: Props) {
                         idGif={c.ejercicio?.idGif ?? undefined}
                         detalle={detalle || undefined}
                         isDark={isDark}
+                        onPress={() => !locked && setZoomGif(cloudinaryGif(c.ejercicio?.idGif))}
                       />
                     );
                   })}
@@ -389,15 +374,215 @@ export default function Ejercicios({ dias, day }: Props) {
 
         return null;
       })}
-    </ScrollView>
+
+      <Modal visible={!!zoomGif} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setZoomGif(null)}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? "#0F172A" : "#FFF" }]}>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setZoomGif(null)}>
+              <X color={isDark ? "#FFF" : "#000"} size={24} />
+            </TouchableOpacity>
+            <Image source={{ uri: zoomGif ?? "" }} style={styles.fullGif} resizeMode="contain" />
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  listRoot: {
+    width: "100%",
+    gap: 16,
+    alignItems: "center",
+    paddingBottom: 16,
+  },
+
+  card: {
+    position: "relative",
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    padding: tokens.spacing.lg,
+    width: "100%",
+    maxWidth: 680,
+    overflow: "hidden",
+  },
+  cardShadow: {
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  simpleWrap: {
+    gap: 12,
+  },
+  hero: {
+    alignSelf: "center",
+    width: 112,
+    height: 112,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  heroImg: {
+    width: "100%",
+    height: "100%",
+  },
+  simpleInfo: {
+    gap: 6,
+    alignItems: "center",
+  },
+  simpleName: {
+    fontSize: 14,
+    fontWeight: "900",
+    textAlign: "center",
+    letterSpacing: 0.1,
+  },
+  simpleDesc: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  chipsRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+  },
+
+  compWrap: {
+    gap: 12,
+  },
+  compHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  compIcon: {
+    height: 40,
+    width: 40,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  compHeaderInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  compTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.1,
+  },
+  compSub: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  note: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "600",
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+  },
+
+  compList: {
+    marginTop: 4,
+    gap: 12,
+  },
+
+  branchWrap: {
+    paddingLeft: 24,
+  },
+  branchLine: {
+    position: "absolute",
+    left: 10,
+    top: 0,
+    width: 1,
+  },
+  branchDot: {
+    position: "absolute",
+    left: 9,
+    top: 6,
+    width: 8,
+    height: 8,
     borderRadius: 999,
     borderWidth: 1,
+  },
+  branchCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: tokens.radius.md,
+    padding: 8,
+    borderWidth: 1,
+  },
+  branchThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: tokens.radius.sm,
+    overflow: "hidden",
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  branchThumbImg: {
+    width: "100%",
+    height: "100%",
+  },
+  branchInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  branchName: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  branchDetail: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "90%",
+    maxWidth: 400,
+    aspectRatio: 1,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    zIndex: 2,
+  },
+  fullGif: {
+    width: "100%",
+    height: "100%",
   },
 });

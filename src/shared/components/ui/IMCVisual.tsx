@@ -1,31 +1,83 @@
-// src/features/fit/components/IMCVisual.tsx
+// File: src/features/fit/components/IMCVisual.tsx
 import React, { useMemo, useState, useCallback } from "react";
-import { View, Text, LayoutChangeEvent } from "react-native";
+import { View, Text, LayoutChangeEvent, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 
-/* Rango visual del IMC */
+// ── Constantes — sin cambios ──────────────────────────────────────────────────
 const MIN_IMC = 15;
 const MAX_IMC = 35;
-
-/* Puntos clave de la OMS */
 const CUTS = [18.5, 25, 30] as const;
 
-/* Colores del track (segmentos) */
 const COLORS = {
-  azulClaro: "#60A5FA", // bajo peso
-  verde: "#22C55E",     // normal
-  amarillo: "#F59E0B",  // sobrepeso
-  rojo: "#EF4444",      // obesidad
-  trackBg: "#E5E7EB",
+  azulClaro: "#60A5FA",
+  verde: "#22C55E",
+  amarillo: "#F59E0B",
+  rojo: "#EF4444",
 } as const;
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    // Frame gradient
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
+
+    // Card interior
+    cardBgDark: "rgba(15,24,41,1)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    // Badge categoría
+    badgeBgDark: "rgba(148,163,184,0.12)",
+    badgeBgLight: "#F1F5F9",
+    badgeBorderDark: "rgba(255,255,255,0.06)",
+    badgeBorderLight: "rgba(0,0,0,0.06)",
+
+    // Barra de progreso
+    trackBgDark: "rgba(148,163,184,0.14)",
+    trackBgLight: "#E2E8F0",
+    trackBorderDark: "rgba(255,255,255,0.09)",
+    trackBorderLight: "#D1D5DB",
+
+    // Línea vertical indicadora
+    lineLight: "rgba(255,255,255,0.90)",
+
+    // Ticks
+    tickDark: "rgba(148,163,184,0.45)",
+    tickLight: "#CBD5E1",
+
+    // Texto
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#52525B",
+
+    // Sin datos
+    noDataDark: "#64748B",
+    noDataLight: "#6B7280",
+  },
+  radius: { lg: 16, md: 10, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos — API pública sin cambios ───────────────────────────────────────────
 type IMCVisualProps = {
   peso?: number | string | null;
-  altura?: number | string | null; // en cm
+  altura?: number | string | null;
 };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function IMCVisual({ peso, altura }: IMCVisualProps) {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -37,7 +89,10 @@ export default function IMCVisual({ peso, altura }: IMCVisualProps) {
     return kg / (m * m);
   }, [peso, altura]);
 
-  const imc = useMemo(() => (imcRaw != null ? Number(imcRaw.toFixed(1)) : null), [imcRaw]);
+  const imc = useMemo(
+    () => (imcRaw != null ? Number(imcRaw.toFixed(1)) : null),
+    [imcRaw]
+  );
 
   const getCategoria = (val: number) => {
     if (val < CUTS[0]) return { categoria: "Bajo peso", color: COLORS.azulClaro };
@@ -46,27 +101,21 @@ export default function IMCVisual({ peso, altura }: IMCVisualProps) {
     return { categoria: "Obesidad", color: COLORS.rojo };
   };
 
-  // Ancho del track con onLayout
   const [trackW, setTrackW] = useState<number>(280);
-  const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
-    const w = e.nativeEvent.layout.width;
-    if (w && Math.abs(w - trackW) > 0.5) setTrackW(w);
-  }, [trackW]);
+  const onTrackLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const w = e.nativeEvent.layout.width;
+      if (w && Math.abs(w - trackW) > 0.5) setTrackW(w);
+    },
+    [trackW]
+  );
 
-  // Posición del indicador en px
   const posPx = useMemo(() => {
     if (imc == null) return 0;
     const ratio = (imc - MIN_IMC) / (MAX_IMC - MIN_IMC);
     return Math.max(0, Math.min(ratio * trackW, trackW));
   }, [imc, trackW]);
 
-  if (imc == null) {
-    return <Text className="text-sm text-neutral-500">No hay datos suficientes para calcular el IMC.</Text>;
-  }
-
-  const { categoria, color } = getCategoria(imc);
-
-  // Segmentos: [MIN, 18.5], [18.5, 25], [25, 30], [30, MAX]
   const seg = [MIN_IMC, CUTS[0], CUTS[1], CUTS[2], MAX_IMC];
   const spanTotal = MAX_IMC - MIN_IMC;
   const spans = [
@@ -75,165 +124,324 @@ export default function IMCVisual({ peso, altura }: IMCVisualProps) {
     seg[3] - seg[2],
     seg[4] - seg[3],
   ].map((v) => Math.max(0, v));
-
   const widthsPct = spans.map((s) => (s / spanTotal) * 100);
 
-  // 🎛️ Paleta glass en dark (un poco más claro que #0b1220)
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"]
+  const hasImc = imc != null;
+  const categoriaInfo = hasImc ? getCategoria(imc) : null;
+  const categoria = categoriaInfo?.categoria ?? "Sin datos";
+  const color = categoriaInfo?.color ?? (isDark ? "rgba(255,255,255,0.20)" : "#9CA3AF");
+  // ── Fin lógica original ───────────────────────────────────────────────────
 
-  const cardBgDark = "rgba(20, 28, 44, 0.6)";
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const trackBgDark = "rgba(148,163,184,0.18)"; // base translúcida
-  const trackRingDark = "rgba(255,255,255,0.10)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
 
   return (
-    <View className="w-full max-w-[520px]">
-      {/* Marco degradado: vibrante en light, discreto en dark */}
-      <LinearGradient colors={marcoGradient as any} className="rounded-2xl p-[1px]"
-                style={{ borderRadius: 15, overflow: "hidden" }}
-              >
-        {/* Card */}
+    <View style={styles.root}>
+      <LinearGradient
+        colors={GRADIENT as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.frame}
+      >
         <View
-          className="rounded-2xl shadow p-5"
-          style={{
-            backgroundColor: isDark ? cardBgDark : "#ffffff",
-            borderWidth: 1,
-            borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-            borderRadius: 16,
-          }}
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
         >
-          {/* Header */}
-          <View className="mb-4 flex-row items-center justify-between gap-3">
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-            >
+          {/* ── Header ──────────────────────────────────────────────────── */}
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>
               IMC actual
             </Text>
+
             <View
-              className="px-2 py-1 rounded-md"
-              style={{
-                backgroundColor: isDark ? "rgba(148,163,184,0.16)" : "#f5f5f5",
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb",
-              }}
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isDark ? tokens.color.badgeBgDark : tokens.color.badgeBgLight,
+                  borderColor: isDark ? tokens.color.badgeBorderDark : tokens.color.badgeBorderLight,
+                },
+              ]}
             >
-              <Text
-                className="text-xs font-semibold"
-                style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-              >
+              <Text style={[styles.badgeText, { color: textPrimary }]}>
                 {categoria}
               </Text>
             </View>
           </View>
 
-          {/* Barra + marker */}
-          <View className="relative">
-            {/* Indicador (burbuja + triangulito) */}
-            <View
-              className="absolute -top-7"
-              style={{ left: 0, transform: [{ translateX: posPx }] }}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            >
-              <View className="items-center">
+          {/* ── Contenido ────────────────────────────────────────────────── */}
+          {!hasImc ? (
+            <Text style={[styles.noData, { color: isDark ? tokens.color.noDataDark : tokens.color.noDataLight }]}>
+              No hay datos suficientes para calcular el IMC.
+            </Text>
+          ) : (
+            <>
+              {/* Indicador flotante */}
+              <View style={styles.indicatorWrapper}>
                 <View
-                  className="rounded-full px-2.5 py-1"
-                  style={{
-                    backgroundColor: color,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.15,
-                    shadowRadius: 3,
-                    shadowOffset: { width: 0, height: 1 },
-                  }}
+                  style={[styles.indicator, { left: 0, transform: [{ translateX: posPx }] }]}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
                 >
-                  <Text className="text-white text-xs font-bold">{imc}</Text>
+                  <View style={styles.indicatorContent}>
+                    <View
+                      style={[styles.indicatorPill, { backgroundColor: color }]}
+                    >
+                      <Text style={styles.indicatorText}>{imc}</Text>
+                    </View>
+                    <View style={[styles.indicatorTail, { backgroundColor: color }]} />
+                  </View>
                 </View>
+
+                {/* Barra de progreso */}
                 <View
-                  className="mt-[2px] h-2 w-2"
-                  style={{ backgroundColor: color, transform: [{ rotate: "45deg" }], marginBottom: -3 }}
-                />
-              </View>
-            </View>
+                  onLayout={onTrackLayout}
+                  style={[
+                    styles.track,
+                    {
+                      backgroundColor: isDark ? tokens.color.trackBgDark : tokens.color.trackBgLight,
+                      borderColor: isDark ? tokens.color.trackBorderDark : tokens.color.trackBorderLight,
+                    },
+                  ]}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel="Barra de IMC"
+                  accessibilityValue={{ min: MIN_IMC, max: MAX_IMC, now: imc }}
+                >
+                  {/* Segmentos de color */}
+                  <View style={styles.trackSegments}>
+                    <View style={[styles.segment, { width: `${widthsPct[0]}%`, backgroundColor: COLORS.azulClaro }]} />
+                    <View style={[styles.segment, { width: `${widthsPct[1]}%`, backgroundColor: COLORS.verde }]} />
+                    <View style={[styles.segment, { width: `${widthsPct[2]}%`, backgroundColor: COLORS.amarillo }]} />
+                    <View style={[styles.segment, { width: `${widthsPct[3]}%`, backgroundColor: COLORS.rojo }]} />
+                  </View>
 
-            {/* Track */}
-            <View
-              onLayout={onTrackLayout}
-              className="h-3 w-full rounded-full overflow-hidden"
-              style={{
-                backgroundColor: isDark ? trackBgDark : COLORS.trackBg,
-                borderWidth: 1,
-                borderColor: isDark ? trackRingDark : "#e5e7eb",
-              }}
-              accessibilityRole="progressbar"
-              accessibilityLabel="Barra de IMC"
-              accessibilityValue={{ min: MIN_IMC, max: MAX_IMC, now: imc }}
-            >
-              {/* 4 segmentos coloreados proporcionalmente */}
-              <View className="flex-row h-full w-full">
-                <View style={{ width: `${widthsPct[0]}%`, backgroundColor: COLORS.azulClaro }} />
-                <View style={{ width: `${widthsPct[1]}%`, backgroundColor: COLORS.verde }} />
-                <View style={{ width: `${widthsPct[2]}%`, backgroundColor: COLORS.amarillo }} />
-                <View style={{ width: `${widthsPct[3]}%`, backgroundColor: COLORS.rojo }} />
-              </View>
-
-              {/* Línea vertical del IMC encima del track */}
-              <View
-                className="absolute top-0 bottom-0 w-[2px]"
-                style={{
-                  backgroundColor: isDark ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.9)",
-                  left: trackW ? `${(posPx / trackW) * 100}%` : "0%",
-                }}
-              />
-            </View>
-
-            {/* Ticks de referencia (18.5, 25, 30) */}
-            <View className="relative mt-2 h-3">
-              {CUTS.map((c, i) => {
-                const x = ((c - MIN_IMC) / (MAX_IMC - MIN_IMC)) * 100;
-                return (
+                  {/* Línea vertical indicadora */}
                   <View
-                    key={i}
-                    className="absolute top-0 h-3 w-[1px]"
-                    style={{
-                      backgroundColor: isDark ? "rgba(148,163,184,0.5)" : "#d1d5db",
-                      left: `${x}%`,
-                      transform: [{ translateX: -0.5 }],
-                    }}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no"
+                    style={[
+                      styles.trackLine,
+                      {
+                        backgroundColor: tokens.color.lineLight,
+                        left: trackW ? `${(posPx / trackW) * 100}%` : "0%",
+                      },
+                    ]}
                   />
-                );
-              })}
-            </View>
-          </View>
+                </View>
 
-          {/* Leyenda inferior */}
-          <View className="mt-3 flex-row justify-between">
-            {["Bajo", "Normal", "Sobrepeso", "Obesidad"].map((t, i) => (
-              <Text
-                key={i}
-                className="text-[11px]"
-                style={{ color: isDark ? textSecondaryDark : "#52525b", textAlign: i === 0 ? "left" : i === 3 ? "right" : "center" as any }}
-              >
-                {t}
+                {/* Ticks (marcadores OMS) */}
+                <View style={styles.ticksRow}>
+                  {CUTS.map((c, i) => {
+                    const x = ((c - MIN_IMC) / (MAX_IMC - MIN_IMC)) * 100;
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.tick,
+                          {
+                            backgroundColor: isDark ? tokens.color.tickDark : tokens.color.tickLight,
+                            left: `${x}%`,
+                          },
+                        ]}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Leyenda */}
+              <View style={styles.legend}>
+                {["Bajo", "Normal", "Sobrepeso", "Obesidad"].map((t, i) => (
+                  <Text
+                    key={i}
+                    style={[
+                      styles.legendText,
+                      {
+                        color: textSecondary,
+                        textAlign: (i === 0 ? "left" : i === 3 ? "right" : "center") as any,
+                      },
+                    ]}
+                  >
+                    {t}
+                  </Text>
+                ))}
+              </View>
+
+              {/* Resumen */}
+              <Text style={[styles.summary, { color: textSecondary }]}>
+                Resultado IMC:{" "}
+                <Text style={[styles.summaryBold, { color: textPrimary }]}>
+                  {imc}
+                </Text>
+                {" "}→ categoría{" "}
+                <Text style={[styles.summaryCategory, { color }]}>
+                  {categoria}
+                </Text>
               </Text>
-            ))}
-          </View>
-
-          {/* Texto auxiliar */}
-          <Text
-            className="mt-3 text-[12px]"
-            style={{ color: isDark ? textSecondaryDark : "#374151" }}
-          >
-            Resultado IMC:{" "}
-            <Text style={{ color: isDark ? textPrimaryDark : "#0f172a", fontWeight: "800" }}>{imc}</Text>{" "}
-            → categoría <Text style={{ color, fontWeight: "700" }}>{categoria}</Text>.
-          </Text>
+            </>
+          )}
         </View>
       </LinearGradient>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: {
+    width: "100%",
+    maxWidth: 520,
+  },
+
+  // Frame gradiente
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  // Card interior
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    padding: tokens.spacing.xl,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.spacing.md,
+    marginBottom: tokens.spacing.lg,
+  },
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+
+  // Badge categoría
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  // Sin datos
+  noData: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  // Indicador flotante
+  indicatorWrapper: {
+    position: "relative",
+    marginBottom: tokens.spacing.xs,
+  },
+  indicator: {
+    position: "absolute",
+    top: -28,
+  },
+  indicatorContent: {
+    alignItems: "center",
+  },
+  indicatorPill: {
+    borderRadius: tokens.radius.full,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  indicatorText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  indicatorTail: {
+    marginTop: 1,
+    width: 7,
+    height: 7,
+    transform: [{ rotate: "45deg" }],
+    marginBottom: -3,
+  },
+
+  // Barra de progreso
+  track: {
+    height: 11,
+    width: "100%",
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+    overflow: "hidden",
+    position: "relative",
+  },
+  trackSegments: {
+    flexDirection: "row",
+    height: "100%",
+    width: "100%",
+  },
+  segment: {
+    height: "100%",
+  },
+  trackLine: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 2,
+  },
+
+  // Ticks (marcadores OMS)
+  ticksRow: {
+    position: "relative",
+    marginTop: tokens.spacing.sm,
+    height: 10,
+  },
+  tick: {
+    position: "absolute",
+    top: 0,
+    height: 10,
+    width: 1,
+    transform: [{ translateX: -0.5 }],
+  },
+
+  // Leyenda
+  legend: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: tokens.spacing.md,
+  },
+  legendText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+
+  // Resumen
+  summary: {
+    marginTop: tokens.spacing.md,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  summaryBold: {
+    fontWeight: "800",
+  },
+  summaryCategory: {
+    fontWeight: "700",
+  },
+});

@@ -10,16 +10,12 @@ import { useSyncStore } from "@/features/store/useSyncStore";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { crearRutinaPersonalizada } from "@/features/api/rutinas.api";
 
-/* ---- Ads ---- */
-import { useRewardedAd } from "@/shared/lib/ads/useRewardedAd";
-
 /* ---- Tipos ---- */
 import type {
   DiaSemana,
   EjercicioVisualInfo,
   EjercicioAsignadoInput,
   EjercicioCompuestoTemporal,
-  TipoCompuesto,
   Item,
 } from "@/features/type/crearRutina";
 import { useRutinaReducer } from "@/shared/hooks/useRutinaReducer";
@@ -39,10 +35,6 @@ const getValidId = (raw: unknown): number | undefined => {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : undefined;
 };
-
-// helper para reintentos
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useCrearRutinaState() {
   const { colorScheme } = useColorScheme();
@@ -94,11 +86,12 @@ export function useCrearRutinaState() {
 
   /* ---------- Selección lista ---------- */
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
   const ejerciciosDia = useMemo(() => {
-  const dia = (state.dias ?? []).find((d: any) => d.diaSemana === diaSelect);
-  // Importante: devuelve la MISMA referencia si no cambia
-  return (dia?.ejercicios ?? []) as Item[];
-}, [state.dias, diaSelect]);
+    const dia = (state.dias ?? []).find((d: any) => d.diaSemana === diaSelect);
+    // Importante: devuelve la MISMA referencia si no cambia
+    return (dia?.ejercicios ?? []) as Item[];
+  }, [state.dias, diaSelect]);
 
   const haySeleccion =
     selectedIndex !== null &&
@@ -116,11 +109,7 @@ export function useCrearRutinaState() {
   /* ---------- UI constants ---------- */
   const ui = useMemo(
     () => ({
-      marcoGradient: [
-        "rgb(0,255,64)",
-        "rgb(94,230,157)",
-        "rgb(178,0,255)",
-      ],
+      marcoGradient: ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"],
       bg: isDark ? "#0b1220" : "#ffffff",
       textPrimary: isDark ? "#e5e7eb" : "#0f172a",
       textSecondary: isDark ? "#94a3b8" : "#64748b",
@@ -148,14 +137,8 @@ export function useCrearRutinaState() {
     })();
   }, [route?.params?.id]);
 
-  /* ---------- Ads & modales ---------- */
-  const { mostrarAnuncioYObtenerToken } = useRewardedAd(
-    "feature:crear-rutina-manual"
-  );
+  /* ---------- Premium modal ---------- */
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
-
-  const [noAdsModalVisible, setNoAdsModalVisible] = useState(false);
-  const [noAdsRetrying, setNoAdsRetrying] = useState(false);
 
   /* ---------- Acciones compuesto ---------- */
   const iniciarCompuesto = () => {
@@ -175,8 +158,7 @@ export function useCrearRutinaState() {
       if (usuario) {
         setUsuario({
           ...usuario,
-          rutinasManualCreadas:
-            (usuario.rutinasManualCreadas ?? 0) + 1,
+          rutinasManualCreadas: (usuario.rutinasManualCreadas ?? 0) + 1,
         });
       }
       Toast.show({
@@ -193,7 +175,7 @@ export function useCrearRutinaState() {
     nav.navigate("MisRutinas");
   }, [dispatch, isEdit, nav]);
 
-  /* ---------- Crear / Actualizar rutina (con anuncios) ---------- */
+  /* ---------- Crear / Actualizar rutina (sin anuncios) ---------- */
   const handleCrearRutina = useCallback(async () => {
     if (!state.nombre.trim()) {
       return;
@@ -208,154 +190,25 @@ export function useCrearRutinaState() {
     setLoading(true);
 
     try {
-      // 1) Intento sin anuncio
-      try {
-        await crearRutinaPersonalizada(payload, editId);
-        await onSuccess();
+      await crearRutinaPersonalizada(payload, editId);
+      await onSuccess();
+    } catch (error: any) {
+      const errorCode =
+        error?.errorCode ||
+        error?.raw?.response?.data?.errorCode ||
+        error?.response?.data?.errorCode;
+
+      if (errorCode === "PREMIUM_REQUIRED") {
+        setPremiumModalVisible(true);
         return;
-      } catch (error: any) {
-        if (error?.errorCode !== "AD_REQUIRED") {
-          // otros errores ya los maneja handleApiError
-          throw error;
-        }
       }
 
-      // 2) Ver anuncio y reintentar con token
-      try {
-        const adToken = await mostrarAnuncioYObtenerToken();
-
-        // Usuario canceló o no se consiguió token
-        if (!adToken) {
-          setPremiumModalVisible(true);
-          return;
-        }
-
-        await crearRutinaPersonalizada(payload, editId, adToken);
-        await onSuccess();
-      } catch (error: any) {
-        console.error(
-          "❌ crearRutinaPersonalizada (con anuncio) error:",
-          error
-        );
-
-        const isNoInventory =
-          error?.code === "NO_AD_AVAILABLE" ||
-          error?.code === "NO_FILL" ||
-          error?.reason === "no-ad";
-
-        const isAdLoadError =
-          typeof error?.message === "string" &&
-          error.message.includes("No se pudo cargar el anuncio");
-
-        if (isNoInventory || isAdLoadError) {
-          setNoAdsModalVisible(true);
-          return;
-        }
-      }
+      // otros errores: se delega al handler general (si lo tienes en la capa API)
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [state, editId, mostrarAnuncioYObtenerToken, onSuccess]);
-
-  /* ---------- Reintento desde modal "no hay anuncios" (1 minuto) ---------- */
-  const reintentarAnuncioRutina = useCallback(async () => {
-    if (noAdsRetrying) return;
-
-    if (!state.nombre.trim()) {
-      Toast.show({
-        type: "info",
-        text1: "Falta el nombre",
-        text2: "Ponle nombre a la rutina antes de reintentar.",
-      });
-      return;
-    }
-
-    const payload = {
-      nombre: state.nombre,
-      descripcion: state.descripcion,
-      dias: state.dias,
-    };
-
-    setNoAdsRetrying(true);
-    const start = Date.now();
-
-    try {
-      let adToken: string | null = null;
-
-      while (!adToken && Date.now() - start < 60_000) {
-        try {
-          adToken = await mostrarAnuncioYObtenerToken();
-          if (adToken) break;
-        } catch (error: any) {
-          const isNoInventory =
-            error?.code === "NO_AD_AVAILABLE" ||
-            error?.code === "NO_FILL" ||
-            error?.reason === "no-ad";
-
-          const isAdLoadError =
-            typeof error?.message === "string" &&
-            error.message.includes("No se pudo cargar el anuncio");
-
-          if (isNoInventory || isAdLoadError) {
-            console.log(
-              "[CrearRutina][reintentarAnuncio] sin anuncios o error de carga, reintentando en 5s…"
-            );
-            await sleep(5000);
-            continue;
-          }
-
-          console.error(
-            "[CrearRutina][reintentarAnuncio] Error cargando anuncio:",
-            error
-          );
-          Toast.show({
-            type: "error",
-            text1: "Error al cargar el anuncio",
-            text2: "Vuelve a intentarlo en unos segundos.",
-          });
-          return;
-        }
-      }
-
-      if (!adToken) {
-        Toast.show({
-          type: "info",
-          text1: "Seguimos sin anuncios",
-          text2:
-            "No hemos encontrado anuncios ahora mismo. Prueba más tarde o usa la versión Premium desde tu perfil.",
-        });
-        return;
-      }
-
-      // Tenemos anuncio → intentamos crear/actualizar con token
-      setLoading(true);
-      try {
-        await crearRutinaPersonalizada(payload, editId, adToken);
-        await onSuccess();
-        setNoAdsModalVisible(false);
-      } catch (error: any) {
-        console.error(
-          "[CrearRutina][reintentarAnuncio] Error creando rutina con anuncio:",
-          error
-        );
-        Toast.show({
-          type: "error",
-          text1: "No se pudo guardar la rutina",
-          text2: "Inténtalo de nuevo en unos minutos.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    } finally {
-      setNoAdsRetrying(false);
-    }
-  }, [
-    noAdsRetrying,
-    state,
-    editId,
-    mostrarAnuncioYObtenerToken,
-    onSuccess,
-  ]);
+  }, [state, editId, onSuccess]);
 
   const handleCancelarEdicion = useCallback(
     async () => {
@@ -363,9 +216,7 @@ export function useCrearRutinaState() {
         dispatch({ type: "SET_NOMBRE", payload: "" });
         dispatch({ type: "SET_DESCRIPCION", payload: "" });
 
-        const diasPresentes = (state.dias ?? []).map(
-          (d: any) => d.diaSemana
-        );
+        const diasPresentes = (state.dias ?? []).map((d: any) => d.diaSemana);
         diasPresentes.forEach((ds: any) => {
           dispatch({
             type: "REORDER_EJERCICIOS",
@@ -373,10 +224,7 @@ export function useCrearRutinaState() {
           });
         });
 
-        await AsyncStorage.multiRemove([
-          "crearRutinaState",
-          "rutinaEditId",
-        ]);
+        await AsyncStorage.multiRemove(["crearRutinaState", "rutinaEditId"]);
         setEditId(undefined);
       } catch {
         // noop
@@ -392,8 +240,7 @@ export function useCrearRutinaState() {
 
     if ("compuesto" in ej && ej.compuesto) {
       setEditarCompuesto({
-        compuestoId:
-          ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
+        compuestoId: ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
         orden: ej.orden,
         ejercicios: ej.ejerciciosCompuestos!,
         nombre: ej.nombreCompuesto!,
@@ -416,8 +263,7 @@ export function useCrearRutinaState() {
     const ej = ejerciciosDia[selectedIndex!];
 
     if ("compuesto" in ej && ej.compuesto) {
-      const compuestoId =
-        ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!;
+      const compuestoId = ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!;
       dispatch({
         type: "REMOVE_EJERCICIO",
         payload: { diaSemana: diaSelect, compuestoId },
@@ -529,12 +375,6 @@ export function useCrearRutinaState() {
     // modal premium
     premiumModalVisible,
     setPremiumModalVisible,
-
-    // modal "no hay anuncios"
-    noAdsModalVisible,
-    setNoAdsModalVisible,
-    noAdsRetrying,
-    reintentarAnuncioRutina,
 
     // utilidades externas
     Toast,

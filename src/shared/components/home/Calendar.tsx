@@ -114,8 +114,8 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           esSeleccionado
             ? `${baseClasses} ${fondoSeleccionado} ${disabledStyle}`
             : esHoy
-            ? `${baseClasses} ${fondoHoyNoSeleccionado} ${bordeVerde} ${disabledStyle}`
-            : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
+              ? `${baseClasses} ${fondoHoyNoSeleccionado} ${bordeVerde} ${disabledStyle}`
+              : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
 
         // ✅ Colores de texto
         const colorTextoNumero = esSeleccionado
@@ -123,24 +123,24 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
             ? "#000000"
             : "#ffffff"
           : esHoy
-          ? "#ffffff"
-          : completado
-          ? "#22c55e"
-          : isDark
-          ? "#ffffff"
-          : "#111111";
+            ? "#ffffff"
+            : completado
+              ? "#22c55e"
+              : isDark
+                ? "#ffffff"
+                : "#111111";
 
         const colorTextoEtiqueta = esSeleccionado
           ? isDark
             ? "#000000"
             : "#ffffff"
           : esHoy
-          ? "#ffffff"
-          : completado
-          ? "#22c55e"
-          : isDark
-          ? "#94a3b8"
-          : "#6b7280";
+            ? "#ffffff"
+            : completado
+              ? "#22c55e"
+              : isDark
+                ? "#94a3b8"
+                : "#6b7280";
 
         // ✅ Borde del punto para garantizar contraste
         const bordePunto = esSeleccionado
@@ -148,10 +148,10 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
             ? "#000000" // fondo blanco → borde negro en dark
             : "#ffffff" // fondo negro en light → borde blanco
           : esHoy
-          ? "#ffffff"
-          : isDark
-          ? "#0b1220"
-          : "#ffffff";
+            ? "#ffffff"
+            : isDark
+              ? "#0b1220"
+              : "#ffffff";
 
         return (
           <TouchableOpacity

@@ -22,7 +22,7 @@ import {
 } from "@/features/api/stripe.api";
 
 import { useNavigation } from "@react-navigation/native";
-import { X, XCircle } from "lucide-react-native";
+import { X, XCircle, Check, Sparkles, Zap, TrendingUp } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   useUsuarioStore,
@@ -32,7 +32,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 
 const PRICE = "4,99 €";
-const BILLING_HINT = "Cancela cuando quieras";
 
 // 🎨 Tema premium adaptable
 const getPremiumTheme = (isDark: boolean) => ({
@@ -46,11 +45,15 @@ const getPremiumTheme = (isDark: boolean) => ({
   textSecondary: isDark ? "#9CA3AF" : "#475569",
   textSoft: isDark ? "#6B7280" : "#94A3B8",
 
+  iconMuted: isDark ? "#6B7280" : "#94A3B8",
+  iconPremium: isDark ? "#A855F7" : "#9333EA",
+
+  badgeMutedBg: isDark ? "rgba(71,85,105,0.2)" : "rgba(226,232,240,0.6)",
   badgeMutedText: isDark ? "#9CA3AF" : "#64748B",
-  badgePositiveBg: isDark
-    ? "rgba(34,197,94,0.20)"
-    : "rgba(22,163,74,0.12)",
-  badgePositiveText: isDark ? "#4ADE80" : "#16A34A",
+  badgeFreeBg: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
+  badgeFreeText: isDark ? "#60A5FA" : "#2563EB",
+  badgePremiumBg: isDark ? "rgba(168,85,247,0.20)" : "rgba(168,85,247,0.12)",
+  badgePremiumText: isDark ? "#C084FC" : "#9333EA",
 
   heroLabel: isDark ? "#A5B4FC" : "#6366F1",
 
@@ -145,8 +148,8 @@ export default function PremiumPaymentScreen() {
 
       Toast.show({
         type: "success",
-        text1: "Pago completado",
-        text2: "Tu suscripción Premium se activará en segundos.",
+        text1: "¡Bienvenido a Premium!",
+        text2: "Tu suscripción se ha activado correctamente.",
       });
 
       setShowPayModal(false);
@@ -212,7 +215,7 @@ export default function PremiumPaymentScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Plan Premium
+                Desbloquea todo el potencial
               </Text>
             </View>
           </View>
@@ -222,7 +225,7 @@ export default function PremiumPaymentScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* HERO - NUEVO PREMIUM */}
+        {/* HERO - PRECIO PREMIUM */}
         <LinearGradient
           colors={theme.gradientHero as any}
           start={{ x: 0, y: 0 }}
@@ -238,17 +241,16 @@ export default function PremiumPaymentScreen() {
               },
             ]}
           >
-            <Text
-              style={[
-                styles.heroLabel,
-                { color: theme.heroLabel },
-              ]}
-            >
-              Suscripción mensual
-            </Text>
-
-            <View style={styles.heroBottomRow}>
+            <View style={styles.heroTop}>
               <View>
+                <Text
+                  style={[
+                    styles.heroLabel,
+                    { color: theme.heroLabel },
+                  ]}
+                >
+                  FITGENIUS PREMIUM
+                </Text>
                 <View style={styles.priceRow}>
                   <Text
                     style={[
@@ -267,24 +269,26 @@ export default function PremiumPaymentScreen() {
                     / mes
                   </Text>
                 </View>
-
-                <Text
-                  style={[
-                    styles.billingHint,
-                    { color: theme.textSoft },
-                  ]}
-                >
-                  {BILLING_HINT}. Sin permanencia.
-                </Text>
               </View>
+
+              <Sparkles size={32} color={theme.iconPremium} strokeWidth={1.5} />
             </View>
+
+            <Text
+              style={[
+                styles.billingHint,
+                { color: theme.textSoft },
+              ]}
+            >
+              Sin permanencia · Cancela cuando quieras
+            </Text>
           </View>
         </LinearGradient>
 
-        {/* COMPARATIVA FREE VS PREMIUM */}
+        {/* BENEFICIOS DESTACADOS */}
         <View
           style={[
-            styles.cardSoft,
+            styles.benefitsCard,
             {
               backgroundColor: theme.cardSoftBg,
               borderColor: theme.cardBorder,
@@ -293,79 +297,128 @@ export default function PremiumPaymentScreen() {
         >
           <Text
             style={[
-              styles.sectionTitleSmall,
+              styles.sectionTitle,
               { color: theme.textPrimary },
             ]}
           >
-            Qué incluye cada plan
+            Lo que obtienes con Premium
           </Text>
 
-          {/* Sesiones */}
-          <CompareRow
-            label="Registrar sesiones"
-            free="Sí (con anuncio)"
-            premium="Sí, sin anuncios"
+          <BenefitItem
+            icon={<Sparkles size={18} color={theme.iconPremium} />}
+            title="Rutinas IA ilimitadas"
+            description="Genera todas las rutinas personalizadas que necesites"
           />
 
-          {/* Rutinas manuales */}
-          <CompareRow
-            label="Crear rutinas manuales"
-            free="Sí (con anuncio al guardar)"
-            premium="Sí, sin anuncios"
+          <BenefitItem
+            icon={<Zap size={18} color={theme.iconPremium} />}
+            title="Coach inteligente"
+            description="Análisis y feedback personalizado de cada sesión"
           />
 
-          <CompareRow
-            label="Guardar y editar rutinas"
-            free="Sí (con anuncio al guardar)"
-            premium="Sí, sin anuncios"
+          <BenefitItem
+            icon={<TrendingUp size={18} color={theme.iconPremium} />}
+            title="Informes avanzados"
+            description="Todos los informes de progreso sin límites"
           />
 
-          {/* Exploración ejercicios */}
-          <CompareRow
-            label="Buscar ejercicios y compuestos"
-            free="Sí"
-            premium="Sí"
-          />
-
-          {/* Rutinas IA */}
-          <CompareRow
-            label="Rutinas con IA"
-            free="1 rutina gratis"
-            premium="Ilimitadas"
-          />
-
-          {/* Coach */}
-          <CompareRow
-            label="Coach inteligente (revisión de sesión)"
-            free="No"
-            premium="Sí"
-          />
-
-          {/* Preguntas IA */}
-          <CompareRow
-            label="Preguntas sobre ejercicios con IA"
-            free="No"
-            premium="Sí"
-          />
-
-          {/* Estadísticas */}
-          <CompareRow
-            label="Estadísticas de entreno"
-            free="Todas (con anuncio diario)"
-            premium="Todas, sin anuncios"
-          />
-
-          {/* Informes */}
-          <CompareRow
-            label="Informes de progreso"
-            free="Algunos básicos"
-            premium="Todos los informes avanzados"
+          <BenefitItem
+            icon={<Check size={18} color={theme.iconPremium} />}
+            title="Preguntas con IA"
+            description="Consulta ejercicios y técnicas ilimitadamente"
           />
         </View>
 
+        {/* COMPARATIVA DETALLADA */}
+        <View
+          style={[
+            styles.compareCard,
+            {
+              backgroundColor: theme.cardSoftBg,
+              borderColor: theme.cardBorder,
+            },
+          ]}
+        >
+          <View style={styles.compareHeader}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: theme.textPrimary, flex: 1 },
+              ]}
+            >
+              Características
+            </Text>
+            <Text
+              style={[
+                styles.planLabel,
+                { color: theme.badgeFreeText },
+              ]}
+            >
+              Free
+            </Text>
+            <Text
+              style={[
+                styles.planLabel,
+                { color: theme.badgePremiumText },
+              ]}
+            >
+              Premium
+            </Text>
+          </View>
+
+          <CompareRow
+            label="Registrar sesiones"
+            free="unlimited"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Crear rutinas manuales"
+            free="unlimited"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Buscar ejercicios"
+            free="unlimited"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Estadísticas básicas"
+            free="unlimited"
+            premium="unlimited"
+          />
+
+          <View style={styles.divider} />
+
+          <CompareRow
+            label="Rutinas con IA"
+            free="limited"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Coach inteligente"
+            free="none"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Preguntas sobre ejercicios"
+            free="none"
+            premium="unlimited"
+          />
+
+          <CompareRow
+            label="Informes de progreso"
+            free="limited"
+            premium="unlimited"
+          />
+        </View>
 
         {/* CTA */}
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginTop: 24 }}>
           <TouchableOpacity
             onPress={() => setShowPayModal(true)}
             activeOpacity={0.9}
@@ -377,7 +430,7 @@ export default function PremiumPaymentScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={[styles.buttonText, { color: "#020617" }]}>
+              <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
                 Activar Premium
               </Text>
             </LinearGradient>
@@ -389,7 +442,7 @@ export default function PremiumPaymentScreen() {
               { color: theme.textSoft },
             ]}
           >
-            {PRICE}/mes · Cancela cuando quieras desde tu perfil.
+            Pago seguro · Sin permanencia · Cancela desde tu perfil
           </Text>
         </View>
       </ScrollView>
@@ -425,7 +478,7 @@ export default function PremiumPaymentScreen() {
                     { color: theme.textPrimary },
                   ]}
                 >
-                  Activar Premium
+                  Método de pago
                 </Text>
 
                 <TouchableOpacity onPress={() => setShowPayModal(false)}>
@@ -439,12 +492,11 @@ export default function PremiumPaymentScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Cobraremos {PRICE} cada mes. Puedes cancelar en cualquier
-                momento.
+                Suscripción mensual por {PRICE}. Cancela cuando quieras sin compromisos.
               </Text>
 
               {/* TARJETA */}
-              <View style={{ marginTop: 14, marginBottom: 16 }}>
+              <View style={{ marginTop: 16, marginBottom: 18 }}>
                 <CardField
                   postalCodeEnabled={false}
                   placeholders={{
@@ -491,43 +543,46 @@ export default function PremiumPaymentScreen() {
                 activeOpacity={0.9}
               >
                 <LinearGradient
-                  colors={["#22C55E", "#FACC15"]}
+                  colors={["#22C55E", "#A855F7"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={[
                     styles.ctaGradient,
                     {
-                      opacity: loading || !cardComplete ? 0.7 : 1,
-                      marginTop: 6,
+                      opacity: loading || !cardComplete ? 0.6 : 1,
+                      marginTop: 0,
                     },
                   ]}
                 >
                   {loading ? (
-                    <>
+                    <View style={styles.buttonRow}>
                       <ActivityIndicator
-                        color="#020617"
+                        color="#FFFFFF"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={[styles.buttonText, { color: "#020617" }]}>
+                      <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
                         Procesando…
                       </Text>
-                    </>
+                    </View>
                   ) : (
-                    <Text style={[styles.buttonText, { color: "#020617" }]}>
-                      Guardar tarjeta y activar
+                    <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                      Confirmar y activar Premium
                     </Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
 
-              <Text
-                style={[
-                  styles.securityNote,
-                  { color: theme.textSoft },
-                ]}
-              >
-                Pagos seguros con Stripe. No almacenamos datos de tarjeta.
-              </Text>
+              <View style={styles.securityBadge}>
+                <Check size={12} color={theme.textSoft} />
+                <Text
+                  style={[
+                    styles.securityBadgeText,
+                    { color: theme.textSoft },
+                  ]}
+                >
+                  Pago seguro con Stripe · No almacenamos datos bancarios
+                </Text>
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -538,56 +593,94 @@ export default function PremiumPaymentScreen() {
 
 /* ============ Subcomponentes ============ */
 
+function BenefitItem({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  const isDark = useColorScheme() === "dark";
+  const theme = getPremiumTheme(isDark);
+
+  return (
+    <View style={styles.benefitItem}>
+      <View style={styles.benefitIcon}>{icon}</View>
+      <View style={styles.benefitText}>
+        <Text
+          style={[
+            styles.benefitTitle,
+            { color: theme.textPrimary },
+          ]}
+        >
+          {title}
+        </Text>
+        <Text
+          style={[
+            styles.benefitDescription,
+            { color: theme.textSecondary },
+          ]}
+        >
+          {description}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function CompareRow({
   label,
   free,
   premium,
 }: {
   label: string;
-  free: string;
-  premium: string;
+  free: "unlimited" | "limited" | "none";
+  premium: "unlimited" | "limited" | "none";
 }) {
   const isDark = useColorScheme() === "dark";
   const theme = getPremiumTheme(isDark);
 
+  const renderBadge = (type: "unlimited" | "limited" | "none", isPremium: boolean) => {
+    if (type === "unlimited") {
+      return (
+        <View style={styles.checkIcon}>
+          <Check size={14} color={isPremium ? theme.badgePremiumText : theme.badgeFreeText} strokeWidth={3} />
+        </View>
+      );
+    }
+    if (type === "limited") {
+      return (
+        <View style={[styles.limitedBadge, { backgroundColor: theme.badgeMutedBg }]}>
+          <Text style={[styles.limitedText, { color: theme.badgeMutedText }]}>1</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.checkIcon}>
+        <X size={14} color={theme.iconMuted} strokeWidth={2} />
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.simpleRow}>
+    <View style={styles.compareRow}>
       <Text
         style={[
-          styles.simpleLabel,
+          styles.compareLabel,
           { color: theme.textPrimary },
         ]}
       >
         {label}
       </Text>
 
-      {/* FREE */}
-      <View style={styles.badgeMuted}>
-        <Text
-          style={[
-            styles.badgeMutedText,
-            { color: theme.badgeMutedText },
-          ]}
-        >
-          {free}
-        </Text>
+      <View style={styles.compareValue}>
+        {renderBadge(free, false)}
       </View>
 
-      {/* PREMIUM */}
-      <View
-        style={[
-          styles.badgePositive,
-          { backgroundColor: theme.badgePositiveBg },
-        ]}
-      >
-        <Text
-          style={[
-            styles.badgePositiveText,
-            { color: theme.badgePositiveText },
-          ]}
-        >
-          {premium}
-        </Text>
+      <View style={styles.compareValue}>
+        {renderBadge(premium, true)}
       </View>
     </View>
   );
@@ -601,7 +694,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: 32,
     paddingTop: 10,
   },
 
@@ -610,16 +703,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    columnGap: 10,
+    columnGap: 12,
   },
   logoWrap: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     backgroundColor: "#020617",
     alignItems: "center",
@@ -627,108 +720,165 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   logo: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     tintColor: "#FFFFFF",
   },
   appName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   appTagline: {
     fontSize: 12,
+    marginTop: 1,
   },
 
   /* Hero */
   heroGradient: {
-    borderRadius: 22,
-    padding: 2,
-    marginBottom: 18,
+    borderRadius: 24,
+    padding: 2.5,
+    marginBottom: 20,
   },
   heroCard: {
-    borderRadius: 20,
+    borderRadius: 21,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
-  heroLabel: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  heroBottomRow: {
-    marginTop: 12,
+  heroTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
+    marginBottom: 10,
   },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  priceUnit: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  billingHint: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-
-  /* Comparativa */
-  cardSoft: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  sectionTitleSmall: {
-    fontSize: 13,
+  heroLabel: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
     fontWeight: "600",
     marginBottom: 8,
   },
-  simpleRow: {
+  priceRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 7,
+    alignItems: "baseline",
   },
-  simpleLabel: {
-    flex: 1.4,
+  price: {
+    fontSize: 32,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  priceUnit: {
+    fontSize: 14,
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  billingHint: {
     fontSize: 12,
   },
-  badgeMuted: {
-    flex: 0.9,
+
+  /* Benefits */
+  benefitsCard: {
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 14,
+  },
+  benefitItem: {
+    flexDirection: "row",
+    marginBottom: 14,
+    alignItems: "flex-start",
+  },
+  benefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(168,85,247,0.1)",
     alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
-  badgeMutedText: {
-    fontSize: 11,
+  benefitText: {
+    flex: 1,
+    paddingTop: 2,
   },
-  badgePositive: {
-    flex: 0.9,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 999,
+  benefitTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  benefitDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  /* Compare */
+  compareCard: {
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  compareHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(148,163,184,0.15)",
   },
-  badgePositiveText: {
+  planLabel: {
     fontSize: 11,
     fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    width: 60,
+    textAlign: "center",
+  },
+  compareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  compareLabel: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  compareValue: {
+    width: 60,
+    alignItems: "center",
+  },
+  checkIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limitedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limitedText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(148,163,184,0.15)",
+    marginVertical: 8,
   },
 
   /* CTA */
@@ -737,18 +887,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   ctaGradient: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 999,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     fontSize: 15,
     fontWeight: "600",
   },
+  buttonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   securityNote: {
     fontSize: 11,
-    marginTop: 10,
+    marginTop: 12,
     textAlign: "center",
+    lineHeight: 16,
   },
 
   /* Modal */
@@ -756,45 +912,62 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
     paddingBottom: 0,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 22,
+    paddingBottom: 28,
   },
   sheetHandle: {
     alignSelf: "center",
     width: 40,
     height: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(148,163,184,0.7)",
-    marginBottom: 12,
+    backgroundColor: "rgba(148,163,184,0.5)",
+    marginBottom: 16,
   },
   modalHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
   },
   modalSubtitle: {
     fontSize: 13,
-    marginBottom: 10,
+    lineHeight: 19,
+    marginBottom: 4,
   },
   errorRow: {
     flexDirection: "row",
     alignItems: "center",
     columnGap: 6,
-    marginBottom: 6,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(239,68,68,0.1)",
   },
   errorText: {
     fontSize: 12,
+    flex: 1,
+  },
+  securityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    columnGap: 6,
+    marginTop: 14,
+  },
+  securityBadgeText: {
+    fontSize: 11,
+    textAlign: "center",
   },
 });

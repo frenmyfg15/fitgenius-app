@@ -50,7 +50,6 @@ import PanelEstadisticasCompuestos from "@/shared/components/ejercicio/compuesto
 import NivelEstresModal from "@/shared/components/ejercicio/NivelEstresModal";
 import CoachFeedbackModal from "@/shared/components/ejercicio/CoachFeedbackModal";
 import ExerciseQuestionModal from "@/shared/components/ejercicio/ExerciseQuestionModal";
-import NoAdsModal from "@/shared/components/ads/NoAdsModal";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 /* ---------------- Vista (sólo UI) ---------------- */
@@ -73,20 +72,15 @@ export default function VistaEjercicio() {
     Animated.timing(fabAnim, {
       toValue: fabOpen ? 1 : 0,
       duration: fabOpen ? 220 : 180,
-      easing: fabOpen
-        ? Easing.out(Easing.cubic)
-        : Easing.in(Easing.cubic),
+      easing: fabOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start();
   }, [fabOpen, fabAnim]);
 
   // Helpers para animar cada botón con “stagger” visual
   const getItemAnimStyle = (index: number) => {
-    // index 0 = botón más cercano al toggle (abajo), mayor delay
-    const input = [0, 1];
-    const delayFactor = index * 0.08; // escalón visual
+    const delayFactor = index * 0.08;
 
-    // Simulamos delay usando interpolate “apretado”
     const t = fabAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [0, 1],
@@ -149,13 +143,6 @@ export default function VistaEjercicio() {
     coachVisible,
     mostrarCoach,
     ocultarCoach,
-
-    // No ads
-    noAdsModalVisible,
-    setNoAdsModalVisible,
-    noAdsRetrying,
-    reintentarAnuncioSimple,
-    reintentarAnuncioCompuesto,
   } = useVistaEjercicioState({
     slug,
     asignadoId,
@@ -378,19 +365,18 @@ export default function VistaEjercicio() {
           }
           repeticiones={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.repeticiones
+              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]
+                ?.repeticiones
               : ejercicio.ejercicioAsignado?.repeticionesSugeridas
           }
           peso={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.pesoSugerido
+              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]
+                ?.pesoSugerido
               : ejercicio.ejercicioAsignado?.pesoSugerido
           }
-
           esCardio={esCardio}
         />
-
-
 
         {esCompuesto ? (
           <View className="w-full max-w-[900px]">
@@ -404,12 +390,9 @@ export default function VistaEjercicio() {
           <SeriesInput
             series={series}
             onChange={handleInputChange}
-
             esCardio={esCardio}
           />
         )}
-
-
 
         {/* Botones Añadir/Quitar serie + Guardar */}
         <View className="w-full max-w-md mt-3 flex-row gap-3 items-center">
@@ -435,7 +418,8 @@ export default function VistaEjercicio() {
               }
             }}
             disabled={
-              guardando || (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
+              guardando ||
+              (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
             }
             className={
               "p-2 rounded-full shadow-md items-center justify-center " +
@@ -476,10 +460,9 @@ export default function VistaEjercicio() {
       <View
         pointerEvents="box-none"
         className="absolute right-5"
-        style={{ bottom: 40, zIndex: 20 }}
+        style={{ bottom: 90, zIndex: 20 }}
       >
         <View className="items-end">
-          {/* Acciones (se renderizan siempre, pero animan a 0 y no capturan taps) */}
           <Animated.View
             pointerEvents={fabOpen ? "auto" : "none"}
             style={{
@@ -507,7 +490,7 @@ export default function VistaEjercicio() {
                     opacity: guardando ? 0.6 : isPremium ? 1 : 0.65,
                     backgroundColor: isDark
                       ? "rgba(255,255,255,0.10)"
-                      : "rgba(0,0,0,0.08)", // ✅ visible en light sobre fondo blanco
+                      : "rgba(0,0,0,0.08)",
                   }}
                   className={"p-4 rounded-full items-center justify-center "}
                 >
@@ -582,7 +565,7 @@ export default function VistaEjercicio() {
               opacity: guardando ? 0.6 : 1,
               backgroundColor: isDark
                 ? "rgba(255,255,255,0.10)"
-                : "rgba(0,0,0,0.10)", // ✅ más contraste en light
+                : "rgba(0,0,0,0.10)",
             }}
             className={"p-3 rounded-full items-center justify-center mr-1 "}
           >
@@ -594,7 +577,6 @@ export default function VistaEjercicio() {
           </TouchableOpacity>
         </View>
       </View>
-
 
       {esCompuesto ? null : (
         <PanelInfo
@@ -625,7 +607,6 @@ export default function VistaEjercicio() {
           detallesSeries={detallesSeriesSimples}
           esCardio={ejercicio.grupoMuscular === "CARDIO"}
         />
-
       )}
 
       {descansando && (
@@ -651,23 +632,6 @@ export default function VistaEjercicio() {
         onConfirm={handleConfirmNivelEstres}
         onClose={() => setEstresModalVisible(false)}
         loading={guardando}
-      />
-
-      <NoAdsModal
-        visible={noAdsModalVisible}
-        loading={noAdsRetrying}
-        onRetry={() => {
-          if (esCompuesto) {
-            reintentarAnuncioCompuesto(seriesComp as any);
-          } else {
-            reintentarAnuncioSimple();
-          }
-        }}
-        onGoPremium={() => {
-          setNoAdsModalVisible(false);
-          handleGoToPayment();
-        }}
-        onClose={() => setNoAdsModalVisible(false)}
       />
 
       <CoachFeedbackModal

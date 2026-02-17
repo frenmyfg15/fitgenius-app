@@ -1,6 +1,6 @@
 // App.tsx
 import "react-native-gesture-handler";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -15,26 +15,23 @@ import "./global.css";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import AppNavigator from "@/features/navigation/App";
 import AuthNavigator from "@/features/navigation/Auth";
-import mobileAds from "react-native-google-mobile-ads";
 
-// Stripe
 import { StripeProvider } from "@stripe/stripe-react-native";
 import Constants from "expo-constants";
 
-// Modal global
 import { GlobalErrorModalProvider } from "@/shared/components/ui/GlobalErrorModalProvider";
 
-// Auth stack
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Sesion from "@/features/screens/auth/Sesion";
 import LegalScreen from "@/features/screens/auth/LegalScreen";
 
 import * as Sentry from "@sentry/react-native";
 
-// Tema persistido
 import { usePersistedColorScheme } from "@/theme/usePersistedColorScheme";
 import { getMe } from "@/features/api/usuario.api";
+import Toast from "react-native-toast-message";
 
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 Sentry.init({
   dsn: "https://4c6aa91122ad7f362c9aa79df79e428b@o4510526940577792.ingest.de.sentry.io/4510526942609488",
@@ -88,16 +85,9 @@ function getActiveRouteName(state: any): string | null {
 
 export default Sentry.wrap(function App() {
   const { usuario, rehydrated, setUsuario } = useUsuarioStore();
-
   const { isReady: themeReady } = usePersistedColorScheme();
 
-  useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then(() => {
-        console.log("AdMob inicializado");
-      });
-  }, []);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     if (!rehydrated) return;
@@ -109,7 +99,10 @@ export default Sentry.wrap(function App() {
       });
 
       Sentry.setTag("auth", "logged_in");
-      Sentry.setTag("plan", (usuario as any).planActual === "PREMIUM" ? "premium" : "free");
+      Sentry.setTag(
+        "plan",
+        (usuario as any).planActual === "PREMIUM" ? "premium" : "free"
+      );
     } else {
       Sentry.setUser(null);
       Sentry.setTag("auth", "logged_out");
@@ -119,40 +112,23 @@ export default Sentry.wrap(function App() {
 
   useEffect(() => {
     if (!rehydrated) return;
-    if (!usuario) return;
 
-    // Sincroniza el usuario persistido con el backend (planActual, haPagado, etc.)
+    let cancelled = false;
+
     getMe()
       .then((me) => {
-        if (me) setUsuario(me);
+        if (!cancelled && me?.id) setUsuario(me);
       })
-      .catch(() => { });
-  }, [rehydrated, usuario?.id, setUsuario]);
+      .catch((e) => {
+        console.log("[App] getMe failed:", e?.response?.data ?? e?.message ?? e);
+      });
 
-  if (!rehydrated || !themeReady) {
-    return (
-      <StripeProvider
-        publishableKey={PUBLISHABLE_KEY}
-        merchantIdentifier="merchant.com.fitgenius"
-        urlScheme="fitgenius"
-      >
-        <GlobalErrorModalProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-              <SafeAreaView
-                style={{ flex: 1, backgroundColor: "#0B0F1A" }}
-                edges={["top", "right", "left", "bottom"]}
-              >
-                <ActivityIndicator style={{ flex: 1 }} />
-              </SafeAreaView>
-            </SafeAreaProvider>
-          </GestureHandlerRootView>
-        </GlobalErrorModalProvider>
-      </StripeProvider>
-    );
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [rehydrated, setUsuario]);
 
-  return (
+  const Providers = ({ children }: { children: React.ReactNode }) => (
     <StripeProvider
       publishableKey={PUBLISHABLE_KEY}
       merchantIdentifier="merchant.com.fitgenius"
@@ -160,37 +136,57 @@ export default Sentry.wrap(function App() {
     >
       <GlobalErrorModalProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider>
-            <NavigationContainer
-              linking={linking}
-              ref={navigationRef}
-              onReady={() => {
-                const name = getActiveRouteName(navigationRef.getRootState());
-                if (name) Sentry.setTag("screen", name);
-              }}
-              onStateChange={() => {
-                const name = getActiveRouteName(navigationRef.getRootState());
-                if (name) Sentry.setTag("screen", name);
-              }}
-            >
-              {usuario ? (
-                <AppNavigator />
-              ) : (
-                <RootAuthStack.Navigator
-                  screenOptions={{
-                    headerShown: false,
-                    animation: "slide_from_right",
-                  }}
-                >
-                  <RootAuthStack.Screen name="Sesion" component={Sesion} />
-                  <RootAuthStack.Screen name="Registro" component={AuthNavigator} />
-                  <RootAuthStack.Screen name="Legal" component={LegalScreen} />
-                </RootAuthStack.Navigator>
-              )}
-            </NavigationContainer>
-          </SafeAreaProvider>
+          <BottomSheetModalProvider>
+            <SafeAreaProvider>{children}</SafeAreaProvider>
+          </BottomSheetModalProvider>
         </GestureHandlerRootView>
       </GlobalErrorModalProvider>
+      <Toast />
     </StripeProvider>
+  );
+
+  if (!rehydrated || !themeReady) {
+    return (
+      <Providers>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: "#0B0F1A" }}
+          edges={["top", "right", "left", "bottom"]}
+        >
+          <ActivityIndicator style={{ flex: 1 }} />
+        </SafeAreaView>
+      </Providers>
+    );
+  }
+
+  return (
+    <Providers>
+      <NavigationContainer
+        linking={linking}
+        ref={navigationRef}
+        onReady={() => {
+          const name = getActiveRouteName(navigationRef.getRootState());
+          if (name) Sentry.setTag("screen", name);
+        }}
+        onStateChange={() => {
+          const name = getActiveRouteName(navigationRef.getRootState());
+          if (name) Sentry.setTag("screen", name);
+        }}
+      >
+        {usuario ? (
+          <AppNavigator />
+        ) : (
+          <RootAuthStack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_right",
+            }}
+          >
+            <RootAuthStack.Screen name="Sesion" component={Sesion} />
+            <RootAuthStack.Screen name="Registro" component={AuthNavigator} />
+            <RootAuthStack.Screen name="Legal" component={LegalScreen} />
+          </RootAuthStack.Navigator>
+        )}
+      </NavigationContainer>
+    </Providers>
   );
 });

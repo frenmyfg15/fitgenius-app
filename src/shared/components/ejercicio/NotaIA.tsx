@@ -1,158 +1,159 @@
+// File: src/shared/components/ejercicio/NotaIA.tsx
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Lightbulb } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    cardBgDark: "#080D17",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(148,163,184,0.22)",
+    cardBorderLight: "rgba(0,0,0,0.07)",
+
+    dividerDark: "rgba(30,41,59,1)",
+    dividerLight: "rgba(226,232,240,1)",
+
+    // Icono Lightbulb
+    iconBgDark: "rgba(34,197,94,0.10)",
+    iconBgLight: "rgba(22,163,74,0.07)",
+    iconColor: "#22C55E",
+
+    // Texto
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#6B7280",
+
+    // Nota (itálica)
+    notaDark: "#CBD5E1",
+    notaLight: "#1E293B",
+  },
+  radius: { lg: 16, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
+} as const;
+
+// ── Tipos — API pública sin cambios ───────────────────────────────────────────
 type Props = {
   notaIA?: string | null;
   series?: number | null;
   repeticiones?: number | null;
   peso?: number | null;
-  // 👇 NUEVO
   esCardio?: boolean;
 };
 
-export default function NotaIA({
-  notaIA,
-  series,
-  repeticiones,
-  peso,
-  esCardio,
-}: Props) {
+// ── Componente ────────────────────────────────────────────────────────────────
+export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }: Props) {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
   const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso) || "kg";
 
   const safeNota = (notaIA ?? "").trim();
-  const safeSeries =
-    typeof series === "number" && Number.isFinite(series) ? series : 0;
-  const safeReps =
-    typeof repeticiones === "number" && Number.isFinite(repeticiones)
-      ? repeticiones
-      : 0;
-  const safePeso =
-    typeof peso === "number" && Number.isFinite(peso) ? peso : 0;
-
+  const safeSeries = typeof series === "number" && Number.isFinite(series) ? series : 0;
+  const safeReps = typeof repeticiones === "number" && Number.isFinite(repeticiones) ? repeticiones : 0;
+  const safePeso = typeof peso === "number" && Number.isFinite(peso) ? peso : 0;
   const isCardio = Boolean(esCardio);
 
   const shouldRender = useMemo(
-    () =>
-      safeNota.length > 0 ||
-      safeSeries > 0 ||
-      safeReps > 0 ||
-      safePeso > 0,
+    () => safeNota.length > 0 || safeSeries > 0 || safeReps > 0 || safePeso > 0,
     [safeNota, safeSeries, safeReps, safePeso]
   );
 
-  const cardBgDark = "#020617";
-  const cardBorderDark = "rgba(148,163,184,0.35)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#9ca3af";
-
   if (!shouldRender) return null;
+  // ── Fin lógica original ───────────────────────────────────────────────────
+
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
 
   return (
     <View
-      className="w-full max-w-[520px] my-4"
-      accessibilityRole="summary"
+      style={styles.root}
+      // FIX: "summary" no es rol válido en RN — corregido a "none"
+      accessibilityRole="none"
       accessibilityLabel="Nota de la IA con sugerencias"
     >
       <View
-        className="rounded-2xl px-4 py-3"
-        style={{
-          backgroundColor: isDark ? cardBgDark : "#ffffff",
-          borderWidth: 1,
-          borderColor: isDark ? cardBorderDark : "#e5e7eb",
-        }}
+        style={[
+          styles.card,
+          {
+            backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+          },
+        ]}
       >
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-2">
-          <View className="flex-row items-center gap-2">
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            {/* Icono */}
             <View
-              className="h-7 w-7 rounded-full items-center justify-center"
-              style={{
-                backgroundColor: isDark
-                  ? "rgba(34,197,94,0.12)"
-                  : "rgba(22,163,74,0.06)",
-              }}
+              style={[
+                styles.iconWrap,
+                { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+              ]}
             >
-              <Lightbulb size={18} color="#22c55e" />
+              <Lightbulb size={16} color={tokens.color.iconColor} strokeWidth={2} />
             </View>
-            <Text
-              className="text-[14px] font-semibold"
-              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-            >
+
+            <Text style={[styles.title, { color: textPrimary }]}>
               Nota de la IA
             </Text>
           </View>
 
-          <Text
-            className="text-[11px]"
-            style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
+          {/* Pill "Sugerencia" */}
+          <View
+            style={[
+              styles.pill,
+              {
+                backgroundColor: isDark ? "rgba(34,197,94,0.08)" : "rgba(22,163,74,0.06)",
+                borderColor: isDark ? "rgba(34,197,94,0.20)" : "rgba(22,163,74,0.15)",
+              },
+            ]}
           >
-            Sugerencia
-          </Text>
+            <Text style={[styles.pillText, { color: tokens.color.iconColor }]}>
+              Sugerencia
+            </Text>
+          </View>
         </View>
 
-        {/* Texto de la nota */}
-        {safeNota.length > 0 ? (
-          <Text
-            className="text-[13px] leading-relaxed"
-            style={{
-              color: isDark ? textPrimaryDark : "#111827",
-              fontStyle: "italic",
-            }}
-          >
-            {safeNota}
-          </Text>
-        ) : (
-          <Text
-            className="text-[13px] leading-relaxed"
-            style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
-          >
-            Sin nota por ahora.
-          </Text>
-        )}
-
-        {/* Métricas */}
-        <View
-          className="mt-3 pt-2 flex-row flex-wrap gap-x-4 gap-y-1 border-t"
-          style={{
-            borderTopColor: isDark
-              ? "rgba(31,41,55,1)"
-              : "rgba(229,231,235,1)",
-          }}
+        {/* ── Texto de la nota ─────────────────────────────────────────────── */}
+        <Text
+          style={[
+            styles.nota,
+            {
+              color: safeNota.length > 0
+                ? isDark ? tokens.color.notaDark : tokens.color.notaLight
+                : textSecondary,
+              fontStyle: safeNota.length > 0 ? "italic" : "normal",
+            },
+          ]}
         >
-          <MetaItem
-            label="Series"
-            value={String(safeSeries)}
-            isDark={isDark}
-          />
+          {safeNota.length > 0 ? safeNota : "Sin nota por ahora."}
+        </Text>
+
+        {/* ── Métricas ─────────────────────────────────────────────────────── */}
+        <View
+          style={[
+            styles.metricsRow,
+            { borderTopColor: isDark ? tokens.color.dividerDark : tokens.color.dividerLight },
+          ]}
+        >
+          <MetaItem label="Series" value={String(safeSeries)} isDark={isDark} />
 
           {isCardio ? (
-            // 👇 cardio: interpretamos repeticiones como tiempo por serie
             <MetaItem
               label="Tiempo/serie"
               value={safeReps > 0 ? `${safeReps} s` : "—"}
               isDark={isDark}
             />
           ) : (
-            <MetaItem
-              label="Reps"
-              value={String(safeReps)}
-              isDark={isDark}
-            />
+            <MetaItem label="Reps" value={String(safeReps)} isDark={isDark} />
           )}
 
-          {/* peso puede tener sentido en cardio (ej. assault bike con carga) → lo dejamos si hay valor */}
           {safePeso > 0 && (
-            <MetaItem
-              label="Peso"
-              value={`${safePeso} ${medidaPeso}`}
-              isDark={isDark}
-            />
+            <MetaItem label="Peso" value={`${safePeso} ${medidaPeso}`} isDark={isDark} />
           )}
         </View>
       </View>
@@ -160,31 +161,108 @@ export default function NotaIA({
   );
 }
 
-function MetaItem({
-  label,
-  value,
-  isDark,
-}: {
-  label: string;
-  value: string;
-  isDark: boolean;
-}) {
-  const safeValue = value ?? "";
-
+// ── MetaItem ──────────────────────────────────────────────────────────────────
+function MetaItem({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
   return (
-    <View className="flex-row items-baseline gap-1">
-      <Text
-        className="text-[11px]"
-        style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
-      >
-        {label}:
+    <View style={styles.metaItem}>
+      <Text style={[styles.metaLabel, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+        {label}
       </Text>
-      <Text
-        className="text-[12px] font-semibold"
-        style={{ color: isDark ? "#e5e7eb" : "#111827" }}
-      >
-        {safeValue}
+      <Text style={[styles.metaValue, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+        {value ?? "—"}
       </Text>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: {
+    width: "100%",
+    maxWidth: 520,
+    marginVertical: tokens.spacing.md,
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
+    // Sombra sutil
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: tokens.spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: tokens.radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+
+  // Pill "Sugerencia" — reemplaza el Text plano del original
+  pill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+  },
+  pillText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+
+  // Texto nota
+  nota: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: tokens.spacing.sm,
+  },
+
+  // Fila de métricas
+  metricsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: tokens.spacing.sm,
+    marginTop: tokens.spacing.xs,
+  },
+
+  // MetaItem
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  metaValue: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+});

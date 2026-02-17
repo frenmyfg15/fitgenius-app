@@ -2,6 +2,15 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+export type StripeStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "unpaid";
+
 export type UsuarioLogin = {
   id: number;
   nombre: string;
@@ -35,9 +44,14 @@ export type UsuarioLogin = {
 
   caloriasMes: number;
 
-  // Nuevos campos
   rutinasManualCreadas: number;
   rutinasIACreadas: number;
+
+  // ✅ Stripe no sensible
+  stripeStatus?: StripeStatus;
+  stripeCurrentPeriodEnd?: string; // ISO string
+  stripeCancelAtPeriodEnd?: boolean;
+  stripeTrialEndsAt?: string; // ISO string
 };
 
 export type PerfilFormData = {
@@ -59,15 +73,12 @@ type UsuarioStore = {
   setUsuario: (usuario: UsuarioLogin | null) => void;
   logout: () => void;
 
-  // Persistencia
   rehydrated: boolean;
   setRehydrated: () => void;
 
-  // Update
   updatePerfil: (data: PerfilFormData) => void;
 };
 
-// ❌ sin isPremium en el store
 export const useUsuarioStore = create<UsuarioStore>()(
   persist(
     (set, get) => ({
@@ -109,8 +120,7 @@ export const useUsuarioStore = create<UsuarioStore>()(
         if (error) console.warn("Hydration error:", error);
         state?.setRehydrated();
       },
-      version: 1,
+      version: 2,
     }
   )
 );
-

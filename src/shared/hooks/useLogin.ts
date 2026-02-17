@@ -77,6 +77,8 @@ export const useLogin = () => {
     try {
       const { token: firebaseIdToken } = await loginConGoogleNativo();
       const res = await loginUsuarioGoogle(firebaseIdToken);
+      console.log(res.usuario);
+
       setUsuario(res?.usuario ?? res);
       // Sin Toast de éxito
     } catch (err) {
