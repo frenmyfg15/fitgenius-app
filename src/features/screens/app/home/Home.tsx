@@ -45,28 +45,23 @@ type DiaNombre =
   | "DOMINGO";
 
 type Ejercicio = {
-  id: number; // 👈 importante: este id debe ser el mismo que viene en completadosPorFecha
-  completadoHoy?: boolean; // lo “hidratamos” según selectedYMD
+  id: number;
+  completadoHoy?: boolean;
 };
 
 type RutinaDia = {
   id?: number;
   diaSemana: DiaNombre;
   ejercicios: Ejercicio[];
-  completadoHoy?: boolean; // opcional: también lo puedes hidratar
+  completadoHoy?: boolean;
 };
 
 type RutinaResp = {
   id?: number;
   dias?: RutinaDia[];
 
-  // día completado (full day)
   fechasCompletadas?: string[];
-
-  // ✅ completados por fecha: { "YYYY-MM-DD": [ids...] }
   completadosPorFecha?: Record<string, number[]>;
-
-  // ✅ completados por asignación: { "id": ["YYYY-MM-DD", ...] }
   completadosPorAsignacion?: Record<string, string[]>;
 };
 
@@ -97,6 +92,24 @@ const toMadridYMD = (() => {
   return (d: Date) => fmt.format(d);
 })();
 
+// semana (lunes→domingo) basada en una fecha (LOCAL JS date)
+// nota: esto es solo para diagnosticar qué semana “podría” estar mostrando Calendar
+const getWeekMonday = (d: Date) => {
+  const day = d.getDay(); // 0=domingo
+  const mondayOffset = (day + 6) % 7; // lunes=0
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - mondayOffset);
+  monday.setHours(12, 0, 0, 0);
+  return monday;
+};
+const addDays = (d: Date, n: number) => {
+  const x = new Date(d);
+  x.setDate(d.getDate() + n);
+  return x;
+};
+
+const isYMD = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
 // ── Screen ───────────────────────────────────────────────────────────────────
 export default function Home() {
   const { colorScheme } = useColorScheme();
@@ -117,29 +130,84 @@ export default function Home() {
   const lastKeyRef = useRef<string | null>(null);
   const inflightRef = useRef<Promise<any> | null>(null);
 
+  // ── LOG: render y valores clave ─────────────────────────────────────────────
+  useEffect(() => {
+    console.log("[Home][render]", {
+      rutinaActivaId: usuario?.rutinaActivaId,
+      routineRev,
+      workoutRev,
+      dia,
+      selectedYMD,
+      hoyMadrid: toMadridYMD(new Date()),
+      tieneRutina: !!rutina,
+      fechasCompletadasCount: rutina?.fechasCompletadas?.length ?? 0,
+      completadosPorFechaKeys: Object.keys(rutina?.completadosPorFecha ?? {}).length,
+    });
+  }, [usuario?.rutinaActivaId, routineRev, workoutRev, dia, selectedYMD, rutina]);
+
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
+
+      console.log("[Home] fetchRutina()", { force, id, routineRev, workoutRev });
+
       if (!id) {
+        console.log("[Home] no rutinaActivaId -> setRutina(null)");
         setRutina(null);
         return;
       }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
-      if (!force && lastKeyRef.current === key) return;
+      console.log("[Home] computed key", { key, lastKey: lastKeyRef.current });
+
+      if (!force && lastKeyRef.current === key) {
+        console.log("[Home] skip fetch (key igual, force=false)");
+        return;
+      }
       lastKeyRef.current = key;
 
       const cached = rutinaCache.get(id);
-      if (cached && !force) setRutina(cached);
+      console.log("[Home] cache get", {
+        tieneCache: !!cached,
+        cache_fechasCompletadas: cached?.fechasCompletadas?.slice?.(0, 10),
+        cache_completadosPorFecha_keys: Object.keys(cached?.completadosPorFecha ?? {}).slice(0, 10),
+      });
+
+      if (cached && !force) {
+        console.log("[Home] setRutina(cached)");
+        setRutina(cached);
+      }
 
       try {
         if (!force) setLoading(true);
 
+        if (inflightRef.current) {
+          console.log("[Home] inflight existente (no se cancela)");
+        }
+
         const p = obtenerRutina(id)
           .then((data) => {
+            console.log("[Home] obtenerRutina RAW (resumen)", {
+              tieneData: !!data,
+              fechasCompletadas: (data as any)?.fechasCompletadas,
+              completadosPorFecha_keys: Object.keys((data as any)?.completadosPorFecha ?? {}),
+              completadosPorFecha_sample: Object.entries((data as any)?.completadosPorFecha ?? {}).slice(0, 3),
+            });
+
             const rutinaResp = (data ?? null) as RutinaResp | null;
+
+            console.log("[Home] rutina normalizada", {
+              tieneRutina: !!rutinaResp,
+              fechasCompletadasCount: rutinaResp?.fechasCompletadas?.length ?? 0,
+              fechasCompletadasSample: rutinaResp?.fechasCompletadas?.slice?.(0, 10),
+              completadosPorFechaKeysCount: Object.keys(rutinaResp?.completadosPorFecha ?? {}).length,
+            });
+
             setRutina(rutinaResp);
-            if (rutinaResp) rutinaCache.set(id, rutinaResp);
+            if (rutinaResp) {
+              rutinaCache.set(id, rutinaResp);
+              console.log("[Home] cache set OK", { id });
+            }
           })
           .catch((err) => console.error("[Home] obtenerRutina error", err))
           .finally(() => {
@@ -149,7 +217,9 @@ export default function Home() {
 
         inflightRef.current = p;
         await p;
-      } catch { }
+      } catch (e) {
+        console.log("[Home] fetchRutina try/catch", e);
+      }
     },
     [usuario?.rutinaActivaId, routineRev, workoutRev, rutinaCache]
   );
@@ -159,65 +229,92 @@ export default function Home() {
   }, [fetchRutina]);
 
   const onRefresh = useCallback(async () => {
+    console.log("[Home] onRefresh()");
     setRefreshing(true);
     try {
       await fetchRutina(true);
     } finally {
       setRefreshing(false);
+      console.log("[Home] onRefresh() end");
     }
   }, [fetchRutina]);
 
-  // Calendar actual: manda (diaNum, diaNombre, mes, año)
+  // devolverDato del Calendar: d = "YYYY-MM-DD"
   const devolver = useCallback((d: string, diaNombre: string) => {
-    setDia(normalizeEnum(diaNombre));
+    const normalized = normalizeEnum(diaNombre);
+    setDia(normalized);
 
-    // d debería venir como "YYYY-MM-DD" desde Calendar
-    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-      setSelectedYMD(d);
-    } else {
-      // fallback seguro (por si Calendar manda otro formato)
-      setSelectedYMD(toMadridYMD(new Date()));
-    }
+    const ok = typeof d === "string" && isYMD(d);
+    const next = ok ? d : toMadridYMD(new Date());
+    setSelectedYMD(next);
+
+    console.log("[Home] Calendar devolverDato()", {
+      raw: { d, diaNombre },
+      normalizedDia: normalized,
+      okYMD: ok,
+      selectedYMD_next: next,
+      hoyMadrid: toMadridYMD(new Date()),
+    });
   }, []);
 
-  const totalEjercicios = useMemo(
-    () => rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0,
-    [rutina, dia]
-  );
+  const totalEjercicios = useMemo(() => {
+    const total = rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
+    console.log("[Home] totalEjercicios", { dia, total });
+    return total;
+  }, [rutina, dia]);
 
-  // ✅ Para el punto verde del calendario (día completado)
+  // ✅ completadasMap (día marcado) + diagnósticos
   const completadasMap = useMemo(() => {
     const map: Record<string, boolean> = {};
 
-    // 1) días completados al 100%
-    for (const ymd of rutina?.fechasCompletadas ?? []) {
-      map[ymd] = true;
-    }
+    const full = rutina?.fechasCompletadas ?? [];
+    for (const ymd of full) map[ymd] = true;
 
-    // 2) días con al menos 1 ejercicio completado
     const porFecha = rutina?.completadosPorFecha ?? {};
     for (const [ymd, ids] of Object.entries(porFecha)) {
       if (Array.isArray(ids) && ids.length > 0) map[ymd] = true;
     }
 
-    return map;
-  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha]);
+    // ── LOG: claves y chequeo de “lunes” ────────────────────────────────────
+    const keys = Object.keys(map).sort();
+    const mondayThisWeek = (() => {
+      const monday = getWeekMonday(new Date());
+      return toMadridYMD(monday);
+    })();
 
-  /**
-   * ✅ FIX CLAVE:
-   * “Hidratamos” rutina.dias[].ejercicios[].completadoHoy en base a selectedYMD
-   * usando completadosPorFecha (o fallback con completadosPorAsignacion).
-   *
-   * Así TarjetaHome vuelve a poder marcar checks por ejercicio aunque el backend ya
-   * no lo meta dentro de cada ejercicio.
-   */
+    const weekRange = (() => {
+      const monday = getWeekMonday(new Date());
+      const arr = Array.from({ length: 7 }, (_, i) => toMadridYMD(addDays(monday, i)));
+      return { monday: arr[0], sunday: arr[6], days: arr };
+    })();
+
+    console.log("[Home] completadasMap build", {
+      fechasCompletadasCount: full.length,
+      completadosPorFechaKeysCount: Object.keys(porFecha).length,
+      mapKeysCount: keys.length,
+      mapKeysSample: keys.slice(0, 12),
+      mondayThisWeek,
+      mondayThisWeekMarked: !!map[mondayThisWeek],
+      weekVisible_guess: weekRange, // 👈 esto te dirá si “ese lunes” está fuera
+    });
+
+    // si el usuario selecciona una fecha, comprobamos si está marcada
+    console.log("[Home] selectedYMD in completadasMap?", {
+      selectedYMD,
+      marked: !!map[selectedYMD],
+      completadosPorFecha_selected: rutina?.completadosPorFecha?.[selectedYMD] ?? [],
+    });
+
+    return map;
+  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha, selectedYMD]);
+
+  // Hidratación ejercicios
   const rutinaHidratada = useMemo(() => {
     if (!rutina?.dias) return rutina;
 
-    // Preferimos completadosPorFecha porque es directo por día
     const idsCompletadosEnFecha = new Set<number>(rutina.completadosPorFecha?.[selectedYMD] ?? []);
-
-    const usarAsignacionFallback = idsCompletadosEnFecha.size === 0 && !!rutina.completadosPorAsignacion;
+    const usarAsignacionFallback =
+      idsCompletadosEnFecha.size === 0 && !!rutina.completadosPorAsignacion;
 
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => {
@@ -229,25 +326,31 @@ export default function Home() {
           const fechas = rutina.completadosPorAsignacion?.[String(e.id)] ?? [];
           completado = fechas.includes(selectedYMD);
         } else {
-          // si no hay mapas, respetamos lo que venga (por compat)
           completado = !!e.completadoHoy;
         }
 
         return { ...e, completadoHoy: completado };
       });
 
-      // opcional: completar el flag del día si TODOS los ejercicios están completos
-      const diaCompleto =
-        ejerciciosH.length > 0 ? ejerciciosH.every((e) => !!e.completadoHoy) : false;
-
+      const diaCompleto = ejerciciosH.length > 0 ? ejerciciosH.every((e) => !!e.completadoHoy) : false;
       return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
     });
 
-    // Logs útiles (puedes quitarlos luego)
-    console.log("[Home] rutinaHidratada", {
+    // ── LOG: diagnóstico id mismatch ─────────────────────────────────────────
+    const diaSel = diasH.find((x) => x.diaSemana === dia);
+    const idsEjerciciosDia = (diaSel?.ejercicios ?? []).map((e) => e.id);
+    const idsCompletadosArr = Array.from(idsCompletadosEnFecha);
+
+    console.log("[Home] rutinaHidratada diag", {
       selectedYMD,
-      completadosPorFecha: rutina.completadosPorFecha?.[selectedYMD] ?? [],
-      ejemploDia: diasH.find((x) => x.diaSemana === dia)?.ejercicios?.slice?.(0, 5),
+      dia,
+      idsCompletadosEnFecha: idsCompletadosArr,
+      idsEjerciciosDia_sample: idsEjerciciosDia.slice(0, 15),
+      hayInterseccion:
+        idsCompletadosArr.length > 0
+          ? idsCompletadosArr.some((x) => idsEjerciciosDia.includes(x))
+          : null,
+      usandoFallbackAsignacion: usarAsignacionFallback,
     });
 
     return { ...rutina, dias: diasH };
@@ -272,20 +375,16 @@ export default function Home() {
         />
       }
     >
-      {/* Calendario */}
       <View style={styles.calendarWrapper}>
         <Calendar devolverDato={devolver} completadas={completadasMap} />
       </View>
 
-      {/* Resumen */}
       {rutinaHidratada && <Extra ejercicios={totalEjercicios} />}
 
-      {/* Tarjeta del día */}
       <View style={styles.cardWrapper}>
         <TarjetaHome rutina={rutinaHidratada as any} dia={dia} selectedYMD={selectedYMD} />
       </View>
 
-      {/* Estado vacío */}
       {!usuario?.rutinaActivaId && (
         <View style={styles.emptyWrapper}>
           <MensajeVacio
