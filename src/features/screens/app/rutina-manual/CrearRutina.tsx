@@ -91,13 +91,26 @@ export default function CrearRutinaScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: h.ui.bg, position: "relative" }}>
-      {/* Utilizamos un ScrollView principal para que el Banner y el Selector de días 
-         también se desplacen. Se añade un paddingBottom amplio para los controles.
+
+      {/*
+        ─── ARQUITECTURA DE SCROLL ──────────────────────────────────────────────
+        El problema era que DiaRutinaView (DraggableFlatList) estaba dentro de un
+        ScrollView padre en el mismo eje vertical. Dos scroll containers anidados
+        compiten por los gestos y el FlatList interno nunca recibe el scroll.
+
+        Solución: separar la pantalla en dos zonas con flexbox:
+          1. ScrollView estático → solo banner de edición + selector de días
+          2. DiaRutinaView con flex:1 → ocupa el espacio restante sin anidarse
+        ─────────────────────────────────────────────────────────────────────────
       */}
+
+      {/* ZONA 1 — Contenido estático (banner + selector días) */}
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 160 }}
+        style={{ flexGrow: 0, flexShrink: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
+        // Solo scrollea si el contenido desborda (banner largo + muchos días)
+        scrollEnabled={true}
       >
         {/* Banner edición */}
         {h.isEdit ? (
@@ -180,7 +193,7 @@ export default function CrearRutinaScreen() {
             justifyContent: "center",
             gap: 10,
             paddingVertical: 10,
-            marginBottom: 16,
+            marginBottom: 8,
           }}
         >
           {h.DIAS.map((d) => {
@@ -246,8 +259,11 @@ export default function CrearRutinaScreen() {
             );
           })}
         </View>
+      </ScrollView>
 
-        {/* DiaRutinaView: Ahora dentro de la ScrollView general */}
+      {/* ZONA 2 — Lista de ejercicios: flex:1 para ocupar el espacio restante */}
+      {/* DiaRutinaView contiene DraggableFlatList directamente, sin ScrollView padre */}
+      <View style={{ flex: 1, minHeight: 0 }}>
         <DiaRutinaView
           dia={h.diaSelect}
           ejercicios={h.ejerciciosDia}
@@ -286,7 +302,7 @@ export default function CrearRutinaScreen() {
             h.setSelectedIndex(idx >= 0 ? idx : null);
           }}
         />
-      </ScrollView>
+      </View>
 
       {/* ✅ Modal Chat */}
       <RutinaQuestionModal
@@ -305,7 +321,6 @@ export default function CrearRutinaScreen() {
             h.setCompuestoTemporal([]);
           }}
           onConfirmar={h.confirmarCompuesto}
-          // 👇 nuevo: para que el sheet no moleste cuando abres el form
           disabled={h.mostrarFormularioCompuesto || !!h.ejercicioEnCompuestoActual}
         />
       )}
@@ -487,7 +502,6 @@ export default function CrearRutinaScreen() {
         />
       ) : null}
 
-
       {h.mostrarFormularioCompuesto ? (
         <FormularioCompuesto
           visible={h.mostrarFormularioCompuesto}
@@ -503,18 +517,15 @@ export default function CrearRutinaScreen() {
                   ejercicioId: e.id,
                   orden: i + 1,
                   ejercicioInfo: e.info,
-
                   seriesSugeridas: d.seriesSugeridas,
                   repeticionesSugeridas: d.repeticionesSugeridas,
                   pesoSugerido: d.pesoSugerido,
-                  descansoSeg: 0, // dentro del bloque, el descanso lo gestionas con descansoCompuesto
+                  descansoSeg: 0,
                   notaIA: d.notaIA,
-
                   ejercicioCompuestoId: compuestoId,
                 } as any;
               });
 
-            // ✅ IMPORTANTE: si por lo que sea llega vacío, no dispares "añadido"
             if (ejerciciosCompuestos.length === 0) {
               h.Toast.show({
                 type: "error",
