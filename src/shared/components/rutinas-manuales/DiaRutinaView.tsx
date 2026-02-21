@@ -236,7 +236,7 @@ export default function DiaRutinaView({
   }
 
   return (
-    <View style={{ width: "100%", marginTop: 16, flex: 1, minHeight: 0 }}>
+    <View style={{ width: "100%", marginTop: 16, flex: 1, minHeight: 0, }}>
       <DraggableFlatList
         data={data}
         keyExtractor={getStableKey}
@@ -248,6 +248,7 @@ export default function DiaRutinaView({
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         showsVerticalScrollIndicator={false}
       />
+      <View style={{ height: 130, width: 100 }} />
     </View>
   );
 }
