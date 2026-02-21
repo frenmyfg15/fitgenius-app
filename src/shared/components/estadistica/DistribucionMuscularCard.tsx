@@ -1,6 +1,6 @@
-// src/features/premium/DistribucionMuscularCard.tsx
+// File: src/features/premium/DistribucionMuscularCard.tsx
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
@@ -13,6 +13,65 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    // Frame gradient (FIX: 2 colores)
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
+
+    // Card interior
+    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    // Radar chart
+    radarGridDark: "rgba(148,163,184,0.12)",
+    radarGridLight: "rgba(15,23,42,0.07)",
+    radarAxisDark: "rgba(148,163,184,0.20)",
+    radarAxisLight: "rgba(15,23,42,0.10)",
+    radarFillDark: ["rgba(34,197,94,0.28)", "rgba(168,85,247,0.24)"] as string[],
+    radarFillLight: ["rgba(34,197,94,0.18)", "rgba(168,85,247,0.16)"] as string[],
+    radarStroke: ["#00FF40", "#B200FF"] as string[],
+    dotStrokeDark: "#080D17",
+    dotStrokeLight: "#FFFFFF",
+
+    // Empty state
+    emptyIconBgDark: "rgba(255,255,255,0.08)",
+    emptyIconBgLight: "#E2E8F0",
+    emptyBorderDark: "rgba(255,255,255,0.08)",
+    emptyBorderLight: "rgba(0,0,0,0.06)",
+
+    // Texto
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#94A3B8",
+    textMutedLight: "#475569",
+  },
+  radius: { lg: 16, md: 12, sm: 8 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+// ── Paleta pastel para grupos musculares ──────────────────────────────────────
+const PASTEL_COLORS = [
+  "#A5B4FC", "#F9A8D4", "#6EE7B7", "#FDE68A", "#BFDBFE",
+  "#FCA5A5", "#FED7AA", "#7DD3FC", "#C4B5FD", "#BBF7D0",
+] as const;
+
+function getColorForGroup(grupoMuscular: string, index: number): string {
+  const base = grupoMuscular || "";
+  let hash = 0;
+  for (let i = 0; i < base.length; i++) {
+    hash = (hash + base.charCodeAt(i) * 17) | 0;
+  }
+  const idx = Math.abs(hash) % PASTEL_COLORS.length;
+  const finalIdx = (idx + index) % PASTEL_COLORS.length;
+  return PASTEL_COLORS[finalIdx];
+}
+
+// ── Tipos — API pública sin cambios ───────────────────────────────────────────
 type DistribucionItem = {
   grupoMuscular: string;
   porcentaje: number;
@@ -22,7 +81,7 @@ type Props = {
   distribucion: DistribucionItem[];
 };
 
-/* ---------- Utilidades de normalización ---------- */
+// ── Utils — sin cambios ───────────────────────────────────────────────────────
 function normalizeDistribucion(src: DistribucionItem[]) {
   const clean = (src ?? [])
     .filter((d) => d && typeof d.grupoMuscular === "string")
@@ -41,130 +100,57 @@ function normalizeDistribucion(src: DistribucionItem[]) {
     porcentaje: Math.min(100, p),
   }));
 
-  // Limita a las 10 más altas
   return arr.sort((a, b) => b.porcentaje - a.porcentaje).slice(0, 10);
 }
 
-/* ---------- Paleta pastel por grupo muscular ---------- */
-
-// Colores pastel suaves, pensados para que todos sean distinguibles
-const PASTEL_COLORS = [
-  "#a5b4fc", // lila suave
-  "#f9a8d4", // rosa pastel
-  "#6ee7b7", // verde menta
-  "#fde68a", // amarillo suave
-  "#bfdbfe", // azul pastel
-  "#fca5a5", // rojo suave
-  "#fed7aa", // naranja suave
-  "#7dd3fc", // celeste
-  "#c4b5fd", // violeta pastel
-  "#bbf7d0", // verde muy claro
-] as const;
-
-/**
- * Asigna un color pastel estable a cada grupo muscular.
- * Usa un hash simple del nombre + fallback por índice.
- */
-function getColorForGroup(grupoMuscular: string, index: number): string {
-  const base = grupoMuscular || "";
-  let hash = 0;
-  for (let i = 0; i < base.length; i++) {
-    hash = (hash + base.charCodeAt(i) * 17) | 0;
-  }
-  const idx = Math.abs(hash) % PASTEL_COLORS.length;
-  // mezclar un poco con el índice para que grupos con nombre parecido no caigan igual
-  const finalIdx = (idx + index) % PASTEL_COLORS.length;
-  return PASTEL_COLORS[finalIdx];
-}
-
-/* ---------- Componente principal ---------- */
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function DistribucionMuscularCard({ distribucion }: Props) {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  // 🎨 Paleta & glass (consistente con otras cards)
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBgDarkA = "rgba(20,28,44,0.85)";
-  const cardBgDarkB = "rgba(9,14,24,0.9)";
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
 
   const data = useMemo(() => normalizeDistribucion(distribucion), [distribucion]);
   const hasData = data.length > 0;
   const top = hasData ? data[0] : null;
+  // ── Fin lógica original ───────────────────────────────────────────────────
 
   return (
-    <View className="w-full max-w-[520px]">
-      {/* Marco degradado (borde) */}
+    <View style={styles.root}>
       <LinearGradient
-        colors={marcoGradient as any}
+        colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {/* Fondo glassy en dark / blanco en light */}
-        {isDark ? (
-          <LinearGradient
-            colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorderDark,
-              overflow: "hidden",
-            }}
-          >
-            <CardBody
-              isDark
-              data={data}
-              top={top}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-          </LinearGradient>
-        ) : (
-          <View
-            className="rounded-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            <CardBody
-              isDark={false}
-              data={data}
-              top={top}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-          </View>
-        )}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          <CardBody isDark={isDark} data={data} top={top} />
+        </View>
       </LinearGradient>
     </View>
   );
 }
 
-/* ---------- Cuerpo principal ---------- */
+// ── CardBody ──────────────────────────────────────────────────────────────────
 function CardBody({
-  isDark,
-  data,
-  top,
-  textPrimaryDark,
-  textSecondaryDark,
+  isDark, data, top,
 }: {
   isDark: boolean;
   data: { grupoMuscular: string; porcentaje: number }[];
   top: { grupoMuscular: string; porcentaje: number } | null;
-  textPrimaryDark: string;
-  textSecondaryDark: string;
 }) {
   const hasData = data.length > 0;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
 
-  // Enriquecer data con color pastel por grupo muscular
   const coloredData = useMemo(
     () =>
       data.map((item, index) => ({
@@ -175,44 +161,30 @@ function CardBody({
   );
 
   return (
-    <View className="relative rounded-2xl">
+    <View style={styles.cardBody}>
       {/* Header */}
-      <View className="px-5 pt-5 pb-3 flex-row items-center justify-between">
+      <View style={styles.header}>
         <View>
-          <Text
-            className="text-base font-semibold"
-            style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-          >
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>
             Distribución muscular
           </Text>
-          <Text
-            className="text-xs"
-            style={{ color: isDark ? textSecondaryDark : "#64748b" }}
-          >
+          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
             Reparto porcentual por grupo
           </Text>
         </View>
-        {top ? (
-          <Text
-            className="text-xs"
-            style={{ color: isDark ? "#cbd5e1" : "#475569" }}
-            numberOfLines={1}
-          >
+
+        {top && (
+          <Text numberOfLines={1} style={[styles.headerTop, { color: textMuted }]}>
             Principal:{" "}
-            <Text
-              style={{
-                color: isDark ? textPrimaryDark : "#0f172a",
-                fontWeight: "600",
-              }}
-            >
+            <Text style={{ color: textPrimary, fontWeight: "600" }}>
               {top.grupoMuscular}
             </Text>
           </Text>
-        ) : null}
+        )}
       </View>
 
-      {/* Contenido principal */}
-      <View className="px-4 pb-5">
+      {/* Contenido */}
+      <View style={styles.content}>
         {hasData ? (
           <>
             <RadarChart data={coloredData} isDark={isDark} />
@@ -226,21 +198,14 @@ function CardBody({
   );
 }
 
-/* ---------- RadarChart (SVG puro) ---------- */
-
+// ── RadarChart ────────────────────────────────────────────────────────────────
 type RadarDataItem = {
   grupoMuscular: string;
   porcentaje: number;
   color: string;
 };
 
-function RadarChart({
-  data,
-  isDark,
-}: {
-  data: RadarDataItem[];
-  isDark: boolean;
-}) {
+function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }) {
   const size = 260;
   const cx = size / 2;
   const cy = size / 2;
@@ -250,12 +215,10 @@ function RadarChart({
   const n = Math.max(3, data.length);
   const rings = 5;
 
-  const gridStroke = isDark
-    ? "rgba(148,163,184,0.15)"
-    : "rgba(15,23,42,0.08)";
-  const axisStroke = isDark
-    ? "rgba(148,163,184,0.25)"
-    : "rgba(15,23,42,0.12)";
+  const gridStroke = isDark ? tokens.color.radarGridDark : tokens.color.radarGridLight;
+  const axisStroke = isDark ? tokens.color.radarAxisDark : tokens.color.radarAxisLight;
+  const dotStroke = isDark ? tokens.color.dotStrokeDark : tokens.color.dotStrokeLight;
+  const radarFill = isDark ? tokens.color.radarFillDark : tokens.color.radarFillLight;
 
   const angleAt = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2;
   const point = (rNorm: number, i: number) => {
@@ -287,7 +250,7 @@ function RadarChart({
   const dataPolygon = dataPoints.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
-    <View className="items-center">
+    <View style={styles.radarWrapper}>
       <Svg
         width={size}
         height={size}
@@ -297,22 +260,12 @@ function RadarChart({
       >
         <Defs>
           <SvgLinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
-            <Stop
-              offset="0%"
-              stopColor={
-                isDark ? "rgba(34,197,94,0.32)" : "rgba(34,197,94,0.22)"
-              }
-            />
-            <Stop
-              offset="100%"
-              stopColor={
-                isDark ? "rgba(168,85,247,0.28)" : "rgba(168,85,247,0.20)"
-              }
-            />
+            <Stop offset="0%" stopColor={radarFill[0]} />
+            <Stop offset="100%" stopColor={radarFill[1]} />
           </SvgLinearGradient>
           <SvgLinearGradient id="radarStroke" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#00ff40" />
-            <Stop offset="100%" stopColor="#b200ff" />
+            <Stop offset="0%" stopColor={tokens.color.radarStroke[0]} />
+            <Stop offset="100%" stopColor={tokens.color.radarStroke[1]} />
           </SvgLinearGradient>
         </Defs>
 
@@ -349,15 +302,15 @@ function RadarChart({
             strokeWidth={2.5}
           />
 
-          {/* Puntos coloreados por grupo muscular */}
+          {/* Puntos por grupo */}
           {dataPoints.map((p, idx) => (
             <SvgCircle
               key={`dp-${idx}`}
               cx={p.x}
               cy={p.y}
               r={4}
-              fill={data[idx]?.color || (isDark ? "#e5e7eb" : "#0f172a")}
-              stroke={isDark ? "#020617" : "#ffffff"}
+              fill={data[idx]?.color}
+              stroke={dotStroke}
               strokeWidth={1.2}
             />
           ))}
@@ -367,37 +320,21 @@ function RadarChart({
   );
 }
 
-/* ---------- Leyenda inferior ---------- */
-function Legend({
-  data,
-  isDark,
-}: {
-  data: RadarDataItem[];
-  isDark: boolean;
-}) {
+// ── Legend ────────────────────────────────────────────────────────────────────
+function Legend({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textMuted = isDark ? tokens.color.textMutedLight : tokens.color.textMutedLight;
+
   return (
-    <View className="mt-3">
-      <View className="flex-row flex-wrap justify-between">
+    <View style={styles.legend}>
+      <View style={styles.legendGrid}>
         {data.map((item) => (
-          <View
-            key={item.grupoMuscular}
-            className="flex-row items-center mb-2 w-[48%]"
-          >
-            <View
-              className="h-2.5 w-2.5 rounded-full mr-2"
-              style={{ backgroundColor: item.color }}
-            />
-            <Text
-              className="text-xs flex-1"
-              style={{ color: isDark ? "#e5e7eb" : "#334155" }}
-              numberOfLines={1}
-            >
+          <View key={item.grupoMuscular} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+            <Text numberOfLines={1} style={[styles.legendLabel, { color: textMuted }]}>
               {item.grupoMuscular}
             </Text>
-            <Text
-              className="text-xs font-semibold ml-2"
-              style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
-            >
+            <Text style={[styles.legendValue, { color: textPrimary }]}>
               {item.porcentaje.toFixed(1)}%
             </Text>
           </View>
@@ -407,38 +344,145 @@ function Legend({
   );
 }
 
-
-/* ---------- Vacío / sin datos ---------- */
+// ── EmptyState ────────────────────────────────────────────────────────────────
 function EmptyState({ isDark }: { isDark: boolean }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textMutedLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
+
   return (
     <View
-      className="items-center justify-center py-12 border-t"
-      style={{
-        borderColor: isDark
-          ? "rgba(255,255,255,0.10)"
-          : "rgba(255,255,255,0.60)",
-      }}
+      style={[
+        styles.emptyState,
+        { borderTopColor: isDark ? tokens.color.emptyBorderDark : tokens.color.emptyBorderLight },
+      ]}
     >
       <View
-        className="h-12 w-12 rounded-xl mb-3 items-center justify-center"
-        style={{
-          backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
-        }}
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+        ]}
       >
-        <Text style={{ color: isDark ? "#e5e7eb" : "#94a3b8" }}>⭐️</Text>
+        <Text style={styles.emptyIconText}>⭐️</Text>
       </View>
-      <Text
-        className="text-sm"
-        style={{ color: isDark ? "#e5e7eb" : "#334155" }}
-      >
+      <Text style={[styles.emptyTitle, { color: textPrimary }]}>
         No hay datos de distribución para mostrar.
       </Text>
-      <Text
-        className="text-xs mt-1"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
-      >
+      <Text style={[styles.emptySubtitle, { color: textMuted }]}>
         Completa tus rutinas para ver qué músculos trabajas más.
       </Text>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: { width: "100%", maxWidth: 520 },
+
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  cardBody: {
+    position: "relative",
+    borderRadius: tokens.radius.lg - 1,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: tokens.spacing.xl,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  headerTop: {
+    fontSize: 11,
+  },
+
+  // Content
+  content: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.xl,
+  },
+
+  // Radar
+  radarWrapper: {
+    alignItems: "center",
+  },
+
+  // Legend
+  legend: {
+    marginTop: tokens.spacing.md,
+  },
+  legendGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "48%",
+    marginBottom: tokens.spacing.sm,
+  },
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    marginRight: tokens.spacing.sm,
+  },
+  legendLabel: {
+    flex: 1,
+    fontSize: 12,
+  },
+  legendValue: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: tokens.spacing.sm,
+  },
+
+  // Empty state
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: tokens.spacing.xl + tokens.spacing.md,
+    borderTopWidth: 1,
+  },
+  emptyIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: tokens.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: tokens.spacing.md,
+  },
+  emptyIconText: {
+    fontSize: 24,
+  },
+  emptyTitle: {
+    fontSize: 13,
+  },
+  emptySubtitle: {
+    fontSize: 11,
+    marginTop: tokens.spacing.xs,
+    textAlign: "center",
+  },
+});

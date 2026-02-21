@@ -1,14 +1,76 @@
 // src/shared/components/estadistica/ProgresoSubjetivoEjerciciosCard.tsx
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { TrendingUp } from "lucide-react-native";
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
+
+    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    iconBgDark: "rgba(56,189,248,0.12)",
+    iconBgLight: "rgba(59,130,246,0.08)",
+    iconBlueDark: "#38BDF8",
+    iconBlueLight: "#0284C7",
+
+    trackDark: "rgba(15,23,42,0.9)",
+    trackLight: "#E5E7EB",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#94A3B8",
+    textMutedLight: "#6B7280",
+
+    trendUpTextDark: "#FB7185",
+    trendUpTextLight: "#B91C1C",
+    trendDownTextDark: "#4ADE80",
+    trendDownTextLight: "#15803D",
+
+    trendUpBgDark: "rgba(248,113,113,0.14)",
+    trendUpBgLight: "rgba(254,202,202,0.7)",
+    trendDownBgDark: "rgba(74,222,128,0.12)",
+    trendDownBgLight: "rgba(187,247,208,0.7)",
+    trendStableBgDark: "rgba(148,163,184,0.14)",
+    trendStableBgLight: "rgba(226,232,240,0.7)",
+
+    trendUpBorderDark: "rgba(248,113,113,0.35)",
+    trendUpBorderLight: "rgba(248,113,113,0.8)",
+    trendDownBorderDark: "rgba(74,222,128,0.35)",
+    trendDownBorderLight: "rgba(34,197,94,0.8)",
+    trendStableBorderDark: "rgba(148,163,184,0.4)",
+    trendStableBorderLight: "rgba(148,163,184,0.6)",
+
+    barLow: "#38BDF8",
+    barMid: "#0EA5E9",
+    barHigh: "#0369A1",
+
+    noteBorderDark: "rgba(255,255,255,0.08)",
+    noteBorderLight: "rgba(0,0,0,0.06)",
+
+    emptyIconBgDark: "rgba(56,189,248,0.12)",
+    emptyIconBgLight: "#E0F2FE",
+    emptyTitleDark: "#E5E7EB",
+    emptyTitleLight: "#334155",
+    emptySubtitleDark: "#94A3B8",
+    emptySubtitleLight: "#64748B",
+  },
+  radius: { lg: 16, md: 12, sm: 8 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
 type EjercicioSubjetivo = {
   nombre?: string;
   sesiones?: number;
-  estresMedio?: number; // 1–10
+  estresMedio?: number;
   tendencia?: "sube" | "baja" | "estable";
 };
 
@@ -17,86 +79,36 @@ type Props = {
   ejercicios?: EjercicioSubjetivo[];
 };
 
-const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({
-  diasAnalizados,
-  ejercicios,
-}) => {
+const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({ diasAnalizados, ejercicios }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const hasData =
-    !!ejercicios && Array.isArray(ejercicios) && ejercicios.length > 0;
-
+  const hasData = !!ejercicios && Array.isArray(ejercicios) && ejercicios.length > 0;
   const topEjercicios = hasData ? ejercicios!.slice(0, 5) : [];
 
-  const marcoGradient = [
-    "rgb(0,255,64)",
-    "rgb(94,230,157)",
-    "rgb(178,0,255)",
-  ];
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
   return (
-    <View className="w-full max-w-[520px]">
+    <View style={styles.root}>
       <LinearGradient
-        colors={marcoGradient as any}
+        colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {isDark ? (
-          <LinearGradient
-            colors={[
-              "rgba(20,28,44,0.85)",
-              "rgba(9,14,24,0.9)",
-              "rgba(20,28,44,0.85)",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorderDark,
-              overflow: "hidden",
-            }}
-          >
-            {hasData ? (
-              <CardBody
-                isDark
-                diasAnalizados={diasAnalizados}
-                ejercicios={topEjercicios}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            ) : (
-              <EmptyState isDark />
-            )}
-          </LinearGradient>
-        ) : (
-          <View
-            className="rounded-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            {hasData ? (
-              <CardBody
-                isDark={false}
-                diasAnalizados={diasAnalizados}
-                ejercicios={topEjercicios}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            ) : (
-              <EmptyState isDark={false} />
-            )}
-          </View>
-        )}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          {hasData ? (
+            <CardBody isDark={isDark} diasAnalizados={diasAnalizados} ejercicios={topEjercicios} />
+          ) : (
+            <EmptyState isDark={isDark} />
+          )}
+        </View>
       </LinearGradient>
     </View>
   );
@@ -104,21 +116,19 @@ const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({
 
 export default ProgresoSubjetivoEjerciciosCard;
 
-/* ---------- Subcomponentes ---------- */
-
 function CardBody({
   isDark,
   diasAnalizados,
   ejercicios,
-  textPrimaryDark,
-  textSecondaryDark,
 }: {
   isDark: boolean;
   diasAnalizados?: number;
   ejercicios: EjercicioSubjetivo[];
-  textPrimaryDark: string;
-  textSecondaryDark: string;
 }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
+
   const tendenciaText = (t?: "sube" | "baja" | "estable") => {
     if (t === "sube") return "Se siente más exigente";
     if (t === "baja") return "Se siente más llevadero";
@@ -126,176 +136,112 @@ function CardBody({
   };
 
   const tendenciaColor = (t?: "sube" | "baja" | "estable") => {
-    if (t === "sube") return isDark ? "#fb7185" : "#b91c1c"; // rojo
-    if (t === "baja") return isDark ? "#4ade80" : "#15803d"; // verde
-    return isDark ? textSecondaryDark : "#6b7280"; // neutro
+    if (t === "sube") return isDark ? tokens.color.trendUpTextDark : tokens.color.trendUpTextLight;
+    if (t === "baja") return isDark ? tokens.color.trendDownTextDark : tokens.color.trendDownTextLight;
+    return textMuted;
   };
 
   const tendenciaBadgeBg = (t?: "sube" | "baja" | "estable") => {
-    if (t === "sube")
-      return isDark ? "rgba(248,113,113,0.14)" : "rgba(254,202,202,0.7)";
-    if (t === "baja")
-      return isDark ? "rgba(74,222,128,0.12)" : "rgba(187,247,208,0.7)";
-    return isDark ? "rgba(148,163,184,0.14)" : "rgba(226,232,240,0.7)";
+    if (t === "sube") return isDark ? tokens.color.trendUpBgDark : tokens.color.trendUpBgLight;
+    if (t === "baja") return isDark ? tokens.color.trendDownBgDark : tokens.color.trendDownBgLight;
+    return isDark ? tokens.color.trendStableBgDark : tokens.color.trendStableBgLight;
   };
 
   const tendenciaBadgeBorder = (t?: "sube" | "baja" | "estable") => {
-    if (t === "sube")
-      return isDark ? "rgba(248,113,113,0.35)" : "rgba(248,113,113,0.8)";
-    if (t === "baja")
-      return isDark ? "rgba(74,222,128,0.35)" : "rgba(34,197,94,0.8)";
-    return isDark ? "rgba(148,163,184,0.4)" : "rgba(148,163,184,0.6)";
+    if (t === "sube") return isDark ? tokens.color.trendUpBorderDark : tokens.color.trendUpBorderLight;
+    if (t === "baja") return isDark ? tokens.color.trendDownBorderDark : tokens.color.trendDownBorderLight;
+    return isDark ? tokens.color.trendStableBorderDark : tokens.color.trendStableBorderLight;
   };
 
   const getBarColor = (carga: number) => {
-    if (carga <= 4) return "#38bdf8"; // azul claro
-    if (carga <= 7) return "#0ea5e9"; // azul medio
-    return "#0369a1"; // azul oscuro
+    if (carga <= 4) return tokens.color.barLow;
+    if (carga <= 7) return tokens.color.barMid;
+    return tokens.color.barHigh;
   };
 
   return (
-    <View className="rounded-2xl">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-5 pb-3">
-        <View className="flex-row items-center gap-3">
+    <View style={styles.cardBody}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
           <View
-            className="h-9 w-9 rounded-2xl items-center justify-center"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(56,189,248,0.12)"
-                : "rgba(59,130,246,0.08)",
-            }}
+            style={[
+              styles.iconWrap,
+              { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+            ]}
           >
             <TrendingUp
               size={18}
-              color={isDark ? "#38bdf8" : "#0284c7"}
+              color={isDark ? tokens.color.iconBlueDark : tokens.color.iconBlueLight}
             />
           </View>
+
           <View>
-            <Text
-              className="text-base font-semibold"
-              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-            >
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>
               Progreso subjetivo por ejercicio
             </Text>
-            <Text
-              className="text-xs"
-              style={{
-                color: isDark ? textSecondaryDark : "#64748b",
-              }}
-            >
+            <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
               Qué ejercicios notas más duros o más llevaderos
             </Text>
           </View>
         </View>
 
-        <View className="items-end">
-          <Text
-            className="text-[11px] uppercase tracking-wide"
-            style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
-          >
-            Días analizados
-          </Text>
-          <Text
-            className="text-xl font-bold"
-            style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-          >
+        <View style={styles.headerRight}>
+          <Text style={[styles.headerKpiLabel, { color: textMuted }]}>Días analizados</Text>
+          <Text style={[styles.headerKpiValue, { color: textPrimary }]}>
             {diasAnalizados ?? "–"}
           </Text>
         </View>
       </View>
 
-      {/* Lista de ejercicios */}
-      <View className="px-4 pb-4 mt-1">
+      <View style={styles.list}>
         {ejercicios.map((ej, idx) => {
           const carga = ej.estresMedio ?? 0;
           const pct = Math.max(6, Math.min(100, (carga / 10) * 100));
           const barColor = getBarColor(carga);
-          const trendColor = tendenciaColor(ej.tendencia);
 
           return (
-            <View
-              key={`${ej.nombre ?? idx}`}
-              className="mb-3 last:mb-0"
-            >
-              <View className="flex-row justify-between items-center mb-1.5">
-                <View className="flex-1 pr-2">
-                  <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color: isDark ? textPrimaryDark : "#0f172a",
-                    }}
-                    numberOfLines={1}
-                  >
+            <View key={`${ej.nombre ?? idx}`} style={styles.item}>
+              <View style={styles.itemTop}>
+                <View style={styles.itemLeft}>
+                  <Text numberOfLines={1} style={[styles.itemTitle, { color: textPrimary }]}>
                     {ej.nombre ?? "Ejercicio"}
                   </Text>
-                  <Text
-                    className="text-[11px] mt-[1px]"
-                    style={{
-                      color: isDark ? textSecondaryDark : "#6b7280",
-                    }}
-                  >
-                    {ej.sesiones ?? 0} sesión
-                    {ej.sesiones === 1 ? "" : "es"}
+                  <Text style={[styles.itemSub, { color: textMuted }]}>
+                    {ej.sesiones ?? 0} sesión{ej.sesiones === 1 ? "" : "es"}
                   </Text>
                 </View>
 
-                {/* Badge de tendencia */}
                 <View
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: tendenciaBadgeBg(ej.tendencia),
-                    borderWidth: 1,
-                    borderColor: tendenciaBadgeBorder(ej.tendencia),
-                  }}
+                  style={[
+                    styles.badge,
+                    {
+                      backgroundColor: tendenciaBadgeBg(ej.tendencia),
+                      borderColor: tendenciaBadgeBorder(ej.tendencia),
+                    },
+                  ]}
                 >
-                  <Text
-                    className="text-[11px] font-medium"
-                    style={{ color: trendColor }}
-                  >
+                  <Text style={[styles.badgeText, { color: tendenciaColor(ej.tendencia) }]}>
                     {tendenciaText(ej.tendencia)}
                   </Text>
                 </View>
               </View>
 
-              {/* Barra de carga subjetiva */}
-              <View className="flex-row items-center gap-2">
-                <View className="flex-1">
+              <View style={styles.barRow}>
+                <View style={styles.barCol}>
                   <View
-                    className="h-2.5 rounded-full overflow-hidden"
-                    style={{
-                      backgroundColor: isDark
-                        ? "rgba(15,23,42,0.9)"
-                        : "#e5e7eb",
-                    }}
+                    style={[
+                      styles.track,
+                      { backgroundColor: isDark ? tokens.color.trackDark : tokens.color.trackLight },
+                    ]}
                   >
-                    <View
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: barColor,
-                      }}
-                      className="h-2.5"
-                    />
+                    <View style={[styles.fill, { width: `${pct}%`, backgroundColor: barColor }]} />
                   </View>
                 </View>
-                <View style={{ width: 44, alignItems: "flex-end" }}>
-                  <Text
-                    className="text-xs font-semibold"
-                    style={{
-                      color: isDark ? textPrimaryDark : "#0f172a",
-                    }}
-                  >
+
+                <View style={styles.valueCol}>
+                  <Text style={[styles.valueText, { color: textPrimary }]}>
                     {carga ? carga.toFixed(1) : "–"}
-                    <Text
-                      className="text-[10px]"
-                      style={{
-                        color: isDark ? textSecondaryDark : "#6b7280",
-                      }}
-                    >
-                      /10
-                    </Text>
+                    <Text style={[styles.valueUnit, { color: textSecondary }]}>/10</Text>
                   </Text>
                 </View>
               </View>
@@ -304,17 +250,15 @@ function CardBody({
         })}
       </View>
 
-      {/* Nota inferior */}
-      <View className="border-t border-white/5 border-slate-100 px-4 pt-3 pb-4">
-        <Text
-          className="text-[11px]"
-          style={{
-            color: isDark ? textSecondaryDark : "#64748b",
-          }}
-        >
-          Usa estas sensaciones para ajustar técnica, descansos y peso:
-          si un ejercicio se vuelve cada vez más llevadero, es buena
-          señal de progreso.
+      <View
+        style={[
+          styles.note,
+          { borderTopColor: isDark ? tokens.color.noteBorderDark : tokens.color.noteBorderLight },
+        ]}
+      >
+        <Text style={[styles.noteText, { color: textSecondary }]}>
+          Usa estas sensaciones para ajustar técnica, descansos y peso: si un ejercicio se vuelve
+          cada vez más llevadero, es buena señal de progreso.
         </Text>
       </View>
     </View>
@@ -323,37 +267,183 @@ function CardBody({
 
 function EmptyState({ isDark }: { isDark: boolean }) {
   return (
-    <View
-      className="rounded-2xl items-center justify-center p-8"
-      style={{
-        backgroundColor: isDark ? "transparent" : "rgba(255,255,255,0.9)",
-        borderRadius: 16,
-      }}
-    >
+    <View style={styles.emptyState}>
       <View
-        className="h-14 w-14 rounded-2xl mb-4 items-center justify-center"
-        style={{
-          backgroundColor: isDark
-            ? "rgba(56,189,248,0.12)"
-            : "#e0f2fe",
-        }}
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+        ]}
       >
-        <Text style={{ color: isDark ? "#e5e7eb" : "#0ea5e9" }}>📈</Text>
+        <Text style={{ color: isDark ? tokens.color.emptyTitleDark : "#0EA5E9" }}>📈</Text>
       </View>
       <Text
-        className="text-sm font-medium text-center"
-        style={{ color: isDark ? "#e5e7eb" : "#334155" }}
+        style={[
+          styles.emptyTitle,
+          { color: isDark ? tokens.color.emptyTitleDark : tokens.color.emptyTitleLight },
+        ]}
       >
         Aún no hay progreso subjetivo
       </Text>
       <Text
-        className="text-xs mt-1 text-center"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
+        style={[
+          styles.emptySubtitle,
+          { color: isDark ? tokens.color.emptySubtitleDark : tokens.color.emptySubtitleLight },
+        ]}
       >
-        Cuando registres varias sesiones marcando el nivel de esfuerzo,
-        te mostraremos qué ejercicios se sienten más duros o más
-        ligeros con el tiempo.
+        Cuando registres varias sesiones marcando el nivel de esfuerzo, te mostraremos qué
+        ejercicios se sienten más duros o más ligeros con el tiempo.
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { width: "100%", maxWidth: 520 },
+
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  cardBody: {
+    borderRadius: tokens.radius.lg - 1,
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+    flexShrink: 1,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerKpiLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  headerKpiValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+
+  list: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.lg,
+    gap: tokens.spacing.md,
+  },
+  item: {},
+  itemTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  itemLeft: {
+    flex: 1,
+    paddingRight: tokens.spacing.sm,
+  },
+  itemTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  itemSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  barRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  barCol: { flex: 1 },
+  valueCol: { width: 56, alignItems: "flex-end" },
+  track: {
+    height: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  fill: { height: "100%" },
+  valueText: { fontSize: 12, fontWeight: "700" },
+  valueUnit: { fontSize: 10 },
+
+  note: {
+    borderTopWidth: 1,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.md,
+    paddingBottom: tokens.spacing.lg,
+  },
+  noteText: { fontSize: 11 },
+
+  emptyState: {
+    borderRadius: tokens.radius.lg - 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: tokens.spacing.xl + tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.xl,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: tokens.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: tokens.spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    marginTop: tokens.spacing.xs,
+    textAlign: "center",
+  },
+});

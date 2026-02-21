@@ -1,5 +1,5 @@
 // src/shared/components/rutina/FormularioEjercicio.tsx
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { X } from "lucide-react-native";
 import { z } from "zod";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
 
-/* -------------------- Tipos -------------------- */
 export type EjercicioAsignadoInput = {
   ejercicioId: number;
   orden: number;
@@ -25,12 +29,12 @@ export type EjercicioAsignadoInput = {
 };
 
 type Props = {
+  visible: boolean;
   ejercicioId: number;
-  orden?: number; // para edición
+  orden?: number;
   onConfirm: (data: EjercicioAsignadoInput) => void;
-  onClose: () => void; // (renombrado desde onClick)
+  onClose: () => void;
   esParteDeCompuesto?: boolean;
-  // 👇 nuevo: indica si el ejercicio es de CARDIO
   esCardio?: boolean;
 };
 
@@ -41,8 +45,8 @@ type FormErrors = Partial<
   >
 >;
 
-/* -------------------- Componente -------------------- */
 export default function FormularioEjercicio({
+  visible,
   ejercicioId,
   orden,
   onConfirm,
@@ -52,6 +56,33 @@ export default function FormularioEjercicio({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const snapPoints = useMemo(() => ["55%", "80%"], []);
+  const topInset = Math.max(insets.top, 12);
+
+  useEffect(() => {
+    if (visible) {
+      const id = requestAnimationFrame(() => {
+        bottomSheetModalRef.current?.present();
+      });
+      return () => cancelAnimationFrame(id);
+    } else {
+      bottomSheetModalRef.current?.dismiss();
+    }
+  }, [visible]);
+  useEffect(() => {
+    if (!visible) return;
+
+    setSeries("");
+    setReps("");
+    setPeso("");
+    setDescanso("");
+    setNota("");
+    setErrors({});
+  }, [visible, ejercicioId]);
 
   const [seriesSugeridas, setSeries] = useState<string>("");
   const [repeticionesSugeridas, setReps] = useState<string>("");
@@ -60,18 +91,15 @@ export default function FormularioEjercicio({
   const [notaIA, setNota] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const isCardio = Boolean(esCardio);
+  const isCardioLocal = Boolean(esCardio);
 
-  // 🎛️ Paleta y “glass”
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBg = isDark ? "rgba(20,28,44,0.85)" : "rgba(255,255,255,0.95)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
+  const cardBg = isDark ? "#0f172a" : "#ffffff";
+  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const inputBg = isDark ? "rgba(255,255,255,0.03)" : "#ffffff";
-  const inputBorder = isDark ? "rgba(255,255,255,0.15)" : "#e5e7eb";
+  const accentColor = isDark ? "#10b981" : "#059669";
+  const surface = isDark ? "#1e293b" : "#f1f5f9";
+  const placeholderColor = isDark ? "#64748b" : "#94a3b8";
 
-  // Esquema (descanso opcional cuando es compuesto)
   const schema = z.object({
     seriesSugeridas: z
       .number({ required_error: "Ingresa el número de series" })
@@ -125,92 +153,104 @@ export default function FormularioEjercicio({
       descansoSeg: esParteDeCompuesto ? 0 : Number(descansoSeg),
       notaIA,
     });
+
+    bottomSheetModalRef.current?.dismiss();
   };
 
+  const closeSheet = useCallback(() => {
+    bottomSheetModalRef.current?.dismiss();
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.4}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
   return (
-    <View
+    <BottomSheetModal
+      ref={bottomSheetModalRef}
+      index={1}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+      onDismiss={onClose}
+      enablePanDownToClose
+      enableContentPanningGesture={false}
+      enableOverDrag={false}
+      overDragResistanceFactor={0}
+      topInset={topInset}
       style={{
-        position: "absolute",
-        inset: 0 as any,
-        backgroundColor: "rgba(0,0,0,0.40)",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 16,
-        zIndex: 100,
+        zIndex: 9999,
+        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
       }}
-      accessibilityViewIsModal
-      accessibilityLabel="Formulario de ejercicio"
+      containerStyle={{
+        zIndex: 9999,
+        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
+      }}
+      handleIndicatorStyle={{
+        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        width: 40,
+      }}
+      backgroundStyle={{
+        backgroundColor: cardBg,
+      }}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ width: "100%", maxWidth: 520 }}
+        style={{ flex: 1 }}
       >
-        {/* Marco degradado */}
-        <LinearGradient
-          colors={marcoGradient as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 16, padding: 1 }}
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: 20 + insets.bottom,
+            paddingTop: 8,
+          }}
         >
-          {/* Panel interior */}
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: cardBg,
-              borderWidth: 1,
-              borderColor: cardBorder,
-              padding: 16,
-              position: "relative",
-            }}
-          >
-            {/* Cerrar */}
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar"
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                height: 32,
-                width: 32,
-                borderRadius: 999,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: isDark
-                  ? "rgba(148,163,184,0.18)"
-                  : "#f1f5f9",
-                borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "#e2e8f0",
-              }}
-            >
-              <X size={18} color={textSecondary} />
-            </Pressable>
-
-            {/* Título */}
-            <Text
-              style={{
-                textAlign: "center",
-                fontSize: 18,
-                fontWeight: "700",
-                color: textPrimary,
-                marginBottom: 8,
-              }}
-            >
-              Completa detalles
-            </Text>
-
-            {/* Grid inputs */}
+          <View style={{ paddingTop: 6 }}>
             <View
               style={{
                 flexDirection: "row",
-                gap: 12,
-                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
               }}
             >
-              {/* Series */}
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "800",
+                  color: textPrimary,
+                }}
+              >
+                Completa detalles
+              </Text>
+              <Pressable onPress={closeSheet} hitSlop={10}>
+                <X size={20} color={textSecondary} />
+              </Pressable>
+            </View>
+
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "800",
+                color: textSecondary,
+                letterSpacing: 1,
+                marginBottom: 12,
+              }}
+            >
+              CONFIGURACIÓN
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
               <Field
                 label="Series"
                 value={seriesSugeridas}
@@ -220,33 +260,29 @@ export default function FormularioEjercicio({
                 }}
                 placeholder="Ej: 3"
                 error={errors.seriesSugeridas}
-                inputBg={inputBg}
-                inputBorder={inputBorder}
+                surface={surface}
                 textPrimary={textPrimary}
                 textSecondary={textSecondary}
+                placeholderColor={placeholderColor}
                 keyboardType="numeric"
-                isDark={isDark}
               />
 
-              {/* Repeticiones / Tiempo (seg) si es cardio */}
               <Field
-                label={isCardio ? "Tiempo (seg)" : "Repeticiones"}
+                label={isCardioLocal ? "Tiempo (seg)" : "Repeticiones"}
                 value={repeticionesSugeridas}
                 onChangeText={(t) => {
                   setReps(t.replace(/[^\d]/g, ""));
                   if (t !== "") clearError("repeticionesSugeridas");
                 }}
-                placeholder={isCardio ? "Ej: 30" : "Ej: 10"}
+                placeholder={isCardioLocal ? "Ej: 30" : "Ej: 10"}
                 error={errors.repeticionesSugeridas}
-                inputBg={inputBg}
-                inputBorder={inputBorder}
+                surface={surface}
                 textPrimary={textPrimary}
                 textSecondary={textSecondary}
+                placeholderColor={placeholderColor}
                 keyboardType="numeric"
-                isDark={isDark}
               />
 
-              {/* Peso */}
               <Field
                 label="Peso"
                 value={pesoSugerido}
@@ -256,15 +292,13 @@ export default function FormularioEjercicio({
                 }}
                 placeholder="Ej: 50"
                 error={errors.pesoSugerido}
-                inputBg={inputBg}
-                inputBorder={inputBorder}
+                surface={surface}
                 textPrimary={textPrimary}
                 textSecondary={textSecondary}
+                placeholderColor={placeholderColor}
                 keyboardType="decimal-pad"
-                isDark={isDark}
               />
 
-              {/* Descanso (si NO es compuesto) */}
               {!esParteDeCompuesto && (
                 <Field
                   label="Descanso (seg)"
@@ -275,121 +309,108 @@ export default function FormularioEjercicio({
                   }}
                   placeholder="Ej: 60"
                   error={errors.descansoSeg}
-                  inputBg={inputBg}
-                  inputBorder={inputBorder}
+                  surface={surface}
                   textPrimary={textPrimary}
                   textSecondary={textSecondary}
+                  placeholderColor={placeholderColor}
                   keyboardType="numeric"
-                  isDark={isDark}
                 />
               )}
             </View>
 
-            {/* Notas */}
-            <View style={{ marginTop: 12 }}>
+            <View style={{ marginTop: 16 }}>
               <Text
                 style={{
-                  fontSize: 12,
-                  fontWeight: "600",
+                  fontSize: 11,
+                  fontWeight: "800",
                   color: textSecondary,
-                  marginBottom: 6,
+                  letterSpacing: 1,
+                  marginBottom: 10,
                 }}
               >
-                Notas (opcional)
+                NOTAS
               </Text>
+
               <TextInput
                 value={notaIA}
                 onChangeText={setNota}
                 placeholder="Añade detalles o consideraciones especiales..."
-                placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                placeholderTextColor={placeholderColor}
                 multiline
                 numberOfLines={3}
                 style={{
-                  borderRadius: 12,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: inputBg,
+                  borderRadius: 16,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  backgroundColor: surface,
                   color: textPrimary,
-                  borderWidth: 1,
-                  borderColor: inputBorder,
                   fontSize: 14,
-                  minHeight: 90,
+                  minHeight: 96,
                   textAlignVertical: "top",
                 }}
               />
             </View>
 
-            {/* CTA */}
             <View style={{ marginTop: 16 }}>
-              <LinearGradient
-                colors={marcoGradient as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ borderRadius: 999, padding: 1 }}
+              <Pressable
+                onPress={handleConfirm}
+                accessibilityRole="button"
+                style={{
+                  borderRadius: 999,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  backgroundColor: accentColor,
+                }}
               >
-                <Pressable
-                  onPress={handleConfirm}
-                  accessibilityRole="button"
+                <Text
                   style={{
-                    borderRadius: 999,
-                    paddingVertical: 12,
-                    alignItems: "center",
-                    backgroundColor: isDark ? "#0f172a" : "#ffffff",
+                    fontSize: 14,
+                    fontWeight: "800",
+                    color: "#ffffff",
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: textPrimary,
-                    }}
-                  >
-                    Confirmar y {orden ? "guardar cambios" : "añadir"}
-                  </Text>
-                </Pressable>
-              </LinearGradient>
+                  Confirmar y {orden ? "guardar cambios" : "añadir"}
+                </Text>
+              </Pressable>
             </View>
           </View>
-        </LinearGradient>
+        </BottomSheetScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </BottomSheetModal>
   );
 }
 
-/* -------------------- Subcomponente Field -------------------- */
 function Field({
   label,
   value,
   onChangeText,
   placeholder,
   error,
-  inputBg,
-  inputBorder,
+  surface,
   textPrimary,
   textSecondary,
+  placeholderColor,
   keyboardType,
-  isDark,
 }: {
   label: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
   error?: string;
-  inputBg: string;
-  inputBorder: string;
+  surface: string;
   textPrimary: string;
   textSecondary: string;
+  placeholderColor: string;
   keyboardType?: "numeric" | "decimal-pad" | "default";
-  isDark: boolean;
 }) {
   return (
     <View style={{ flexBasis: "48%", flexGrow: 1 }}>
       <Text
         style={{
           fontSize: 12,
-          fontWeight: "600",
+          fontWeight: "700",
           color: textSecondary,
-          marginBottom: 6,
+          marginBottom: 8,
         }}
       >
         {label}
@@ -398,23 +419,19 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+        placeholderTextColor={placeholderColor}
         keyboardType={keyboardType}
         style={{
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          backgroundColor: inputBg,
+          borderRadius: 16,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          backgroundColor: surface,
           color: textPrimary,
-          borderWidth: 1,
-          borderColor: error ? "#ef4444" : inputBorder,
           fontSize: 14,
         }}
       />
       {error ? (
-        <Text
-          style={{ marginTop: 4, fontSize: 11, color: "#ef4444" }}
-        >
+        <Text style={{ marginTop: 6, fontSize: 11, color: "#ef4444" }}>
           {error}
         </Text>
       ) : null}

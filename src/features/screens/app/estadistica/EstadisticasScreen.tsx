@@ -39,7 +39,7 @@ const tokens = {
     md: 16,
     lg: 24,
     xl: 32,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 120, // Espacio para el menú flotante
+    tabBarSafe: Platform.OS === "ios" ? 140 : 130,
   },
 } as const;
 
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: tokens.spacing.tabBarSafe, // Clave para el menú flotante
+    paddingBottom: tokens.spacing.tabBarSafe,
   },
   header: {
     marginBottom: tokens.spacing.lg,

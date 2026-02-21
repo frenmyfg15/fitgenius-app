@@ -1,6 +1,6 @@
 // src/shared/components/skeleton/MisRutinasSkeleton.tsx
 import React, { useEffect, useRef } from "react";
-import { View, Animated, ScrollView } from "react-native";
+import { View, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 
@@ -22,7 +22,6 @@ function useShimmer() {
     return t;
 }
 
-/* ---- Efecto Shimmer sin posición absoluta ---- */
 function Shimmer({
     children,
     radius = 12,
@@ -39,31 +38,20 @@ function Shimmer({
     const base = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.06)";
     const highlight = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.55)";
 
-    // Truco: el gradiente va DESPUÉS del contenido y se superpone con marginTop negativo
-    // del mismo alto del bloque. El contenedor recorta con overflow: 'hidden'.
     return (
-        <View
-            style={{
-                overflow: "hidden",
-                borderRadius: radius,
-                backgroundColor: base,
-            }}
-        >
-            {/* Contenido del bloque */}
+        <View style={{ overflow: "hidden", borderRadius: radius, backgroundColor: base }}>
             <View style={{ height }}>{children}</View>
-
-            {/* “Capa” shimmer superpuesta sin absolute */}
             <Animated.View
                 pointerEvents="none"
                 style={{
                     height,
-                    width: "160%", // más ancho para permitir el barrido
-                    marginTop: -height, // ← superpone sobre el bloque
+                    width: "160%",
+                    marginTop: -height,
                     transform: [
                         {
                             translateX: t.interpolate({
                                 inputRange: [-1, 1],
-                                outputRange: [-80, 80], // barrido horizontal
+                                outputRange: [-80, 80],
                             }),
                         },
                     ],
@@ -81,13 +69,7 @@ function Shimmer({
     );
 }
 
-const Block = ({
-    h,
-    r = 12,
-}: {
-    h: number;
-    r?: number;
-}) => (
+const Block = ({ h, r = 12 }: { h: number; r?: number }) => (
     <Shimmer radius={r} height={h}>
         <View style={{ height: h, width: "100%" }} />
     </Shimmer>
@@ -101,23 +83,17 @@ export default function MisRutinasSkeleton() {
     return (
         <View
             style={{
-                backgroundColor: isDark ? "#0b1220" : "#ffffff",
+                // ✅ Mismos valores que MisRutinasScreen → tokens.color.bgDark / bgLight
+                backgroundColor: isDark ? "#080D17" : "#F8FAFC",
                 padding: 5,
                 paddingBottom: 80,
                 minHeight: "100%",
                 width: "100%",
             }}
-
         >
-            <View style={{ marginTop: 18 }}>
-                <Block h={120} />
-            </View>
-            <View style={{ marginTop: 18 }}>
-                <Block h={120} />
-            </View>
-            <View style={{ marginTop: 18 }}>
-                <Block h={120} />
-            </View>
+            <View style={{ marginTop: 18 }}><Block h={120} /></View>
+            <View style={{ marginTop: 18 }}><Block h={120} /></View>
+            <View style={{ marginTop: 18 }}><Block h={120} /></View>
         </View>
     );
 }

@@ -14,6 +14,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useColorScheme } from "nativewind";
 import {
@@ -117,6 +118,7 @@ export default function VistaEjercicio() {
     descansando,
     guardando,
     festejo,
+    setFestejo,
     experienciaPlus,
     calorias,
 
@@ -243,10 +245,12 @@ export default function VistaEjercicio() {
       setEstresModalVisible(true);
       return;
     }
-    guardarSesionReal();
-  }, [nivelEstres, guardarSesionReal]);
+    // RPE ya elegido: lanzar celebración directamente
+    setFestejo(true);
+  }, [nivelEstres]);
 
-  // 🔹 Confirmación desde el modal de nivel de estrés
+
+
   const handleConfirmNivelEstres = useCallback(() => {
     if (nivelEstres == null) {
       Toast.show({
@@ -256,10 +260,9 @@ export default function VistaEjercicio() {
       });
       return;
     }
-
     setEstresModalVisible(false);
-    guardarSesionReal();
-  }, [nivelEstres, guardarSesionReal]);
+    setFestejo(true);
+  }, [nivelEstres]);
 
   // 🔹 Ir al paywall Premium
   const handleGoToPayment = useCallback(() => {
@@ -303,14 +306,17 @@ export default function VistaEjercicio() {
       className="flex-1 relative"
       style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
     >
-      <ScrollView
+      <KeyboardAwareScrollView
+        enableOnAndroid={true}
+        extraScrollHeight={120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           alignItems: "center",
           paddingHorizontal: 20,
           paddingBottom: 140,
           paddingTop: 16,
         }}
-        showsVerticalScrollIndicator={false}
       >
         <View className="w-full max-w-sm aspect-square relative p-5">
           {esCompuesto && imagenesCompuesto.length > 0 ? (
@@ -454,13 +460,13 @@ export default function VistaEjercicio() {
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* ✅ FAB lateral con animación */}
       <View
         pointerEvents="box-none"
         className="absolute right-5"
-        style={{ bottom: 90, zIndex: 20 }}
+        style={{ bottom: 130, zIndex: 20 }}
       >
         <View className="items-end">
           <Animated.View
@@ -620,8 +626,15 @@ export default function VistaEjercicio() {
       {festejo && (
         <CelebracionModal
           visible={festejo}
-          experiencia={experienciaPlus}
-          calorias={calorias.current}
+          series={esCompuesto ? [] : series}
+          seriesComp={esCompuesto ? seriesComp : []}
+          nivelEstres={nivelEstres}
+          esCompuesto={esCompuesto}
+          onFinish={async () => {
+            await guardarSesionReal();    // guarda en el servidor
+            setFestejo(false);
+            navigation.goBack();
+          }}
         />
       )}
 

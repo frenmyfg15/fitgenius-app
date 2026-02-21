@@ -51,7 +51,7 @@ const tokens = {
     md: 16,
     lg: 24,
     xl: 32,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 120,
+    tabBarSafe: Platform.OS === "ios" ? 140 : 130,
   },
 } as const;
 
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   // --- ESTILOS FAB ---
   fabContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 100 : 90, // Posicionado sobre tu menú actual
+    bottom: Platform.OS === "ios" ? 100 : 130,
     right: 20,
     alignItems: "flex-end",
   },

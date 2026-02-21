@@ -147,7 +147,14 @@ export function useCrearRutinaState() {
   };
 
   const confirmarCompuesto = () => {
-    if (compuestoTemporal.length === 0) return;
+    if (compuestoTemporal.length === 0) {
+      Toast.show({
+        type: "info",
+        text1: "Compuesto vacío",
+        text2: "Añade al menos 1 ejercicio antes de confirmar.",
+      });
+      return;
+    }
     setMostrarFormularioCompuesto(true);
   };
 

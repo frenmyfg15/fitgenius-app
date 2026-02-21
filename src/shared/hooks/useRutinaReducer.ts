@@ -123,15 +123,15 @@ function rutinaReducer(state: State, action: Action): State {
         dias: state.dias.map((dia) =>
           dia.diaSemana === diaSemana
             ? {
-                ...dia,
-                ejercicios: dia.ejercicios.map((e) =>
-                  "compuesto" in (e as any)
-                    ? e
-                    : e.orden === ejercicio.orden
-                      ? ({ ...(e as any), ...(ejercicio as any) } as any)
-                      : e
-                ),
-              }
+              ...dia,
+              ejercicios: dia.ejercicios.map((e) =>
+                "compuesto" in (e as any)
+                  ? e
+                  : e.orden === ejercicio.orden
+                    ? ({ ...(e as any), ...(ejercicio as any) } as any)
+                    : e
+              ),
+            }
             : dia
         ),
       };
@@ -145,15 +145,15 @@ function rutinaReducer(state: State, action: Action): State {
           ...dia,
           ejercicios: dia.ejercicios.map((ej: any) =>
             "compuesto" in ej &&
-            ej.ejerciciosCompuestos?.some(
-              (ec: any) => ec.ejercicioCompuestoId === compuestoId
-            )
+              ej.ejerciciosCompuestos?.some(
+                (ec: any) => ec.ejercicioCompuestoId === compuestoId
+              )
               ? {
-                  ...ej,
-                  nombreCompuesto: nombre,
-                  tipoCompuesto: tipo,
-                  descansoCompuesto: descansoSeg,
-                }
+                ...ej,
+                nombreCompuesto: nombre,
+                tipoCompuesto: tipo,
+                descansoCompuesto: descansoSeg,
+              }
               : ej
           ),
         })),
@@ -231,33 +231,38 @@ function rutinaReducer(state: State, action: Action): State {
 
     case "ADD_EJERCICIO_COMPUESTO": {
       const { diaSemana, ejercicios, descansoSeg, nombre, tipo, compuestoId } = action.payload;
+
       const diaIndex = state.dias.findIndex((d) => d.diaSemana === diaSemana);
-      const newDias = [...state.dias];
 
-      const maxOrden = newDias[diaIndex]?.ejercicios?.length || 0;
+      // Lista previa (si existe el día)
+      const prevList = diaIndex === -1 ? [] : (state.dias[diaIndex].ejercicios ?? []);
 
-      const compuesto: EjercicioAsignadoInput = {
+      // Max orden REAL (no length)
+      const maxOrden =
+        prevList.length > 0 ? Math.max(...prevList.map((e: any) => Number(e.orden) || 0)) : 0;
+
+      const compuesto = {
         orden: maxOrden + 1,
         compuesto: true,
         ejerciciosCompuestos: ejercicios,
         nombreCompuesto: nombre,
         tipoCompuesto: tipo,
         descansoCompuesto: descansoSeg,
-        ejercicioCompuestoId: compuestoId,
+        ejercicioCompuestoId: compuestoId, // opcional pero útil
       } as any;
 
+      // Si no existe el día, créalo
       if (diaIndex === -1) {
         return {
           ...state,
-          dias: [...state.dias, { diaSemana, ejercicios: [compuesto] as any }],
+          dias: [...state.dias, { diaSemana, ejercicios: [compuesto] }],
         };
       }
 
-      const prevDia = newDias[diaIndex];
-      const prevList = prevDia.ejercicios ?? [];
+      const newDias = [...state.dias];
       newDias[diaIndex] = {
-        ...prevDia,
-        ejercicios: [...prevList, compuesto] as any,
+        ...newDias[diaIndex],
+        ejercicios: [...prevList, compuesto],
       };
 
       return { ...state, dias: newDias };

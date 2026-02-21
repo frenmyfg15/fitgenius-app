@@ -44,6 +44,23 @@ const Overlay: React.FC<{
   </View>
 );
 
+/* ---------- Normalizador detalles ejercicio ---------- */
+type DetallesSeguro = {
+  seriesSugeridas: number;
+  repeticionesSugeridas: number;
+  pesoSugerido: number;
+  descansoSeg: number;
+  notaIA: string;
+};
+
+const normalizarDetalles = (detalles: any | undefined): DetallesSeguro => ({
+  seriesSugeridas: Number(detalles?.seriesSugeridas ?? 3),
+  repeticionesSugeridas: Number(detalles?.repeticionesSugeridas ?? 10),
+  pesoSugerido: Number(detalles?.pesoSugerido ?? 0),
+  descansoSeg: Number(detalles?.descansoSeg ?? 0),
+  notaIA: String(detalles?.notaIA ?? ""),
+});
+
 export default function CrearRutinaScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -279,20 +296,19 @@ export default function CrearRutinaScreen() {
       />
 
       {/* Controles del compuesto temporal (fijo) */}
-      {h.modoCompuesto &&
-        h.compuestoTemporal.length > 0 &&
-        !h.ejercicioEnCompuestoActual &&
-        !h.mostrarFormularioCompuesto && (
-          <ControlesCompuesto
-            compuesto={h.compuestoTemporal}
-            onAnadir={h.iniciarCompuesto}
-            onCancelar={() => {
-              h.setModoCompuesto(false);
-              h.setCompuestoTemporal([]);
-            }}
-            onConfirmar={h.confirmarCompuesto}
-          />
-        )}
+      {h.modoCompuesto && h.compuestoTemporal.length > 0 && (
+        <ControlesCompuesto
+          compuesto={h.compuestoTemporal}
+          onAnadir={h.iniciarCompuesto}
+          onCancelar={() => {
+            h.setModoCompuesto(false);
+            h.setCompuestoTemporal([]);
+          }}
+          onConfirmar={h.confirmarCompuesto}
+          // 👇 nuevo: para que el sheet no moleste cuando abres el form
+          disabled={h.mostrarFormularioCompuesto || !!h.ejercicioEnCompuestoActual}
+        />
+      )}
 
       {/* Controles globales (fijos) */}
       <RutinaControls
@@ -410,6 +426,7 @@ export default function CrearRutinaScreen() {
 
       {h.mostrarFormularioNombre && (
         <FormularioNombreRutina
+          visible={true}
           nombreInicial={h.state.nombre}
           descripcionInicial={h.state.descripcion}
           onNombreInput={(v) => h.dispatch({ type: "SET_NOMBRE", payload: v })}
@@ -427,92 +444,109 @@ export default function CrearRutinaScreen() {
       )}
 
       {h.ejercicioSeleccionado && !h.editarCompuesto ? (
-        <Overlay>
-          <FormularioEjercicio
-            ejercicioId={h.ejercicioSeleccionado.id}
-            esParteDeCompuesto={false}
-            esCardio={h.ejercicioSeleccionado.info.grupoMuscular === "CARDIO"}
-            onClose={() => h.setEjercicioSeleccionado(null)}
-            onConfirm={(data) => {
-              h.dispatch({
-                type: h.editandoEjercicio ? "UPDATE_EJERCICIO" : "ADD_EJERCICIO",
-                payload: {
-                  diaSemana: h.diaSelect,
-                  ejercicio: {
-                    ...data,
-                    orden: h.ejercicioSeleccionado!.orden,
-                    ejercicioId: h.ejercicioSeleccionado!.id,
-                    ejercicioInfo: h.ejercicioSeleccionado!.info,
-                  },
+        <FormularioEjercicio
+          visible={!!h.ejercicioSeleccionado}
+          ejercicioId={h.ejercicioSeleccionado.id}
+          esParteDeCompuesto={false}
+          esCardio={h.ejercicioSeleccionado.info.grupoMuscular === "CARDIO"}
+          onClose={() => h.setEjercicioSeleccionado(null)}
+          onConfirm={(data) => {
+            h.dispatch({
+              type: h.editandoEjercicio ? "UPDATE_EJERCICIO" : "ADD_EJERCICIO",
+              payload: {
+                diaSemana: h.diaSelect,
+                ejercicio: {
+                  ...data,
+                  orden: h.ejercicioSeleccionado!.orden,
+                  ejercicioId: h.ejercicioSeleccionado!.id,
+                  ejercicioInfo: h.ejercicioSeleccionado!.info,
                 },
-              });
-              h.setEjercicioSeleccionado(null);
-              h.setSelectedIndex(null);
-            }}
-          />
-        </Overlay>
+              },
+            });
+            h.setEjercicioSeleccionado(null);
+            h.setSelectedIndex(null);
+          }}
+        />
       ) : null}
 
       {h.modoCompuesto && h.ejercicioEnCompuestoActual ? (
-        <Overlay>
-          <FormularioEjercicio
-            ejercicioId={h.ejercicioEnCompuestoActual!.id}
-            esParteDeCompuesto
-            esCardio={h.ejercicioEnCompuestoActual.info.grupoMuscular === "CARDIO"}
-            onClose={() => h.setEjercicioEnCompuestoActual(null)}
-            onConfirm={(detalles) => {
-              const ej = h.ejercicioEnCompuestoActual!;
-              h.setCompuestoTemporal((prev) => [
-                ...prev,
-                { id: ej.id, info: ej.info, detalles },
-              ]);
-              h.setEjercicioEnCompuestoActual(null);
-            }}
-          />
-        </Overlay>
+        <FormularioEjercicio
+          visible={!!h.ejercicioEnCompuestoActual}
+          ejercicioId={h.ejercicioEnCompuestoActual!.id}
+          esParteDeCompuesto
+          esCardio={h.ejercicioEnCompuestoActual.info.grupoMuscular === "CARDIO"}
+          onClose={() => h.setEjercicioEnCompuestoActual(null)}
+          onConfirm={(detalles) => {
+            const ej = h.ejercicioEnCompuestoActual!;
+            h.setCompuestoTemporal((prev) => [
+              ...prev,
+              { id: ej.id, info: ej.info, detalles },
+            ]);
+            h.setEjercicioEnCompuestoActual(null);
+          }}
+        />
       ) : null}
 
+
       {h.mostrarFormularioCompuesto ? (
-        <Overlay>
-          <FormularioCompuesto
-            onCancel={() => h.setMostrarFormularioCompuesto(false)}
-            onConfirm={(nombre, tipo, descansoSeg) => {
-              const compuestoId = Date.now();
-              const ejerciciosCompuestos: EjercicioAsignadoInput[] =
-                h.compuestoTemporal.map((e, i) => ({
+        <FormularioCompuesto
+          visible={h.mostrarFormularioCompuesto}
+          onCancel={() => h.setMostrarFormularioCompuesto(false)}
+          onConfirm={(nombre, tipo, descansoSeg) => {
+            const compuestoId = Date.now();
+
+            const ejerciciosCompuestos: EjercicioAsignadoInput[] =
+              (h.compuestoTemporal ?? []).map((e, i) => {
+                const d = normalizarDetalles((e as any).detalles);
+
+                return {
                   ejercicioId: e.id,
                   orden: i + 1,
                   ejercicioInfo: e.info,
-                  seriesSugeridas: e.detalles?.seriesSugeridas ?? 3,
-                  repeticionesSugeridas: e.detalles?.repeticionesSugeridas ?? 10,
-                  descansoSeg: 0,
-                  pesoSugerido: 0,
-                  notaIA: e.detalles?.notaIA ?? "",
+
+                  seriesSugeridas: d.seriesSugeridas,
+                  repeticionesSugeridas: d.repeticionesSugeridas,
+                  pesoSugerido: d.pesoSugerido,
+                  descansoSeg: 0, // dentro del bloque, el descanso lo gestionas con descansoCompuesto
+                  notaIA: d.notaIA,
+
                   ejercicioCompuestoId: compuestoId,
-                }));
-
-              h.dispatch({
-                type: "ADD_EJERCICIO_COMPUESTO",
-                payload: {
-                  diaSemana: h.diaSelect,
-                  ejercicios: ejerciciosCompuestos,
-                  descansoSeg,
-                  compuestoId,
-                  nombre,
-                  tipo,
-                },
+                } as any;
               });
 
-              h.setCompuestoTemporal([]);
-              h.setModoCompuesto(false);
-              h.setMostrarFormularioCompuesto(false);
+            // ✅ IMPORTANTE: si por lo que sea llega vacío, no dispares "añadido"
+            if (ejerciciosCompuestos.length === 0) {
               h.Toast.show({
-                type: "success",
-                text1: "Ejercicio compuesto agregado exitosamente.",
+                type: "error",
+                text1: "Compuesto vacío",
+                text2: "Añade al menos 1 ejercicio antes de confirmar.",
               });
-            }}
-          />
-        </Overlay>
+              return;
+            }
+
+            h.dispatch({
+              type: "ADD_EJERCICIO_COMPUESTO",
+              payload: {
+                diaSemana: h.diaSelect,
+                ejercicios: ejerciciosCompuestos,
+                descansoSeg,
+                compuestoId,
+                nombre,
+                tipo,
+              },
+            });
+
+            h.setCompuestoTemporal([]);
+            h.setModoCompuesto(false);
+            h.setMostrarFormularioCompuesto(false);
+
+            h.Toast.show({
+              type: "success",
+              text1: "Compuesto añadido",
+              text2: `${nombre} · ${tipo} · ${ejerciciosCompuestos.length} ejercicios`,
+            });
+          }}
+        />
       ) : null}
 
       <AlertaConfirmacion

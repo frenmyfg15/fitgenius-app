@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Header from "@/shared/components/ui/Header";
 import Cuenta from "../screens/app/perfil/Cuenta";
@@ -19,7 +20,7 @@ import EliminarCuenta from "../screens/app/perfil/EliminarCuenta";
 import CrearRutinaScreen from "../screens/app/rutina-manual/CrearRutina";
 import PremiumPaymentScreen from "../screens/app/premium/PremiumPaymentScreen";
 
-/* ---------- TOKENS ESTRICTOS (Sistema IMCVisual) ---------- */
+/* ---------- TOKENS ESTRICTOS ---------- */
 const tokens = {
   color: {
     gradientStart: "rgb(0,255,64)",
@@ -33,7 +34,7 @@ const tokens = {
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
     textSecondaryLight: "#52525B",
-    accent: "#22C55E", // Verde del sistema IMC
+    accent: "#22C55E",
   },
   radius: { lg: 16, full: 999 },
 };
@@ -57,7 +58,13 @@ function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={stackOptions}>
       <HomeStack.Screen name="Home" component={Home} />
-      <HomeStack.Screen name="VistaEjercicio" component={VistaEjercicio} />
+      <HomeStack.Screen
+        name="VistaEjercicio"
+        component={VistaEjercicio}
+        options={{
+          contentStyle: { backgroundColor: "#0b1220" },
+        }}
+      />
     </HomeStack.Navigator>
   );
 }
@@ -90,14 +97,15 @@ function PerfilStackNavigator() {
 }
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Inicio: "barbell", // Actualizado a pesa
+  Inicio: "barbell",
   Rutinas: "fitness-outline",
   Progreso: "bar-chart-outline",
   Perfil: "person-outline",
 };
 
-/* ---------- CustomTabBar Moderno ---------- */
+/* ---------- CustomTabBar Adaptativo ---------- */
 function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -109,9 +117,18 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const mainIndex = state.routes.findIndex((r: any) => r.name === "Inicio");
   const isMainFocused = state.index === mainIndex;
 
+  /**
+   * AJUSTE DE ALTURA:
+   * Hemos subido el valor base de 20 a 30 para Android con botones.
+   * En iOS/Gestos, añadimos 10 puntos extra al inset para que no quede pegado a la barra.
+   */
+  const dynamicBottom = insets.bottom > 0
+    ? insets.bottom + (Platform.OS === 'ios' ? 10 : 15)
+    : 30;
+
   return (
-    <View style={styles.tabContainer}>
-      {/* BOTÓN PRINCIPAL (INICIO) - BORDE GRADIENTE IMC */}
+    <View style={[styles.tabContainer, { bottom: dynamicBottom }]}>
+      {/* BOTÓN PRINCIPAL (INICIO) */}
       <View style={styles.mainBtnWrapper}>
         <LinearGradient
           colors={[tokens.color.gradientStart, tokens.color.gradientMid, tokens.color.gradientEnd]}
@@ -133,10 +150,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         </LinearGradient>
       </View>
 
-      {/* BARRA FLOTANTE PARA RUTINAS, PROGRESO Y PERFIL */}
+      {/* BARRA FLOTANTE */}
       <View style={[styles.floatingBar, { backgroundColor: cardBg, borderColor: cardBorder }]}>
         {state.routes.filter((r: any) => r.name !== "Inicio").map((route: any) => {
-          const isFocused = state.index === state.routes.findIndex((r: any) => r.name === route.name);
+          const routeIndex = state.routes.findIndex((r: any) => r.name === route.name);
+          const isFocused = state.index === routeIndex;
           const iconName = TAB_ICONS[route.name];
 
           return (
@@ -174,7 +192,10 @@ export default function AppNavigator() {
         name="Perfil"
         component={PerfilStackNavigator}
         listeners={({ navigation }) => ({
-          tabPress: () => navigation.navigate("Perfil", { screen: "Cuenta" }),
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("Perfil", { screen: "Cuenta" });
+          },
         })}
       />
     </Tab.Navigator>
@@ -184,24 +205,24 @@ export default function AppNavigator() {
 const styles = StyleSheet.create({
   tabContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 35 : 20,
     width: "100%",
     flexDirection: "row",
     paddingHorizontal: 16,
     alignItems: "center",
+    zIndex: 99,
   },
   mainBtnWrapper: {
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    elevation: 8,
   },
   gradientBorder: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    padding: 2.5, // Grosor sutil para el gradiente
+    padding: 2.5,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -223,10 +244,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     paddingHorizontal: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   tabItem: {
     flex: 1,

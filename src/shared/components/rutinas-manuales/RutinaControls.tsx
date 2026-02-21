@@ -1,13 +1,14 @@
 // src/shared/components/rutina/RutinaControls.tsx
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
-  Pressable,
-  Modal,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Pressable,
+  ScrollView,
+  Platform,
 } from "react-native";
 import { useColorScheme } from "nativewind";
 import {
@@ -19,6 +20,11 @@ import {
   Sparkles,
   X,
 } from "lucide-react-native";
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import type { Item } from "@/features/type/crearRutina";
 
 type Props = {
@@ -68,7 +74,16 @@ export default function RutinaControls({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const snapPoints = useMemo(() => ["45%", "70%"], []);
+
+  const cardBg = isDark ? "#0f172a" : "#ffffff";
+  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
+  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const accentColor = isDark ? "#10b981" : "#059669";
 
   const fabBase =
     "p-4 rounded-full shadow-lg items-center justify-center " +
@@ -78,17 +93,41 @@ export default function RutinaControls({
 
   const iconColor = isDark ? "#f8fafc" : "#1e293b";
 
+  useEffect(() => {
+    if (menuOpen) {
+      const id = requestAnimationFrame(() => {
+        bottomSheetModalRef.current?.present();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    bottomSheetModalRef.current?.dismiss();
+  }, [menuOpen]);
+
+  const closeMenu = useCallback(() => {
+    bottomSheetModalRef.current?.dismiss();
+  }, []);
+
   const executeAction = (fn?: () => void) => {
     fn?.();
-    setMenuOpen(false);
+    closeMenu();
   };
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.4}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
 
   return (
     <>
-      {/* ---------- BOTONES FLOTANTES (MÁS ESPACIO INFERIOR) ---------- */}
       <View style={styles.floatingContainer}>
-
-        {/* BOTÓN SECUNDARIO: OPCIONES (Abre el menú) */}
         <TouchableOpacity
           onPress={() => setMenuOpen(true)}
           className={fabBase}
@@ -98,7 +137,6 @@ export default function RutinaControls({
           <Cog size={24} color={iconColor} />
         </TouchableOpacity>
 
-        {/* BOTÓN PRINCIPAL: GUARDAR / EDITAR */}
         <TouchableOpacity
           onPress={onCrear}
           disabled={creando || !puedeCrear}
@@ -106,7 +144,7 @@ export default function RutinaControls({
           style={[
             styles.mainFab,
             {
-              backgroundColor: isDark ? "#10b981" : "#059669", // Verde para denotar éxito/guardado
+              backgroundColor: isDark ? "#10b981" : "#059669",
               opacity: creando || !puedeCrear ? 0.6 : 1,
             },
           ]}
@@ -121,34 +159,41 @@ export default function RutinaControls({
         </TouchableOpacity>
       </View>
 
-      {/* ---------- MODAL DE ACCIONES (EL "MENÚ DELICADO") ---------- */}
-      <Modal
-        visible={menuOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setMenuOpen(false)}
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={1}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        onDismiss={() => setMenuOpen(false)}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: cardBg }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark ? "#334155" : "#e2e8f0",
+          width: 40,
+        }}
+        style={{
+          zIndex: 999999,
+          ...(Platform.OS === "android" ? { elevation: 999999 } : null),
+        }}
+        containerStyle={{
+          zIndex: 999999,
+          ...(Platform.OS === "android" ? { elevation: 999999 } : null),
+        }}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setMenuOpen(false)}
-        >
-          <View
-            style={[
-              styles.menuContent,
-              { backgroundColor: isDark ? "#0f172a" : "#ffffff" }
-            ]}
-          >
-            {/* Cabecera del Menú */}
-            <View style={styles.menuHeader}>
-              <Text style={[styles.menuTitle, { color: isDark ? "#f1f5f9" : "#0f172a" }]}>
-                Acciones de Rutina
-              </Text>
-              <TouchableOpacity onPress={() => setMenuOpen(false)}>
-                <X size={20} color={isDark ? "#94a3b8" : "#64748b"} />
-              </TouchableOpacity>
-            </View>
+        <BottomSheetView style={styles.sheetContent}>
+          <View style={styles.menuHeader}>
+            <Text style={[styles.menuTitle, { color: textPrimary }]}>
+              Acciones de Rutina
+            </Text>
+            <Pressable onPress={closeMenu} hitSlop={10}>
+              <X size={20} color={textSecondary} />
+            </Pressable>
+          </View>
 
-            {/* Grupo: Añadir */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
             <Text style={styles.sectionLabel}>AÑADIR</Text>
             <View style={styles.row}>
               <MenuOption
@@ -171,46 +216,95 @@ export default function RutinaControls({
               />
             </View>
 
-            {/* Grupo: Gestión de Selección */}
             {haySeleccion && (
               <>
                 <Text style={styles.sectionLabel}>SELECCIÓN</Text>
                 <View style={styles.row}>
-                  <MenuOption icon={<Pencil size={18} color={iconColor} />} label="Editar" onPress={() => executeAction(onEditarSeleccion)} isDark={isDark} />
-                  <MenuOption disabled={!puedeSubir} icon={<Plus size={18} color={iconColor} style={{ transform: [{ rotate: '180deg' }] }} />} label="Subir" onPress={onSubirSeleccion} isDark={isDark} />
-                  <MenuOption disabled={!puedeBajar} icon={<Plus size={18} color={iconColor} />} label="Bajar" onPress={onBajarSeleccion} isDark={isDark} />
-                  <MenuOption icon={<Trash2 size={18} color="#ef4444" />} label="Borrar" onPress={() => executeAction(onEliminarSeleccion)} isDark={isDark} />
+                  <MenuOption
+                    icon={<Pencil size={18} color={iconColor} />}
+                    label="Editar"
+                    onPress={() => executeAction(onEditarSeleccion)}
+                    isDark={isDark}
+                  />
+                  <MenuOption
+                    disabled={!puedeSubir}
+                    icon={
+                      <Plus
+                        size={18}
+                        color={iconColor}
+                        style={{ transform: [{ rotate: "180deg" }] }}
+                      />
+                    }
+                    label="Subir"
+                    onPress={() => executeAction(onSubirSeleccion)}
+                    isDark={isDark}
+                  />
+                  <MenuOption
+                    disabled={!puedeBajar}
+                    icon={<Plus size={18} color={iconColor} />}
+                    label="Bajar"
+                    onPress={() => executeAction(onBajarSeleccion)}
+                    isDark={isDark}
+                  />
+                  <MenuOption
+                    icon={<Trash2 size={18} color="#ef4444" />}
+                    label="Borrar"
+                    onPress={() => executeAction(onEliminarSeleccion)}
+                    isDark={isDark}
+                  />
                 </View>
               </>
             )}
 
-            {/* Grupo: Día y Herramientas */}
             <Text style={styles.sectionLabel}>HERRAMIENTAS</Text>
             <View style={styles.row}>
-              <MenuOption icon={<Cog size={18} color={iconColor} />} label="Copiar Día" onPress={() => executeAction(onCopiarDia)} isDark={isDark} />
-              <MenuOption disabled={!puedePegar} icon={<Cog size={18} color={iconColor} />} label="Pegar" onPress={() => executeAction(onPegarAppend)} isDark={isDark} />
-              <MenuOption icon={<Trash2 size={18} color="#ef4444" />} label="Vaciar" onPress={() => executeAction(onVaciar)} isDark={isDark} />
+              <MenuOption
+                icon={<Cog size={18} color={iconColor} />}
+                label="Copiar Día"
+                onPress={() => executeAction(onCopiarDia)}
+                isDark={isDark}
+              />
+              <MenuOption
+                disabled={!puedePegar}
+                icon={<Cog size={18} color={iconColor} />}
+                label="Pegar"
+                onPress={() => executeAction(onPegarAppend)}
+                isDark={isDark}
+              />
+              <MenuOption
+                icon={<Trash2 size={18} color="#ef4444" />}
+                label="Vaciar"
+                onPress={() => executeAction(onVaciar)}
+                isDark={isDark}
+              />
             </View>
-          </View>
-        </Pressable>
-      </Modal>
+          </ScrollView>
+        </BottomSheetView>
+      </BottomSheetModal>
     </>
   );
 }
-
-/* ---------------- Componentes Internos ---------------- */
 
 function MenuOption({ icon, label, onPress, isDark, disabled }: any) {
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
+      activeOpacity={0.85}
       style={[styles.optionBtn, { opacity: disabled ? 0.4 : 1 }]}
     >
-      <View style={[styles.optionIcon, { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" }]}>
+      <View
+        style={[
+          styles.optionIcon,
+          { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" },
+        ]}
+      >
         {icon}
       </View>
-      <Text style={[styles.optionLabel, { color: isDark ? "#cbd5e1" : "#475569" }]} numberOfLines={1}>
+      <Text
+        style={[styles.optionLabel, { color: isDark ? "#cbd5e1" : "#475569" }]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </TouchableOpacity>
@@ -220,7 +314,7 @@ function MenuOption({ icon, label, onPress, isDark, disabled }: any) {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: "absolute",
-    bottom: 90, // Elevado para dar espacio inferior (estaba en 35/100)
+    bottom: 140,
     right: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -249,26 +343,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2.5,
   },
-  modalOverlay: {
+  sheetContent: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-  menuContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40, // Más espacio abajo dentro del modal
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 26,
   },
   menuHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 14,
   },
   menuTitle: {
     fontSize: 18,
     fontWeight: "800",
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   sectionLabel: {
     fontSize: 11,

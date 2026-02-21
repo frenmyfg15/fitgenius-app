@@ -32,7 +32,7 @@ const tokens = {
     md: 16,
     lg: 20,
     xl: 24,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 120
+    tabBarSafe: Platform.OS === "ios" ? 140 : 130
   },
 } as const;
 
@@ -133,13 +133,12 @@ export default function Home() {
     finally { setRefreshing(false); }
   }, [fetchRutina]);
 
-  const devolver = useCallback((d: string, diaNombre: string) => {
+  const devolver = useCallback((diaNum: string, diaNombre: string, mes: string, año: string) => {
     setDia(normalizeEnum(diaNombre));
-    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-      setSelectedYMD(d);
-    } else {
-      setSelectedYMD(toMadridYMD(new Date()));
-    }
+
+    // construimos YYYY-MM-DD con lo que Calendar manda
+    const ymd = `${año}-${String(mes).padStart(2, "0")}-${String(diaNum).padStart(2, "0")}`;
+    setSelectedYMD(ymd);
   }, []);
 
   const totalEjercicios = useMemo(() =>

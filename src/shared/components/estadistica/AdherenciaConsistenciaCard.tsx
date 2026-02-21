@@ -1,14 +1,61 @@
 // src/shared/components/estadistica/AdherenciaConsistenciaCard.tsx
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
+
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
+
+    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    kpiBgDark: "rgba(255,255,255,0.05)",
+    kpiBgLight: "rgba(255,255,255,0.80)",
+    kpiBorderDark: "rgba(255,255,255,0.09)",
+    kpiBorderLight: "#E2E8F0",
+
+    rowBgDark: "rgba(15,23,42,0.85)",
+    rowBgLight: "rgba(248,250,252,0.9)",
+    rowBorderDark: "rgba(148,163,184,0.25)",
+    rowBorderLight: "#E2E8F0",
+
+    barTrackDark: "rgba(15,23,42,0.9)",
+    barTrackLight: "#E5E7EB",
+
+    emptyBorderDark: "rgba(255,255,255,0.10)",
+    emptyBorderLight: "rgba(0,0,0,0.06)",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#94A3B8",
+    textMutedLight: "#475569",
+  },
+  radius: { lg: 16, md: 12, sm: 8 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
 
 type Props = {
   planificadas: number;
   completadas: number;
-  adherencia: number;   // 0–100
-  consistencia: number; // 0–100
+  adherencia: number;
+  consistencia: number;
+};
+
+const clampPct = (v: number) =>
+  Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
+
+const getLabel = (value: number) => {
+  if (value >= 90) return "Excelente";
+  if (value >= 75) return "Muy bien";
+  if (value >= 50) return "En progreso";
+  return "Por mejorar";
 };
 
 export default function AdherenciaConsistenciaCard({
@@ -20,184 +67,90 @@ export default function AdherenciaConsistenciaCard({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  // 🎨 Paleta & glass consistente
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBgDarkA = "rgba(20,28,44,0.85)";
-  const cardBgDarkB = "rgba(9,14,24,0.9)";
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
-  const clamp = (v: number) =>
-    Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
-  const adhe = clamp(adherencia);
-  const cons = clamp(consistencia);
+  const adhe = clampPct(adherencia);
+  const cons = clampPct(consistencia);
 
   const kpis = useMemo(
     () => [
-      {
-        label: "Sesiones planificadas",
-        value: planificadas,
-        accent: "green" as const,
-      },
-      {
-        label: "Sesiones completadas",
-        value: completadas,
-        accent: "purple" as const,
-      },
+      { label: "Sesiones planificadas", value: planificadas, accent: "green" as const },
+      { label: "Sesiones completadas", value: completadas, accent: "purple" as const },
     ],
     [planificadas, completadas]
   );
 
   return (
-    <View className="w-full max-w-[520px]">
-      {/* Marco degradado (borde) */}
+    <View style={styles.root}>
       <LinearGradient
-        colors={
-          isDark
-            ? (marcoGradient as any)
-            : (["#39ff14", "#14ff80", "#22c55e"] as any)
-        }
+        colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {/* Fondo glassy en dark / blanco en light */}
-        {isDark ? (
-          <LinearGradient
-            colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorderDark,
-              overflow: "hidden",
-            }}
-          >
-            <CardBody
-              isDark
-              kpis={kpis}
-              adhe={adhe}
-              cons={cons}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-          </LinearGradient>
-        ) : (
-          <View
-            className="rounded-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            <CardBody
-              isDark={false}
-              kpis={kpis}
-              adhe={adhe}
-              cons={cons}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-          </View>
-        )}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          <CardBody isDark={isDark} kpis={kpis} adhe={adhe} cons={cons} />
+        </View>
       </LinearGradient>
     </View>
   );
 }
-
-/* ----------------- Cuerpo ----------------- */
 
 function CardBody({
   isDark,
   kpis,
   adhe,
   cons,
-  textPrimaryDark,
-  textSecondaryDark,
 }: {
   isDark: boolean;
   kpis: { label: string; value: number; accent: "green" | "purple" }[];
   adhe: number;
   cons: number;
-  textPrimaryDark: string;
-  textSecondaryDark: string;
 }) {
-  const textPrimary = isDark ? textPrimaryDark : "#0f172a";
-  const textSecondary = isDark ? textSecondaryDark : "#64748b";
-
-  const getLabel = (value: number) => {
-    if (value >= 90) return "Excelente";
-    if (value >= 75) return "Muy bien";
-    if (value >= 50) return "En progreso";
-    return "Por mejorar";
-  };
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const dotColor = isDark ? "#22C55E" : "#16A34A";
 
   return (
-    <View className="rounded-2xl">
-      {/* Header */}
-      <View className="px-5 pt-5 pb-3 flex-row items-center justify-between">
+    <View style={styles.cardBody}>
+      <View style={styles.header}>
         <View>
-          <Text
-            className="text-base font-semibold"
-            style={{ color: textPrimary }}
-          >
-            Progreso general
-          </Text>
-          <Text
-            className="text-xs"
-            style={{ color: textSecondary }}
-          >
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>Progreso general</Text>
+          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
             Resumen de adherencia y consistencia
           </Text>
         </View>
 
-        <View className="items-end">
-          <View className="flex-row items-center gap-1.5">
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: isDark ? "#22c55e" : "#16a34a",
-              }}
-            />
-            <Text
-              className="text-[11px]"
-              style={{ color: textSecondary }}
-            >
-              Últimos días
-            </Text>
+        <View style={styles.headerRight}>
+          <View style={styles.headerRightRow}>
+            <View style={[styles.headerDot, { backgroundColor: dotColor }]} />
+            <Text style={[styles.headerRightText, { color: textSecondary }]}>Últimos días</Text>
           </View>
         </View>
       </View>
 
-      {/* KPIs planificadas / completadas */}
-      <View className="px-5 pb-3 flex-row gap-3">
+      <View style={styles.kpiRow}>
         {kpis.map((k) => (
-          <View key={k.label} className="flex-1">
-            <Metric
-              label={k.label}
-              value={k.value}
-              accent={k.accent}
-              isDark={isDark}
-            />
+          <View key={k.label} style={styles.kpiCol}>
+            <Metric label={k.label} value={k.value} accent={k.accent} isDark={isDark} />
           </View>
         ))}
       </View>
 
-      {/* Barras de adherencia y consistencia */}
-      <View className="px-5 pb-4 gap-3">
+      <View style={styles.progressStack}>
         <ProgressRow
           isDark={isDark}
           label="Adherencia"
           value={adhe}
           description="Porcentaje de sesiones completadas sobre las planificadas."
-          fromColor={isDark ? "#22c55e" : "#16a34a"}
-          toColor={isDark ? "#a3e635" : "#4ade80"}
+          fromColor={isDark ? "#22C55E" : "#16A34A"}
+          toColor={isDark ? "#A3E635" : "#4ADE80"}
           textPrimary={textPrimary}
           textSecondary={textSecondary}
           labelRight={getLabel(adhe)}
@@ -208,30 +161,28 @@ function CardBody({
           label="Consistencia"
           value={cons}
           description="Qué tan estable ha sido tu rutina semana a semana."
-          fromColor={isDark ? "#a855f7" : "#8b5cf6"}
-          toColor={isDark ? "#ec4899" : "#f97316"}
+          fromColor={isDark ? "#A855F7" : "#8B5CF6"}
+          toColor={isDark ? "#EC4899" : "#F97316"}
           textPrimary={textPrimary}
           textSecondary={textSecondary}
           labelRight={getLabel(cons)}
         />
       </View>
 
-      {/* Nota inferior */}
-      <View className="border-t px-5 pt-3 pb-4 border-white/5 border-slate-100">
-        <Text
-          className="text-[11px]"
-          style={{ color: textSecondary }}
-        >
-          Intenta mantener una adherencia alta con una consistencia
-          estable: es la combinación ideal para progresar y evitar
-          altibajos extremos.
+      <View
+        style={[
+          styles.note,
+          { borderTopColor: isDark ? tokens.color.emptyBorderDark : tokens.color.emptyBorderLight },
+        ]}
+      >
+        <Text style={[styles.noteText, { color: textSecondary }]}>
+          Intenta mantener una adherencia alta con una consistencia estable: es la combinación ideal
+          para progresar y evitar altibajos extremos.
         </Text>
       </View>
     </View>
   );
 }
-
-/* ----------------- Subcomponentes ----------------- */
 
 function Metric({
   label,
@@ -245,36 +196,22 @@ function Metric({
   isDark: boolean;
 }) {
   const colorNum =
-    accent === "green"
-      ? isDark
-        ? "#4ade80"
-        : "#16a34a"
-      : isDark
-      ? "#a855f7"
-      : "#7c3aed";
+    accent === "green" ? (isDark ? "#4ADE80" : "#16A34A") : isDark ? "#A855F7" : "#7C3AED";
+
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
 
   return (
     <View
-      className="rounded-xl px-4 py-3 border"
-      style={{
-        backgroundColor: isDark
-          ? "rgba(255,255,255,0.05)"
-          : "rgba(255,255,255,0.7)",
-        borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
-      }}
+      style={[
+        styles.metric,
+        {
+          backgroundColor: isDark ? tokens.color.kpiBgDark : tokens.color.kpiBgLight,
+          borderColor: isDark ? tokens.color.kpiBorderDark : tokens.color.kpiBorderLight,
+        },
+      ]}
     >
-      <Text
-        className="text-xs"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
-      >
-        {label}
-      </Text>
-      <Text
-        className="mt-1 text-3xl font-extrabold leading-tight"
-        style={{ color: colorNum }}
-      >
-        {value}
-      </Text>
+      <Text style={[styles.metricLabel, { color: textMuted }]}>{label}</Text>
+      <Text style={[styles.metricValue, { color: colorNum }]}>{value}</Text>
     </View>
   );
 }
@@ -304,88 +241,193 @@ function ProgressRow({
 
   return (
     <View
-      className="rounded-xl px-4 py-3 border"
-      style={{
-        backgroundColor: isDark
-          ? "rgba(15,23,42,0.85)"
-          : "rgba(248,250,252,0.9)",
-        borderColor: isDark ? "rgba(148,163,184,0.25)" : "#e2e8f0",
-      }}
+      style={[
+        styles.progressRow,
+        {
+          backgroundColor: isDark ? tokens.color.rowBgDark : tokens.color.rowBgLight,
+          borderColor: isDark ? tokens.color.rowBorderDark : tokens.color.rowBorderLight,
+        },
+      ]}
     >
-      <View className="flex-row items-center justify-between mb-2">
-        <Text
-          className="text-sm font-medium"
-          style={{ color: textPrimary }}
-        >
-          {label}
-        </Text>
-        <View className="items-end">
-          <Text
-            className="text-sm font-semibold"
-            style={{ color: textPrimary }}
-          >
-            {value.toFixed(0)}%
-          </Text>
-          <Text
-            className="text-[11px]"
-            style={{ color: textSecondary }}
-          >
-            {labelRight}
-          </Text>
+      <View style={styles.progressHeader}>
+        <Text style={[styles.progressTitle, { color: textPrimary }]}>{label}</Text>
+
+        <View style={styles.progressRight}>
+          <Text style={[styles.progressValue, { color: textPrimary }]}>{value.toFixed(0)}%</Text>
+          <Text style={[styles.progressHint, { color: textSecondary }]}>{labelRight}</Text>
         </View>
       </View>
 
-      {/* Barra de progreso con gradiente */}
-      <View className="mt-1 mb-2">
+      <View style={styles.progressBarBlock}>
         <View
-          className="h-2.5 rounded-full overflow-hidden"
-          style={{
-            backgroundColor: isDark
-              ? "rgba(15,23,42,0.9)"
-              : "#e5e7eb",
-          }}
+          style={[
+            styles.progressTrack,
+            { backgroundColor: isDark ? tokens.color.barTrackDark : tokens.color.barTrackLight },
+          ]}
         >
           <LinearGradient
             colors={[fromColor, toColor]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{
-              width: `${pct}%`,
-              height: "100%",
-              borderRadius: 999,
-            }}
+            style={[styles.progressFill, { width: `${pct}%` }]}
           />
         </View>
 
-        {/* Marcadores 0 / 50 / 100 */}
-        <View className="flex-row justify-between mt-1">
-          <Text
-            className="text-[10px]"
-            style={{ color: textSecondary }}
-          >
-            0%
-          </Text>
-          <Text
-            className="text-[10px]"
-            style={{ color: textSecondary }}
-          >
-            50%
-          </Text>
-          <Text
-            className="text-[10px]"
-            style={{ color: textSecondary }}
-          >
-            100%
-          </Text>
+        <View style={styles.progressTicks}>
+          <Text style={[styles.progressTick, { color: textSecondary }]}>0%</Text>
+          <Text style={[styles.progressTick, { color: textSecondary }]}>50%</Text>
+          <Text style={[styles.progressTick, { color: textSecondary }]}>100%</Text>
         </View>
       </View>
 
-      <Text
-        className="text-[11px]"
-        style={{ color: textSecondary }}
-      >
-        {description}
-      </Text>
+      <Text style={[styles.progressDesc, { color: textSecondary }]}>{description}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { width: "100%", maxWidth: 520 },
+
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  cardBody: {
+    borderRadius: tokens.radius.lg - 1,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.spacing.xl,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  headerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  headerRightText: {
+    fontSize: 11,
+  },
+
+  kpiRow: {
+    flexDirection: "row",
+    gap: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+  },
+  kpiCol: { flex: 1 },
+
+  metric: {
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    borderWidth: 1,
+  },
+  metricLabel: {
+    fontSize: 12,
+  },
+  metricValue: {
+    marginTop: tokens.spacing.xs,
+    fontSize: 28,
+    fontWeight: "800",
+    lineHeight: 32,
+  },
+
+  progressStack: {
+    paddingHorizontal: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.lg,
+    gap: tokens.spacing.md,
+  },
+
+  progressRow: {
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    borderWidth: 1,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: tokens.spacing.sm,
+  },
+  progressTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  progressRight: {
+    alignItems: "flex-end",
+  },
+  progressValue: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  progressHint: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+
+  progressBarBlock: {
+    marginTop: tokens.spacing.xs,
+    marginBottom: tokens.spacing.sm,
+  },
+  progressTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  progressTicks: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: tokens.spacing.xs,
+  },
+  progressTick: {
+    fontSize: 10,
+  },
+  progressDesc: {
+    fontSize: 11,
+  },
+
+  note: {
+    borderTopWidth: 1,
+    paddingHorizontal: tokens.spacing.xl,
+    paddingTop: tokens.spacing.md,
+    paddingBottom: tokens.spacing.lg,
+  },
+  noteText: {
+    fontSize: 11,
+  },
+});

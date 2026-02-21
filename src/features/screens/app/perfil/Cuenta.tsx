@@ -211,6 +211,7 @@ export default function Cuenta() {
     <ScrollView
       style={[styles.scroll, { backgroundColor: bg }]}
       contentContainerStyle={[styles.scrollContent, { backgroundColor: bg, paddingBottom: Platform.OS === "ios" ? 150 : 130 }]}
+      showsVerticalScrollIndicator={false}
     >
       {/* CTA Premium (solo para usuarios free) */}
       {!isPremium && !haPagado && <PremiumMiniCTACard />}

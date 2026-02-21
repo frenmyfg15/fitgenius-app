@@ -2,6 +2,9 @@ import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
+import { configureReanimatedLogger, ReanimatedLogLevel } from "react-native-reanimated";
+
+configureReanimatedLogger({ level: ReanimatedLogLevel.warn, strict: false });
 
 /* ---------------- Props ---------------- */
 interface Props {
@@ -30,6 +33,24 @@ const isTodayMadrid = (d: Date) => {
   return toMadridYMD(d) === hoy;
 };
 
+/* ---------------- Sub-componente memoizado ---------------- */
+const TodayGradient = React.memo(() => (
+  <LinearGradient
+    colors={marcoGradient as any}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+    style={{
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      borderRadius: 8,
+    }}
+    pointerEvents="none"
+  />
+));
+
 /* ---------------- Componente ---------------- */
 export default function Calendar({ devolverDato, activar = true, completadas = {} }: Props) {
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null);
@@ -44,7 +65,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
   const fechaBase = useMemo(() => new Date(), []);
 
   const obtenerInicioSemana = useCallback((fecha: Date) => {
-    const diaSemana = (fecha.getDay() + 6) % 7; // lunes=0
+    const diaSemana = (fecha.getDay() + 6) % 7;
     const inicioSemana = new Date(fecha);
     inicioSemana.setDate(fecha.getDate() - diaSemana);
     inicioSemana.setHours(0, 0, 0, 0);
@@ -90,26 +111,19 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           "flex-1 mx-1 h-16 rounded-lg items-center justify-center transition-all duration-200";
         const disabledStyle = activar ? "" : "opacity-70";
 
-        // Fondo base cuando NO es hoy y NO es seleccionado
         const fondoNormal = isDark
           ? "bg-white/5 border border-white/10"
           : "bg-gray-50 border border-gray-100";
 
-        // ✅ Si es seleccionado:
-        //    - en dark: fondo BLANCO, texto NEGRO
-        //    - en light: fondo NEGRO, texto BLANCO
         const fondoSeleccionado = isDark
           ? "bg-white border border-white"
           : "bg-black border border-black";
 
-        // Si es hoy (y no está seleccionado): fondo degradado; el contenedor se queda transparente
         const fondoHoyNoSeleccionado = "bg-transparent border-transparent";
 
-        // Borde verde adicional solo para completado cuando no es seleccionado
         const bordeVerde =
           completado && !esSeleccionado ? (isDark ? "border-[#22c55e]/50" : "border-[#22c55e]") : "";
 
-        // Clases finales del contenedor
         const contenedorClasses =
           esSeleccionado
             ? `${baseClasses} ${fondoSeleccionado} ${disabledStyle}`
@@ -117,41 +131,27 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
               ? `${baseClasses} ${fondoHoyNoSeleccionado} ${bordeVerde} ${disabledStyle}`
               : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
 
-        // ✅ Colores de texto
         const colorTextoNumero = esSeleccionado
-          ? isDark
-            ? "#000000"
-            : "#ffffff"
+          ? isDark ? "#000000" : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
               ? "#22c55e"
-              : isDark
-                ? "#ffffff"
-                : "#111111";
+              : isDark ? "#ffffff" : "#111111";
 
         const colorTextoEtiqueta = esSeleccionado
-          ? isDark
-            ? "#000000"
-            : "#ffffff"
+          ? isDark ? "#000000" : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
               ? "#22c55e"
-              : isDark
-                ? "#94a3b8"
-                : "#6b7280";
+              : isDark ? "#94a3b8" : "#6b7280";
 
-        // ✅ Borde del punto para garantizar contraste
         const bordePunto = esSeleccionado
-          ? isDark
-            ? "#000000" // fondo blanco → borde negro en dark
-            : "#ffffff" // fondo negro en light → borde blanco
+          ? isDark ? "#000000" : "#ffffff"
           : esHoy
             ? "#ffffff"
-            : isDark
-              ? "#0b1220"
-              : "#ffffff";
+            : isDark ? "#0b1220" : "#ffffff";
 
         return (
           <TouchableOpacity
@@ -163,25 +163,8 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
             className={contenedorClasses}
             activeOpacity={0.9}
           >
-            {/* Fondo degradado SOLO si es HOY y NO está seleccionado */}
-            {esHoy && !esSeleccionado && (
-              <LinearGradient
-                colors={marcoGradient as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  left: 0,
-                  borderRadius: 8, // coincide con rounded-lg
-                }}
-                pointerEvents="none"
-              />
-            )}
+            {esHoy && !esSeleccionado && <TodayGradient />}
 
-            {/* Punto de completado: SIEMPRE visible */}
             {completado && (
               <View
                 className="absolute top-1 left-1 w-2.5 h-2.5 rounded-full bg-[#22c55e]"

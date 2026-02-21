@@ -213,8 +213,7 @@ export function useVistaEjercicioState(params: Params) {
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
 
-      setFestejo(true);
-      setTimeout(() => (navigation as any).goBack(), 3800);
+      // ← setFestejo y goBack eliminados; los maneja CelebracionModal.onFinish
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -274,8 +273,7 @@ export function useVistaEjercicioState(params: Params) {
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
 
-      setFestejo(true);
-      setTimeout(() => (navigation as any).goBack(), 3800);
+      // ← setFestejo y goBack eliminados; los maneja CelebracionModal.onFinish
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -306,6 +304,7 @@ export function useVistaEjercicioState(params: Params) {
     descansando,
     guardando,
     festejo,
+    setFestejo,
     experienciaPlus,
     calorias,
     nivelEstres,

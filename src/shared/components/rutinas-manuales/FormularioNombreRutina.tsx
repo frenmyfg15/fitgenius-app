@@ -1,17 +1,28 @@
-// src/shared/components/rutina/FormularioNombreRutina.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useColorScheme } from "nativewind";
 import { X } from "lucide-react-native";
 import { z } from "zod";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
 
 type Props = {
+  visible: boolean;
   onCancel: () => void;
   onConfirm: (nombre: string, descripcion?: string) => void;
   nombreInicial?: string;
   descripcionInicial?: string;
-  /** ⬇️ actualizaciones en tiempo real (opcionales) */
   onNombreInput?: (v: string) => void;
   onDescripcionInput?: (v: string) => void;
 };
@@ -22,6 +33,7 @@ const schema = z.object({
 });
 
 export default function FormularioNombreRutina({
+  visible,
   onCancel,
   onConfirm,
   nombreInicial = "",
@@ -31,24 +43,36 @@ export default function FormularioNombreRutina({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
-  // UI tokens (coherentes con tus cards)
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBg = isDark ? "rgba(20,28,44,0.85)" : "rgba(255,255,255,0.95)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const inputBg = isDark ? "rgba(255,255,255,0.03)" : "#ffffff";
-  const inputBorder = isDark ? "rgba(255,255,255,0.15)" : "#e5e7eb";
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ["45%", "75%"], []);
+  const topInset = Math.max(insets.top, 12);
 
   const [nombre, setNombre] = useState(nombreInicial);
   const [descripcion, setDescripcion] = useState(descripcionInicial);
   const [errors, setErrors] = useState<{ nombre?: string; descripcion?: string }>({});
 
+  const cardBg = isDark ? "#0f172a" : "#ffffff";
+  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
+  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const accentColor = isDark ? "#10b981" : "#059669";
+  const surface = isDark ? "#1e293b" : "#f1f5f9";
+  const placeholderColor = isDark ? "#64748b" : "#94a3b8";
+
   useEffect(() => {
-    setNombre(nombreInicial);
-    setDescripcion(descripcionInicial);
-  }, [nombreInicial, descripcionInicial]);
+    if (visible) {
+      setNombre(nombreInicial);
+      setDescripcion(descripcionInicial);
+      setErrors({});
+      const id = requestAnimationFrame(() => {
+        bottomSheetModalRef.current?.present();
+      });
+      return () => cancelAnimationFrame(id);
+    } else {
+      bottomSheetModalRef.current?.dismiss();
+    }
+  }, [visible, nombreInicial, descripcionInicial]);
 
   const confirmar = () => {
     const parsed = schema.safeParse({ nombre, descripcion });
@@ -65,87 +89,99 @@ export default function FormularioNombreRutina({
     onConfirm(parsed.data.nombre.trim(), parsed.data.descripcion?.trim() || undefined);
   };
 
-  const nombreHasError = !!errors.nombre;
-  const descripcionHasError = !!errors.descripcion;
+  const closeSheet = useCallback(() => {
+    bottomSheetModalRef.current?.dismiss();
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.4}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
 
   return (
-    <View
+    <BottomSheetModal
+      ref={bottomSheetModalRef}
+      index={1}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+      onDismiss={onCancel}
+      enablePanDownToClose
+      enableContentPanningGesture={false}
+      enableOverDrag={false}
+      overDragResistanceFactor={0}
+      topInset={topInset}
       style={{
-        position: "absolute",
-        inset: 0 as any,
-        backgroundColor: "rgba(0,0,0,0.40)",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        zIndex: 40
+        zIndex: 9999,
+        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
       }}
-      accessibilityViewIsModal
-      accessibilityLabel="Guardar rutina"
+      containerStyle={{
+        zIndex: 9999,
+        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
+      }}
+      handleIndicatorStyle={{
+        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        width: 40,
+      }}
+      backgroundStyle={{
+        backgroundColor: cardBg,
+      }}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ width: "100%", maxWidth: 520 }}
+        style={{ flex: 1 }}
       >
-        {/* Marco degradado */}
-        <LinearGradient
-          colors={marcoGradient as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 16, padding: 1 }}
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: 40 + insets.bottom,
+            paddingTop: 8,
+          }}
         >
-          {/* Panel interior */}
-          <View
-            style={{
-              borderRadius: 16,
-              backgroundColor: cardBg,
-              borderWidth: 1,
-              borderColor: cardBorder,
-              padding: 18,
-              position: "relative",
-            }}
-          >
-            {/* Cerrar */}
-            <Pressable
-              onPress={onCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar"
+          <View style={{ paddingTop: 6 }}>
+            <View
               style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                height: 32,
-                width: 32,
-                borderRadius: 999,
+                flexDirection: "row",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: isDark ? "rgba(148,163,184,0.18)" : "#f1f5f9",
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+                marginBottom: 20,
               }}
             >
-              <X size={18} color={textSecondary} />
-            </Pressable>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "800",
+                  color: textPrimary,
+                }}
+              >
+                Guardar Rutina
+              </Text>
+              <Pressable onPress={closeSheet} hitSlop={10}>
+                <X size={20} color={textSecondary} />
+              </Pressable>
+            </View>
 
-            {/* Título */}
-            <Text
-              style={{
-                textAlign: "center",
-                fontSize: 20,
-                fontWeight: "800",
-                color: textPrimary,
-                marginBottom: 14,
-              }}
-            >
-              Guardar Rutina
-            </Text>
-
-            <View style={{ gap: 14 }}>
-              {/* Nombre */}
+            <View style={{ gap: 16 }}>
               <View>
                 <Text
-                  style={{ color: textPrimary, fontWeight: "600", fontSize: 14, marginBottom: 6 }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "800",
+                    color: textSecondary,
+                    letterSpacing: 1,
+                    marginBottom: 8,
+                  }}
                 >
-                  Nombre de la rutina
+                  NOMBRE DE LA RUTINA
                 </Text>
                 <TextInput
                   value={nombre}
@@ -155,111 +191,83 @@ export default function FormularioNombreRutina({
                     if (errors.nombre) setErrors((p) => ({ ...p, nombre: undefined }));
                   }}
                   placeholder="Ej. Push/Pull Legs"
-                  placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                  placeholderTextColor={placeholderColor}
                   style={{
-                    borderRadius: 12,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    backgroundColor: inputBg,
+                    borderRadius: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    backgroundColor: surface,
                     color: textPrimary,
-                    borderWidth: 1,
-                    borderColor: nombreHasError ? "#ef4444" : inputBorder,
                     fontSize: 14,
                   }}
-                  accessibilityLabel="Nombre de la rutina"
                 />
-                {nombreHasError ? (
-                  <Text style={{ marginTop: 4, fontSize: 11, color: "#ef4444" }}>
+                {errors.nombre && (
+                  <Text style={{ marginTop: 6, fontSize: 11, color: "#ef4444" }}>
                     {errors.nombre}
                   </Text>
-                ) : null}
+                )}
               </View>
 
-              {/* Descripción */}
               <View>
                 <Text
-                  style={{ color: textPrimary, fontWeight: "600", fontSize: 14, marginBottom: 6 }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "800",
+                    color: textSecondary,
+                    letterSpacing: 1,
+                    marginBottom: 8,
+                  }}
                 >
-                  Descripción (opcional)
+                  DESCRIPCIÓN (OPCIONAL)
                 </Text>
                 <TextInput
                   value={descripcion}
                   onChangeText={(v) => {
                     setDescripcion(v);
                     onDescripcionInput?.(v);
-                    if (errors.descripcion) setErrors((p) => ({ ...p, descripcion: undefined }));
                   }}
-                  placeholder="Describe brevemente el objetivo de esta rutina..."
-                  placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                  placeholder="Describe el objetivo..."
+                  placeholderTextColor={placeholderColor}
                   multiline
                   numberOfLines={3}
                   style={{
-                    borderRadius: 12,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    backgroundColor: inputBg,
+                    borderRadius: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    backgroundColor: surface,
                     color: textPrimary,
-                    borderWidth: 1,
-                    borderColor: descripcionHasError ? "#ef4444" : inputBorder,
                     fontSize: 14,
-                    minHeight: 90,
+                    minHeight: 96,
                     textAlignVertical: "top",
                   }}
-                  accessibilityLabel="Descripción de la rutina"
                 />
-                {descripcionHasError ? (
-                  <Text style={{ marginTop: 4, fontSize: 11, color: "#ef4444" }}>
-                    {errors.descripcion}
-                  </Text>
-                ) : null}
               </View>
 
-              {/* Botones */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "flex-end",
-                  gap: 10,
-                  marginTop: 8,
-                }}
-              >
+              <View style={{ marginTop: 8 }}>
                 <Pressable
-                  onPress={onCancel}
+                  onPress={confirmar}
                   style={{
-                    paddingHorizontal: 18,
-                    paddingVertical: 10,
                     borderRadius: 999,
-                    backgroundColor: isDark ? "rgba(148,163,184,0.15)" : "#f1f5f9",
-                    borderWidth: 1,
-                    borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+                    paddingVertical: 14,
+                    alignItems: "center",
+                    backgroundColor: accentColor,
                   }}
                 >
-                  <Text style={{ color: textSecondary, fontWeight: "700" }}>Cancelar</Text>
-                </Pressable>
-
-                <LinearGradient
-                  colors={marcoGradient as any}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ borderRadius: 999, padding: 1 }}
-                >
-                  <Pressable
-                    onPress={confirmar}
+                  <Text
                     style={{
-                      paddingHorizontal: 18,
-                      paddingVertical: 10,
-                      borderRadius: 999,
-                      backgroundColor: isDark ? "#0f172a" : "#ffffff",
+                      fontSize: 14,
+                      fontWeight: "800",
+                      color: "#ffffff",
                     }}
                   >
-                    <Text style={{ color: textPrimary, fontWeight: "800" }}>Confirmar</Text>
-                  </Pressable>
-                </LinearGradient>
+                    Confirmar y guardar
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
-        </LinearGradient>
+        </BottomSheetScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </BottomSheetModal>
   );
 }

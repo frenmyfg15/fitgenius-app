@@ -1,32 +1,71 @@
+// File: src/features/fit/components/ActividadRecienteCard.tsx
 import React, { useMemo, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-chart-kit";
 
-type SesionDia = {
-  fecha: string;
-  sesiones: number;
-};
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    // Frame gradient (FIX: 2 colores en vez de 3)
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
 
+    // Card interior (FIX: eliminado el gradiente de 3 colores en dark)
+    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    // Empty state icon
+    emptyIconBgDark: "rgba(255,255,255,0.08)",
+    emptyIconBgLight: "#F1F5F9",
+
+    // KPI cards
+    kpiBgDark: "rgba(255,255,255,0.05)",
+    kpiBgLight: "rgba(255,255,255,0.80)",
+    kpiBorderDark: "rgba(255,255,255,0.09)",
+    kpiBorderLight: "#E2E8F0",
+
+    // Texto
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#94A3B8",
+    textMutedLight: "#475569",
+
+    // Chart
+    chartLineDark: "rgba(34,197,94,1)",
+    chartLineLight: "rgba(22,163,74,1)",
+    chartFillDark: "#22C55E",
+    chartFillLight: "#16A34A",
+    chartBgDark: "#0F1829",
+    chartBgLight: "#FFFFFF",
+    chartGridDark: "#1F2937",
+    chartGridLight: "#E5E7EB",
+  },
+  radius: { lg: 16, md: 12, sm: 8 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+// ── Tipos — API pública sin cambios ───────────────────────────────────────────
+type SesionDia = { fecha: string; sesiones: number };
 type Props = {
   diasActivos?: number;
   totalSesiones?: number;
   detallePorDia?: SesionDia[];
 };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function ActividadRecienteCard({
   diasActivos = 0,
   totalSesiones = 0,
   detallePorDia = [],
 }: Props) {
+  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
 
   const [cardWidth, setCardWidth] = useState(0);
   const chartWidth = Math.max(0, cardWidth - 24);
@@ -43,9 +82,7 @@ export default function ActividadRecienteCard({
       const dt = new Date(now);
       dt.setDate(now.getDate() - i);
       const iso = dt.toISOString().slice(0, 10);
-      const nombre = dt
-        .toLocaleDateString("es-ES", { weekday: "short" })
-        .replace(/\.$/, "");
+      const nombre = dt.toLocaleDateString("es-ES", { weekday: "short" }).replace(/\.$/, "");
       days.push({
         nombreDia: nombre.charAt(0).toUpperCase() + nombre.slice(1),
         sesiones: map.get(iso) ?? 0,
@@ -54,160 +91,73 @@ export default function ActividadRecienteCard({
     return days;
   }, [detallePorDia]);
 
-  const labels = useMemo(
-    () => normalized.map((d) => d.nombreDia.substring(0, 3)),
-    [normalized]
-  );
-  const values = useMemo(
-    () => normalized.map((d) => d.sesiones || 0),
-    [normalized]
-  );
-
+  const labels = useMemo(() => normalized.map((d) => d.nombreDia.substring(0, 3)), [normalized]);
+  const values = useMemo(() => normalized.map((d) => d.sesiones || 0), [normalized]);
   const noData = values.every((v) => v === 0);
-
-  if (noData) {
-    return (
-      <View
-        className="w-full max-w-[520px]"
-        onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
-      >
-        <LinearGradient
-          colors={marcoGradient as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
-        >
-          {isDark ? (
-            <LinearGradient
-              colors={[
-                "rgba(20,28,44,0.85)",
-                "rgba(9,14,24,0.9)",
-                "rgba(20,28,44,0.85)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: cardBorderDark,
-                overflow: "hidden",
-              }}
-            >
-              <EmptyState isDark />
-            </LinearGradient>
-          ) : (
-            <View
-              className="rounded-2xl"
-              style={{
-                backgroundColor: "#ffffff",
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <EmptyState isDark={false} />
-            </View>
-          )}
-        </LinearGradient>
-      </View>
-    );
-  }
+  // ── Fin lógica original ───────────────────────────────────────────────────
 
   const chartConfig = {
-    backgroundColor: isDark ? "#0b1220" : "#ffffff",
-    backgroundGradientFrom: isDark ? "#111a2b" : "#ffffff",
-    backgroundGradientTo: isDark ? "#0b1220" : "#ffffff",
+    backgroundColor: isDark ? tokens.color.chartBgDark : tokens.color.chartBgLight,
+    backgroundGradientFrom: isDark ? tokens.color.chartBgDark : tokens.color.chartBgLight,
+    backgroundGradientTo: isDark ? tokens.color.chartBgDark : tokens.color.chartBgLight,
     decimalPlaces: 0,
-    color: (opacity = 1) =>
-      isDark ? `rgba(34,197,94,${opacity})` : `rgba(22,163,74,${opacity})`,
-    labelColor: (opacity = 1) =>
-      isDark ? `rgba(148,163,184,${opacity})` : `rgba(100,116,139,${opacity})`,
+    color: (opacity = 1) => isDark
+      ? `rgba(34,197,94,${opacity})`
+      : `rgba(22,163,74,${opacity})`,
+    labelColor: (opacity = 1) => isDark
+      ? `rgba(100,116,139,${opacity})`
+      : `rgba(100,116,139,${opacity})`,
     propsForDots: { r: "4" },
     propsForBackgroundLines: {
-      stroke: isDark ? "#1f2937" : "#e5e7eb",
+      stroke: isDark ? tokens.color.chartGridDark : tokens.color.chartGridLight,
       strokeDasharray: "",
     },
-    fillShadowGradient: isDark ? "#22c55e" : "#16a34a",
+    fillShadowGradient: isDark ? tokens.color.chartFillDark : tokens.color.chartFillLight,
     fillShadowGradientOpacity: isDark ? 0.25 : 0.15,
   } as const;
 
   return (
     <View
-      className="w-full max-w-[520px]"
+      style={styles.root}
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
     >
       <LinearGradient
-        colors={marcoGradient as any}
+        colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {isDark ? (
-          <LinearGradient
-            colors={[
-              "rgba(20,28,44,0.85)",
-              "rgba(9,14,24,0.9)",
-              "rgba(20,28,44,0.85)",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorderDark,
-              overflow: "hidden",
-            }}
-          >
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          {noData ? (
+            <EmptyState isDark={isDark} />
+          ) : (
             <CardBody
-              isDark
+              isDark={isDark}
               labels={labels}
               values={values}
               chartWidth={chartWidth}
               diasActivos={diasActivos}
               totalSesiones={totalSesiones}
               chartConfig={chartConfig}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
             />
-          </LinearGradient>
-        ) : (
-          <View
-            className="rounded-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            <CardBody
-              isDark={false}
-              labels={labels}
-              values={values}
-              chartWidth={chartWidth}
-              diasActivos={diasActivos}
-              totalSesiones={totalSesiones}
-              chartConfig={chartConfig}
-              textPrimaryDark={textPrimaryDark}
-              textSecondaryDark={textSecondaryDark}
-            />
-          </View>
-        )}
+          )}
+        </View>
       </LinearGradient>
     </View>
   );
 }
 
+// ── CardBody ──────────────────────────────────────────────────────────────────
 function CardBody({
-  isDark,
-  labels,
-  values,
-  chartWidth,
-  diasActivos,
-  totalSesiones,
-  chartConfig,
-  textPrimaryDark,
-  textSecondaryDark,
+  isDark, labels, values, chartWidth, diasActivos, totalSesiones, chartConfig,
 }: {
   isDark: boolean;
   labels: string[];
@@ -216,34 +166,31 @@ function CardBody({
   diasActivos: number;
   totalSesiones: number;
   chartConfig: any;
-  textPrimaryDark: string;
-  textSecondaryDark: string;
 }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+
   return (
-    <View className="rounded-2xl">
-      <View className="flex-row justify-between items-center px-4 pt-5 pb-3">
+    <View style={styles.cardBody}>
+      {/* Header */}
+      <View style={styles.header}>
         <View>
-          <Text
-            className="text-base font-semibold"
-            style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-          >
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>
             Actividad reciente
           </Text>
-          <Text
-            className="text-xs"
-            style={{ color: isDark ? textSecondaryDark : "#64748b" }}
-          >
+          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
             Últimos 7 días
           </Text>
         </View>
 
-        <View className="flex-row gap-6">
-          <KpiMini label="Días activos" value={diasActivos} />
-          <KpiMini label="Total sesiones" value={totalSesiones} />
+        <View style={styles.kpiMiniRow}>
+          <KpiMini label="Días activos" value={diasActivos} isDark={isDark} />
+          <KpiMini label="Total sesiones" value={totalSesiones} isDark={isDark} />
         </View>
       </View>
 
-      <View className="px-3 pb-6">
+      {/* Chart */}
+      <View style={styles.chartWrapper}>
         <LineChart
           data={{
             labels,
@@ -264,90 +211,203 @@ function CardBody({
         />
       </View>
 
-      <View className="flex-row justify-between px-5 pb-4">
-        <Kpi label="Días activos" value={diasActivos} />
-        <Kpi label="Total sesiones" value={totalSesiones} />
+      {/* Footer KPIs */}
+      <View style={styles.footer}>
+        <Kpi label="Días activos" value={diasActivos} isDark={isDark} />
+        <Kpi label="Total sesiones" value={totalSesiones} isDark={isDark} />
       </View>
     </View>
   );
 }
 
+// ── EmptyState ────────────────────────────────────────────────────────────────
 function EmptyState({ isDark }: { isDark: boolean }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textMutedLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
+
   return (
-    <View
-      className="rounded-2xl items-center justify-center p-8"
-      style={{
-        backgroundColor: isDark ? "transparent" : "rgba(255,255,255,0.9)",
-        borderRadius: 16,
-        borderWidth: 0,
-      }}
-    >
+    <View style={styles.emptyState}>
       <View
-        className="h-14 w-14 rounded-2xl mb-4 items-center justify-center"
-        style={{ backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#f1f5f9" }}
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+        ]}
       >
-        <Text style={{ color: isDark ? "#e5e7eb" : "#94a3b8" }}>📊</Text>
+        <Text style={styles.emptyIconText}>📊</Text>
       </View>
-      <Text
-        className="text-sm font-medium"
-        style={{ color: isDark ? "#e5e7eb" : "#334155" }}
-      >
+      <Text style={[styles.emptyTitle, { color: textPrimary }]}>
         Faltan datos
       </Text>
-      <Text
-        className="text-xs mt-1"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
-      >
+      <Text style={[styles.emptySubtitle, { color: textMuted }]}>
         Cuando registres sesiones, verás tu progreso aquí.
       </Text>
     </View>
   );
 }
 
-function KpiMini({ label, value }: { label: string; value: number }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+// ── KpiMini ───────────────────────────────────────────────────────────────────
+function KpiMini({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+
   return (
-    <View className="items-end">
-      <Text
-        className="text-[11px] uppercase tracking-wide"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
-      >
+    <View style={styles.kpiMini}>
+      <Text style={[styles.kpiMiniLabel, { color: textMuted }]}>
         {label}
       </Text>
-      <Text
-        className="text-xl font-bold"
-        style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
-      >
+      <Text style={[styles.kpiMiniValue, { color: textPrimary }]}>
         {value}
       </Text>
     </View>
   );
 }
 
-function Kpi({ label, value }: { label: string; value: number }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+// ── Kpi ───────────────────────────────────────────────────────────────────────
+function Kpi({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+
   return (
     <View
-      className="rounded-xl px-3 py-2 border"
-      style={{
-        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)",
-        borderColor: isDark ? "rgba(255,255,255,0.10)" : "#e2e8f0",
-      }}
+      style={[
+        styles.kpi,
+        {
+          backgroundColor: isDark ? tokens.color.kpiBgDark : tokens.color.kpiBgLight,
+          borderColor: isDark ? tokens.color.kpiBorderDark : tokens.color.kpiBorderLight,
+        },
+      ]}
     >
-      <Text
-        className="text-[11px] uppercase tracking-wide text-center"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
-      >
+      <Text style={[styles.kpiLabel, { color: textMuted }]}>
         {label}
       </Text>
-      <Text
-        className="text-lg font-semibold text-center"
-        style={{ color: isDark ? "#e5e7eb" : "#0f172a" }}
-      >
+      <Text style={[styles.kpiValue, { color: textPrimary }]}>
         {value}
       </Text>
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: { width: "100%", maxWidth: 520 },
+
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  // Card body
+  cardBody: {
+    borderRadius: tokens.radius.lg - 1,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+
+  // KPI mini (header)
+  kpiMiniRow: {
+    flexDirection: "row",
+    gap: tokens.spacing.lg + tokens.spacing.xs,
+  },
+  kpiMini: {
+    alignItems: "flex-end",
+  },
+  kpiMiniLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  kpiMiniValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+
+  // Chart
+  chartWrapper: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: tokens.spacing.lg + tokens.spacing.xs,
+  },
+
+  // Footer KPIs
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.lg,
+    gap: tokens.spacing.md,
+  },
+  kpi: {
+    flex: 1,
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    borderWidth: 1,
+  },
+  kpiLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    textAlign: "center",
+  },
+  kpiValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  // Empty state
+  emptyState: {
+    borderRadius: tokens.radius.lg - 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: tokens.spacing.xl + tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.xl,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: tokens.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: tokens.spacing.lg,
+  },
+  emptyIconText: {
+    fontSize: 28,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    marginTop: tokens.spacing.xs,
+    textAlign: "center",
+  },
+});

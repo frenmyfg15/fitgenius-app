@@ -1,13 +1,55 @@
 // src/shared/components/estadistica/CargaInternaCard.tsx
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { Activity } from "lucide-react-native";
 
+// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+const tokens = {
+  color: {
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
+
+    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    iconBgDark: "rgba(34,197,94,0.12)",
+    iconBgLight: "rgba(22,163,74,0.06)",
+    iconGreenDark: "#22C55E",
+    iconGreenLight: "#16A34A",
+
+    rowTrackDark: "rgba(15,23,42,0.9)",
+    rowTrackLight: "#E5E7EB",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#94A3B8",
+    textMutedLight: "#6B7280",
+
+    emptyIconBgDark: "rgba(255,255,255,0.10)",
+    emptyIconBgLight: "#F1F5F9",
+    emptyTitleDark: "#E5E7EB",
+    emptyTitleLight: "#334155",
+    emptySubtitleDark: "#94A3B8",
+    emptySubtitleLight: "#64748B",
+
+    noteBorderDark: "rgba(255,255,255,0.08)",
+    noteBorderLight: "rgba(0,0,0,0.06)",
+
+    amber: "#F59E0B",
+    red: "#EF4444",
+  },
+  radius: { lg: 16, md: 12, sm: 8 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
 type DetalleSemana = {
-  semanaLabel?: string; // p.ej. "Semana 1", "Hace 2 semanas"
-  cargaMedia?: number;  // 0–10
+  semanaLabel?: string;
+  cargaMedia?: number;
   sesiones?: number;
 };
 
@@ -17,92 +59,43 @@ type Props = {
   detalleSemanas?: DetalleSemana[];
 };
 
-const CargaInternaCard: React.FC<Props> = ({
-  semanas,
-  totalSesiones,
-  detalleSemanas,
-}) => {
+const CargaInternaCard: React.FC<Props> = ({ semanas, totalSesiones, detalleSemanas }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const hasData =
-    !!detalleSemanas &&
-    Array.isArray(detalleSemanas) &&
-    detalleSemanas.length > 0;
+  const hasData = !!detalleSemanas && Array.isArray(detalleSemanas) && detalleSemanas.length > 0;
 
   const safeSemanas = semanas ?? (hasData ? detalleSemanas!.length : 0);
   const safeTotalSesiones = totalSesiones ?? 0;
 
-  const marcoGradient = [
-    "rgb(0,255,64)",
-    "rgb(94,230,157)",
-    "rgb(178,0,255)",
-  ];
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
   return (
-    <View className="w-full max-w-[520px]">
+    <View style={styles.root}>
       <LinearGradient
-        colors={marcoGradient as any}
+        colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {isDark ? (
-          <LinearGradient
-            colors={[
-              "rgba(20,28,44,0.85)",
-              "rgba(9,14,24,0.9)",
-              "rgba(20,28,44,0.85)",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: cardBorderDark,
-              overflow: "hidden",
-            }}
-          >
-            {hasData ? (
-              <CardBody
-                isDark
-                detalleSemanas={detalleSemanas!}
-                semanas={safeSemanas}
-                totalSesiones={safeTotalSesiones}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            ) : (
-              <EmptyState isDark />
-            )}
-          </LinearGradient>
-        ) : (
-          <View
-            className="rounded-2xl"
-            style={{
-              backgroundColor: "#ffffff",
-              borderWidth: 1,
-              borderColor: "rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            {hasData ? (
-              <CardBody
-                isDark={false}
-                detalleSemanas={detalleSemanas!}
-                semanas={safeSemanas}
-                totalSesiones={safeTotalSesiones}
-                textPrimaryDark={textPrimaryDark}
-                textSecondaryDark={textSecondaryDark}
-              />
-            ) : (
-              <EmptyState isDark={false} />
-            )}
-          </View>
-        )}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
+        >
+          {hasData ? (
+            <CardBody
+              isDark={isDark}
+              detalleSemanas={detalleSemanas!}
+              semanas={safeSemanas}
+              totalSesiones={safeTotalSesiones}
+            />
+          ) : (
+            <EmptyState isDark={isDark} />
+          )}
+        </View>
       </LinearGradient>
     </View>
   );
@@ -110,140 +103,88 @@ const CargaInternaCard: React.FC<Props> = ({
 
 export default CargaInternaCard;
 
-/* ---------- Subcomponentes ---------- */
-
 function CardBody({
   isDark,
   detalleSemanas,
   semanas,
   totalSesiones,
-  textPrimaryDark,
-  textSecondaryDark,
 }: {
   isDark: boolean;
   detalleSemanas: DetalleSemana[];
   semanas: number;
   totalSesiones: number;
-  textPrimaryDark: string;
-  textSecondaryDark: string;
 }) {
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
+
   const ultimaSemana = detalleSemanas[detalleSemanas.length - 1];
   const cargaUltima = ultimaSemana?.cargaMedia ?? null;
-  const sesionesUltima = ultimaSemana?.sesiones ?? null;
 
   const getBarColor = (carga: number) => {
-    if (carga <= 4) return isDark ? "#22c55e" : "#16a34a"; // verde
-    if (carga <= 7) return "#f59e0b"; // ámbar
-    return "#ef4444"; // rojo
+    if (carga <= 4) return isDark ? tokens.color.iconGreenDark : tokens.color.iconGreenLight;
+    if (carga <= 7) return tokens.color.amber;
+    return tokens.color.red;
   };
 
   return (
-    <View className="rounded-2xl">
-      {/* Header */}
-      <View className="flex-row justify-between items-center px-4 pt-5 pb-3">
-        <View className="flex-row items-center gap-3">
+    <View style={styles.cardBody}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
           <View
-            className="h-9 w-9 rounded-2xl items-center justify-center"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(34,197,94,0.12)"
-                : "rgba(22,163,74,0.06)",
-            }}
+            style={[
+              styles.iconWrap,
+              { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+            ]}
           >
             <Activity
               size={18}
-              color={isDark ? "#22c55e" : "#16a34a"}
+              color={isDark ? tokens.color.iconGreenDark : tokens.color.iconGreenLight}
             />
           </View>
+
           <View>
-            <Text
-              className="text-base font-semibold"
-              style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-            >
-              Carga interna semanal
-            </Text>
-            <Text
-              className="text-xs"
-              style={{
-                color: isDark ? textSecondaryDark : "#64748b",
-              }}
-            >
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>Carga interna semanal</Text>
+            <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
               Esfuerzo percibido a lo largo de tus semanas
             </Text>
           </View>
         </View>
 
-        <View className="items-end">
-          <Text
-            className="text-[11px] uppercase tracking-wide"
-            style={{
-              color: isDark ? textSecondaryDark : "#6b7280",
-            }}
-          >
-            Semanas
-          </Text>
-          <Text
-            className="text-xl font-bold"
-            style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-          >
-            {semanas || "–"}
-          </Text>
+        <View style={styles.headerRight}>
+          <Text style={[styles.headerKpiLabel, { color: textMuted }]}>Semanas</Text>
+          <Text style={[styles.headerKpiValue, { color: textPrimary }]}>{semanas || "–"}</Text>
         </View>
       </View>
 
-      {/* KPIs superiores */}
-      <View className="flex-row justify-between px-4 pb-3 gap-3">
-        <View className="flex-1">
-          <Text
-            className="text-[11px] uppercase tracking-wide"
-            style={{
-              color: isDark ? textSecondaryDark : "#6b7280",
-            }}
-          >
-            Sesiones analizadas
-          </Text>
-          <Text
-            className="text-lg font-semibold mt-1"
-            style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
-          >
-            {totalSesiones}
-          </Text>
+      <View style={styles.topKpis}>
+        <View style={styles.topKpiCol}>
+          <Text style={[styles.topKpiLabel, { color: textMuted }]}>Sesiones analizadas</Text>
+          <Text style={[styles.topKpiValue, { color: textPrimary }]}>{totalSesiones}</Text>
         </View>
 
-        <View className="flex-1 items-end">
-          <Text
-            className="text-[11px] uppercase tracking-wide"
-            style={{
-              color: isDark ? textSecondaryDark : "#6b7280",
-            }}
-          >
-            Última semana
-          </Text>
-          <Text
-            className="text-sm mt-1"
-            style={{
-              color: isDark ? textSecondaryDark : "#6b7280",
-            }}
-          >
+        <View style={[styles.topKpiCol, styles.topKpiRight]}>
+          <Text style={[styles.topKpiLabel, { color: textMuted }]}>Última semana</Text>
+          <Text style={[styles.topKpiSub, { color: textMuted }]}>
             {ultimaSemana?.semanaLabel ?? "Más reciente"}
           </Text>
           <Text
-            className="text-lg font-bold"
-            style={{
-              color: cargaUltima != null
-                ? getBarColor(cargaUltima)
-                : isDark
-                ? textPrimaryDark
-                : "#0f172a",
-            }}
+            style={[
+              styles.topKpiValue,
+              {
+                color:
+                  cargaUltima != null
+                    ? getBarColor(cargaUltima)
+                    : textPrimary,
+              },
+            ]}
           >
             {cargaUltima != null ? `${cargaUltima.toFixed(1)}/10` : "–"}
           </Text>
         </View>
       </View>
 
-      {/* Mini “barchart” por semana */}
-      <View className="mt-1 px-4 pb-4 gap-2">
+      <View style={styles.rows}>
         {detalleSemanas.map((sem, idx) => {
           const carga = sem.cargaMedia ?? 0;
           const sesiones = sem.sesiones ?? 0;
@@ -251,88 +192,49 @@ function CardBody({
           const barColor = getBarColor(carga);
 
           return (
-            <View
-              key={idx}
-              className="flex-row items-center justify-between"
-            >
-              {/* Label semana */}
-              <View className="flex-[1.2]">
-                <Text
-                  className="text-xs"
-                  numberOfLines={1}
-                  style={{
-                    color: isDark ? textPrimaryDark : "#334155",
-                  }}
-                >
+            <View key={idx} style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Text numberOfLines={1} style={[styles.rowLabel, { color: isDark ? textPrimary : "#334155" }]}>
                   {sem.semanaLabel || `Semana ${idx + 1}`}
                 </Text>
                 {sesiones > 0 && (
-                  <Text
-                    className="text-[10px]"
-                    style={{
-                      color: isDark ? textSecondaryDark : "#94a3b8",
-                    }}
-                  >
+                  <Text style={[styles.rowSub, { color: isDark ? textSecondary : "#94A3B8" }]}>
                     {sesiones} sesión{sesiones === 1 ? "" : "es"}
                   </Text>
                 )}
               </View>
 
-              {/* Barra */}
-              <View className="flex-[2] mx-2">
+              <View style={styles.rowMid}>
                 <View
-                  className="h-2.5 rounded-full overflow-hidden"
-                  style={{
-                    backgroundColor: isDark
-                      ? "rgba(15,23,42,0.9)"
-                      : "#e5e7eb",
-                  }}
+                  style={[
+                    styles.track,
+                    { backgroundColor: isDark ? tokens.color.rowTrackDark : tokens.color.rowTrackLight },
+                  ]}
                 >
-                  <View
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: barColor,
-                    }}
-                    className="h-2.5"
-                  />
+                  <View style={[styles.fill, { width: `${pct}%`, backgroundColor: barColor }]} />
                 </View>
               </View>
 
-              {/* Valor numérico */}
-              <View className="flex-[0.6] items-end">
-                <Text
-                  className="text-xs font-semibold"
-                  style={{
-                    color: isDark ? textPrimaryDark : "#0f172a",
-                  }}
-                >
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowValue, { color: textPrimary }]}>
                   {carga ? carga.toFixed(1) : "–"}
                 </Text>
-                <Text
-                  className="text-[10px]"
-                  style={{
-                    color: isDark ? textSecondaryDark : "#9ca3af",
-                  }}
-                >
-                  /10
-                </Text>
+                <Text style={[styles.rowUnit, { color: textSecondary }]}>/10</Text>
               </View>
             </View>
           );
         })}
       </View>
 
-      {/* Nota inferior */}
-      <View className="border-t mt-1 pt-3 px-4 pb-4 border-white/5 border-slate-100">
-        <Text
-          className="text-[11px]"
-          style={{
-            color: isDark ? textSecondaryDark : "#64748b",
-          }}
-        >
-          La carga interna se calcula a partir del esfuerzo percibido de
-          cada sesión. Picos muy altos seguidos pueden indicar riesgo de
-          sobrecarga.
+      <View
+        style={[
+          styles.note,
+          { borderTopColor: isDark ? tokens.color.noteBorderDark : tokens.color.noteBorderLight },
+        ]}
+      >
+        <Text style={[styles.noteText, { color: textSecondary }]}>
+          La carga interna se calcula a partir del esfuerzo percibido de cada sesión. Picos muy
+          altos seguidos pueden indicar riesgo de sobrecarga.
         </Text>
       </View>
     </View>
@@ -341,36 +243,173 @@ function CardBody({
 
 function EmptyState({ isDark }: { isDark: boolean }) {
   return (
-    <View
-      className="rounded-2xl items-center justify-center p-8"
-      style={{
-        backgroundColor: isDark ? "transparent" : "rgba(255,255,255,0.9)",
-        borderRadius: 16,
-      }}
-    >
+    <View style={styles.emptyState}>
       <View
-        className="h-14 w-14 rounded-2xl mb-4 items-center justify-center"
-        style={{
-          backgroundColor: isDark
-            ? "rgba(255,255,255,0.10)"
-            : "#f1f5f9",
-        }}
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+        ]}
       >
-        <Text style={{ color: isDark ? "#e5e7eb" : "#94a3b8" }}>🧠</Text>
+        <Text style={{ color: isDark ? tokens.color.emptyTitleDark : tokens.color.emptySubtitleLight }}>
+          🧠
+        </Text>
       </View>
-      <Text
-        className="text-sm font-medium"
-        style={{ color: isDark ? "#e5e7eb" : "#334155" }}
-      >
+      <Text style={[styles.emptyTitle, { color: isDark ? tokens.color.emptyTitleDark : tokens.color.emptyTitleLight }]}>
         Aún no hay carga interna
       </Text>
       <Text
-        className="text-xs mt-1 text-center"
-        style={{ color: isDark ? "#94a3b8" : "#64748b" }}
+        style={[
+          styles.emptySubtitle,
+          { color: isDark ? tokens.color.emptySubtitleDark : tokens.color.emptySubtitleLight },
+        ]}
       >
-        Cuando registres sesiones indicando tu nivel de esfuerzo, aquí
-        verás cómo evoluciona tu carga semana a semana.
+        Cuando registres sesiones indicando tu nivel de esfuerzo, aquí verás cómo evoluciona tu
+        carga semana a semana.
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { width: "100%", maxWidth: 520 },
+
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  cardBody: {
+    borderRadius: tokens.radius.lg - 1,
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.xl,
+    paddingBottom: tokens.spacing.md,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+    flexShrink: 1,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerKpiLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  headerKpiValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+
+  topKpis: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.md,
+    gap: tokens.spacing.md,
+  },
+  topKpiCol: { flex: 1 },
+  topKpiRight: { alignItems: "flex-end" },
+  topKpiLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  topKpiSub: {
+    fontSize: 11,
+    marginTop: tokens.spacing.xs,
+  },
+  topKpiValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginTop: tokens.spacing.xs,
+  },
+
+  rows: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.lg,
+    gap: tokens.spacing.sm,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  rowLeft: { flex: 1.2 },
+  rowMid: { flex: 2, marginHorizontal: tokens.spacing.sm },
+  rowRight: { flex: 0.6, alignItems: "flex-end" },
+  rowLabel: { fontSize: 12 },
+  rowSub: { fontSize: 10, marginTop: 2 },
+  track: { height: 10, borderRadius: 999, overflow: "hidden" },
+  fill: { height: "100%" },
+  rowValue: { fontSize: 12, fontWeight: "700" },
+  rowUnit: { fontSize: 10, marginTop: 1 },
+
+  note: {
+    borderTopWidth: 1,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.md,
+    paddingBottom: tokens.spacing.lg,
+  },
+  noteText: { fontSize: 11 },
+
+  emptyState: {
+    borderRadius: tokens.radius.lg - 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: tokens.spacing.xl + tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.xl,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: tokens.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: tokens.spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    marginTop: tokens.spacing.xs,
+    textAlign: "center",
+  },
+});

@@ -1,5 +1,5 @@
 // src/shared/components/ejercicio/GraficoPesoPorSerie.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, LayoutChangeEvent } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,7 +14,6 @@ type SerieStats = {
 
 type Props = {
   series: SerieStats[];
-  // 👇 NUEVO
   esCardio?: boolean;
 };
 
@@ -25,43 +24,77 @@ export default function GraficoPesoPorSerie({ series, esCardio }: Props) {
   const weightUnit =
     (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
 
-  const isCardio = Boolean(esCardio);
-  const unit = isCardio ? "seg" : weightUnit;
+  const isCardioMode = Boolean(esCardio);
+  const unit = isCardioMode ? "seg" : weightUnit;
 
-  // Ancho del gráfico: medido en runtime para que no se salga del card
-  const [chartWidth, setChartWidth] = useState(0);
+  const [chartWidth, setChartWidth] = useState<number | null>(null);
 
-  const handleLayout = (e: LayoutChangeEvent) => {
-    const { width } = e.nativeEvent.layout;
-    if (width > 0 && Math.abs(width - chartWidth) > 1) {
-      setChartWidth(width);
-    }
-  };
+  /** ✅ layout estable (evita spam reanimated) */
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    if (!w) return;
+    setChartWidth((prev) => (prev === w ? prev : w));
+  }, []);
 
   const data = useMemo(() => {
     const puntos = (series ?? []).map((s) =>
-      Number(
-        isCardio
-          ? s.repeticiones ?? 0 // 👈 cardio: usamos "reps" como segundos
-          : s.pesoKg ?? 0
-      )
+      Number(isCardioMode ? s.repeticiones ?? 0 : s.pesoKg ?? 0)
     );
+
     const labels = (series ?? []).map((s) => `Set ${s.serieNumero}`);
-    return { labels, datasets: [{ data: puntos }] };
-  }, [series, isCardio]);
 
-  const hasValues = data.datasets[0].data.some((v) => v > 0);
+    return {
+      labels,
+      datasets: [{ data: puntos }],
+    };
+  }, [series, isCardioMode]);
 
-  // Borde degradado consistente con el resto de la app
+  const hasValues = useMemo(
+    () => data.datasets[0].data.some((v) => v > 0),
+    [data]
+  );
+
   const marcoBorder = [
     "rgb(0,255,64)",
     "rgb(94,230,157)",
     "rgb(178,0,255)",
   ];
 
-  const titulo = isCardio
+  const titulo = isCardioMode
     ? "Evolución de tiempo por serie"
     : "Evolución de peso por serie";
+
+  /** ✅ Chart memoizado → reduce renders que disparan warning */
+  const chart = useMemo(() => {
+    if (!chartWidth || chartWidth < 40) return null;
+
+    return (
+      <LineChart
+        key={chartWidth} // ⭐ hack importante chart-kit + reanimated
+        data={data}
+        width={chartWidth}
+        height={220}
+        fromZero
+        bezier
+        chartConfig={{
+          backgroundGradientFrom: isDark ? "#020617" : "#ffffff",
+          backgroundGradientTo: isDark ? "#020617" : "#ffffff",
+          decimalPlaces: 0,
+          color: (opacity = 1) => `rgba(34,197,94,${opacity})`,
+          labelColor: (opacity = 1) =>
+            isDark
+              ? `rgba(226,232,240,${opacity})`
+              : `rgba(15,23,42,${opacity})`,
+          propsForDots: {
+            r: "4",
+            strokeWidth: "2",
+            stroke: isDark ? "#020617" : "#ffffff",
+          },
+        }}
+        style={{ borderRadius: 16 }}
+      />
+    );
+  }, [chartWidth, data, isDark]);
 
   return (
     <View className="w-full mt-6">
@@ -111,43 +144,8 @@ export default function GraficoPesoPorSerie({ series, esCardio }: Props) {
           {/* Chart */}
           <View className="px-4 pb-4">
             {hasValues ? (
-              <View
-                onLayout={handleLayout}
-                style={{
-                  borderRadius: 16,
-                  overflow: "hidden",
-                }}
-              >
-                {chartWidth > 0 && (
-                  <LineChart
-                    data={data}
-                    width={chartWidth}
-                    height={220}
-                    chartConfig={{
-                      backgroundGradientFrom: isDark ? "#020617" : "#ffffff",
-                      backgroundGradientTo: isDark ? "#020617" : "#ffffff",
-                      decimalPlaces: 0,
-                      color: (opacity = 1) =>
-                        `rgba(34, 197, 94, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        isDark
-                          ? `rgba(226,232,240,${opacity})`
-                          : `rgba(15,23,42,${opacity})`,
-                      propsForDots: {
-                        r: "4",
-                        strokeWidth: "2",
-                        stroke: isDark ? "#020617" : "#ffffff",
-                      },
-                    }}
-                    bezier
-                    style={{
-                      borderRadius: 16,
-                      marginLeft: 0,
-                      marginRight: 0,
-                    }}
-                    fromZero
-                  />
-                )}
+              <View onLayout={handleLayout} style={{ borderRadius: 16 }}>
+                {chart}
               </View>
             ) : (
               <View className="h-56 items-center justify-center">
@@ -162,49 +160,6 @@ export default function GraficoPesoPorSerie({ series, esCardio }: Props) {
               </View>
             )}
           </View>
-
-          {/* Chips */}
-          {data.labels.length > 0 && (
-            <View className="px-4 pb-5">
-              <View className="flex-row flex-wrap justify-center gap-2">
-                {data.labels.map((label, i) => (
-                  <View
-                    key={label}
-                    className={
-                      "flex-row items-center gap-2 rounded-full px-3 py-1 " +
-                      (isDark
-                        ? "border border-white/10 bg-white/5"
-                        : "border border-slate-200 bg-slate-50")
-                    }
-                  >
-                    <Text
-                      className={
-                        (isDark ? "text-slate-50" : "text-slate-700") +
-                        " text-[12px] font-medium"
-                      }
-                    >
-                      {label}:
-                    </Text>
-                    <View
-                      className={
-                        (isDark ? "bg-slate-50" : "bg-slate-900") +
-                        " px-2 py-0.5 rounded-md"
-                      }
-                    >
-                      <Text
-                        className={
-                          (isDark ? "text-slate-900" : "text-slate-50") +
-                          " text-[12px]"
-                        }
-                      >
-                        {data.datasets[0].data[i]} {unit}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
         </View>
       </LinearGradient>
     </View>
