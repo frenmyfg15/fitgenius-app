@@ -240,16 +240,16 @@ export default function Home() {
   }, [fetchRutina]);
 
   // devolverDato del Calendar: d = "YYYY-MM-DD"
-  const devolver = useCallback((d: string, diaNombre: string) => {
-    const normalized = normalizeEnum(diaNombre);
+  const devolver = useCallback((ymd: string, diaEnum: string) => {
+    const normalized = normalizeEnum(diaEnum);
     setDia(normalized);
 
-    const ok = typeof d === "string" && isYMD(d);
-    const next = ok ? d : toMadridYMD(new Date());
+    const ok = typeof ymd === "string" && isYMD(ymd);
+    const next = ok ? ymd : toMadridYMD(new Date());
     setSelectedYMD(next);
 
     console.log("[Home] Calendar devolverDato()", {
-      raw: { d, diaNombre },
+      raw: { ymd, diaEnum },
       normalizedDia: normalized,
       okYMD: ok,
       selectedYMD_next: next,

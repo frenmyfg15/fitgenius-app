@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 
@@ -9,7 +8,6 @@ import {
   guardarSesionCompuesta,
   guardarSesionEjercicio,
   obtenerEjercicio,
-  obtenerEjercicioCompuesto,
 } from "@/features/api/ejercicios.api";
 import {
   calcularCalorias,
@@ -28,8 +26,9 @@ export type Params = {
 
 type Serie = { reps: number; peso: number };
 
+const COACH_AUTO_DISABLED_KEY = "coach:autoDisabled:v1";
+
 export function useVistaEjercicioState(params: Params) {
-  const navigation = useNavigation();
   const { slug, asignadoId, ejercicio: ejercicioPrefetch } = params;
 
   const [ejercicio, setEjercicio] = useState<any>(ejercicioPrefetch || null);
@@ -37,20 +36,25 @@ export function useVistaEjercicioState(params: Params) {
 
   const [series, setSeries] = useState<Serie[]>([{ reps: 0, peso: 0 }]);
   const [storageKey, setStorageKey] = useState<string | null>(null);
+
   const [infoVisible, setInfoVisible] = useState(false);
   const [estadisticaVisible, setEstadisticaVisible] = useState(false);
+
   const [tiempoRestante, setTiempoRestante] = useState<number | null>(null);
   const [descansando, setDescansando] = useState(false);
+
   const [festejo, setFestejo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [nivelEstres, setNivelEstres] = useState<number | null>(null);
 
   const [coachData, setCoachData] = useState<CoachResponse | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachVisible, setCoachVisible] = useState(false);
-  const [coachAutoPending, setCoachAutoPending] = useState(false);
-  const coachAutoKeyRef = useRef<string | null>(null);
+
+  const [coachAutoDisabled, setCoachAutoDisabled] = useState(false);
+  const didAutoShowRef = useRef<string | null>(null);
 
   const experienciaPlus = 1.25;
   const calorias = useRef(0);
@@ -59,17 +63,33 @@ export function useVistaEjercicioState(params: Params) {
   const cacheSet = useEjercicioCache((s) => s.set);
   const cacheDel = useEjercicioCache((s) => s.del);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const v = await AsyncStorage.getItem(COACH_AUTO_DISABLED_KEY);
+        setCoachAutoDisabled(v === "1");
+      } catch { }
+    })();
+  }, []);
+
+  const setCoachAutoDisabledPersist = useCallback(async (next: boolean) => {
+    setCoachAutoDisabled(next);
+    try {
+      await AsyncStorage.setItem(COACH_AUTO_DISABLED_KEY, next ? "1" : "0");
+    } catch { }
+  }, []);
+
   const quitar = () =>
     setSeries((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
 
   useEffect(() => {
-    if (!descansando || tiempoRestante === null) return;
+    if (!descansando || tiempoRestante == null) return;
     if (tiempoRestante <= 0) {
       setDescansando(false);
       return;
     }
     const id = setInterval(() => {
-      setTiempoRestante((prev) => (prev !== null ? prev - 1 : 0));
+      setTiempoRestante((prev) => (prev != null ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(id);
   }, [descansando, tiempoRestante]);
@@ -82,21 +102,23 @@ export function useVistaEjercicioState(params: Params) {
 
   const finalizarDescanso = () => setDescansando(false);
 
-  const agregar = () =>
-    setSeries((prev) => [...prev, { reps: 0, peso: 0 }]);
+  const agregar = () => setSeries((prev) => [...prev, { reps: 0, peso: 0 }]);
 
   const handleInputChange = (
     index: number,
     field: "reps" | "peso",
     value: number
   ) => {
-    const updated = [...series];
-    updated[index][field] = value;
-    setSeries(updated);
+    setSeries((prev) => {
+      const next = prev.slice();
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
   const applyEjercicio = useCallback(async (data: any) => {
     setEjercicio(data);
+
     const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
     setTiempoRestante(tiempo);
 
@@ -110,10 +132,9 @@ export function useVistaEjercicioState(params: Params) {
 
     try {
       const saved = await AsyncStorage.getItem(key);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setSeries(parsed);
-      }
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) setSeries(parsed);
     } catch { }
   }, []);
 
@@ -135,17 +156,17 @@ export function useVistaEjercicioState(params: Params) {
     const hit = cacheGet(slug);
     if (hit) {
       applyEjercicio(hit);
-    } else {
-      (async () => {
-        try {
-          const res = await obtenerEjercicio(slug);
-          if (!aborted) {
-            applyEjercicio(res);
-            cacheSet(slug, res);
-          }
-        } catch { }
-      })();
+      return;
     }
+
+    (async () => {
+      try {
+        const res = await obtenerEjercicio(slug);
+        if (aborted) return;
+        applyEjercicio(res);
+        cacheSet(slug, res);
+      } catch { }
+    })();
 
     return () => {
       aborted = true;
@@ -153,10 +174,22 @@ export function useVistaEjercicioState(params: Params) {
   }, [slug, ejercicioPrefetch, cacheGet, cacheSet, applyEjercicio]);
 
   const fetchCoach = useCallback(async () => {
-    if (!ejercicio?.id) return;
+    const isCompuesto = Boolean(
+      ejercicio?.ejercicioCompuestoId || ejercicio?.ejercicioCompuesto?.id
+    );
+
+    const simpleId = ejercicio?.id;
+    const compuestoId =
+      ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id;
+
+    const id = isCompuesto ? compuestoId : simpleId;
+    if (!id) return;
+
     try {
       setCoachLoading(true);
-      const res = await obtenerCoach(ejercicio.id);
+      const res = isCompuesto
+        ? await obtenerCoachCompuesto(id)
+        : await obtenerCoach(id);
       setCoachData(res);
     } catch {
       Toast.show({
@@ -177,12 +210,33 @@ export function useVistaEjercicioState(params: Params) {
     setCoachVisible(false);
   }, []);
 
+  useEffect(() => {
+    const userIsPremium = Boolean(usuario?.haPagado);
+    if (!userIsPremium) return;
+    if (coachAutoDisabled) return;
+
+    const isCompuesto = Boolean(
+      ejercicio?.ejercicioCompuestoId || ejercicio?.ejercicioCompuesto?.id
+    );
+
+    const key = isCompuesto
+      ? `compuesto:${ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id}`
+      : `ejercicio:${ejercicio?.id}`;
+
+    if (!key.includes("undefined") && !key.endsWith(":null")) {
+      if (didAutoShowRef.current === key) return;
+      if (key.endsWith(":undefined") || key.endsWith(":NaN")) return;
+      didAutoShowRef.current = key;
+      mostrarCoach();
+    }
+  }, [usuario?.haPagado, coachAutoDisabled, ejercicio?.id, ejercicio?.ejercicioCompuestoId, ejercicio?.ejercicioCompuesto?.id, mostrarCoach]);
+
   const guardarSeries = async () => {
     if (guardando) return;
     if (!usuario?.id || !ejercicio?.id) return;
 
     const ejercicioAsignadoId = asignadoId ? Number(asignadoId) : undefined;
-    if (!ejercicioAsignadoId) return;
+    if (!ejercicioAsignadoId || !Number.isFinite(ejercicioAsignadoId)) return;
 
     const payload = {
       usuarioId: usuario.id,
@@ -201,19 +255,19 @@ export function useVistaEjercicioState(params: Params) {
 
       setUsuario({
         ...(usuario as UsuarioLogin),
-        experiencia:
-          Number(usuario.experiencia ?? 0) +
-          Number(experienciaPlus),
-        caloriasMes:
-          Number((usuario as any).caloriasMes ?? 0) +
-          Number(caloriasPlus),
+        experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
+        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
       } as UsuarioLogin);
 
       if (storageKey) await AsyncStorage.removeItem(storageKey);
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
 
-      // ← setFestejo y goBack eliminados; los maneja CelebracionModal.onFinish
+      setCoachData(null);
+      if (!coachAutoDisabled && Boolean(usuario?.haPagado)) {
+        setCoachVisible(true);
+        fetchCoach();
+      }
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -240,14 +294,13 @@ export function useVistaEjercicioState(params: Params) {
     if (!usuario?.id) return;
 
     const ejercicioCompuestoId =
-      ejercicio?.ejercicioCompuestoId ??
-      ejercicio?.ejercicioCompuesto?.id;
+      ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id;
 
-    if (!ejercicioCompuestoId) return;
+    if (!ejercicioCompuestoId || !Number.isFinite(Number(ejercicioCompuestoId))) return;
 
     const payload = {
       usuarioId: usuario.id,
-      ejercicioCompuestoId,
+      ejercicioCompuestoId: Number(ejercicioCompuestoId),
       series: seriesComp,
       nivelEstres: nivelEstres ?? undefined,
     };
@@ -261,19 +314,19 @@ export function useVistaEjercicioState(params: Params) {
 
       setUsuario({
         ...(usuario as UsuarioLogin),
-        experiencia:
-          Number(usuario.experiencia ?? 0) +
-          Number(experienciaPlus),
-        caloriasMes:
-          Number((usuario as any).caloriasMes ?? 0) +
-          Number(caloriasPlus),
+        experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
+        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
       } as UsuarioLogin);
 
       if (storageKey) await AsyncStorage.removeItem(storageKey);
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
 
-      // ← setFestejo y goBack eliminados; los maneja CelebracionModal.onFinish
+      setCoachData(null);
+      if (!coachAutoDisabled && Boolean(usuario?.haPagado)) {
+        setCoachVisible(true);
+        fetchCoach();
+      }
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -315,6 +368,9 @@ export function useVistaEjercicioState(params: Params) {
     coachVisible,
     mostrarCoach,
     ocultarCoach,
+
+    coachAutoDisabled,
+    setCoachAutoDisabledPersist,
 
     infoVisible,
     setInfoVisible,

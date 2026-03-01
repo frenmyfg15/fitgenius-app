@@ -6,18 +6,25 @@ import { configureReanimatedLogger, ReanimatedLogLevel } from "react-native-rean
 
 configureReanimatedLogger({ level: ReanimatedLogLevel.warn, strict: false });
 
-/* ---------------- Props ---------------- */
+type DiaNombre =
+  | "LUNES"
+  | "MARTES"
+  | "MIERCOLES"
+  | "JUEVES"
+  | "VIERNES"
+  | "SABADO"
+  | "DOMINGO";
+
 interface Props {
-  devolverDato?: (data: string, dia: string, mes: string, año: string) => void;
+  devolverDato?: (ymd: string, diaEnum: DiaNombre) => void;
   activar?: boolean;
   completadas?: Record<string, boolean> | string[];
 }
 
-/* ---------------- Constantes ---------------- */
-const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const diasLabel = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const diasEnum: DiaNombre[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
 const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
 
-/* ---------------- Utils ---------------- */
 const toMadridYMD = (() => {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Madrid",
@@ -33,7 +40,6 @@ const isTodayMadrid = (d: Date) => {
   return toMadridYMD(d) === hoy;
 };
 
-/* ---------------- Sub-componente memoizado ---------------- */
 const TodayGradient = React.memo(() => (
   <LinearGradient
     colors={marcoGradient as any}
@@ -51,9 +57,8 @@ const TodayGradient = React.memo(() => (
   />
 ));
 
-/* ---------------- Componente ---------------- */
 export default function Calendar({ devolverDato, activar = true, completadas = {} }: Props) {
-  const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null);
+  const [idxSeleccionado, setIdxSeleccionado] = useState<number | null>(null);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -68,30 +73,33 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
     const diaSemana = (fecha.getDay() + 6) % 7;
     const inicioSemana = new Date(fecha);
     inicioSemana.setDate(fecha.getDate() - diaSemana);
-    inicioSemana.setHours(0, 0, 0, 0);
+    inicioSemana.setHours(12, 0, 0, 0);
     return inicioSemana;
   }, []);
 
   const diasConFechas = useMemo(() => {
     const inicioSemana = obtenerInicioSemana(fechaBase);
-    return dias.map((nombreDia, index) => {
+
+    return diasLabel.map((nombreDia, index) => {
       const fechaDia = new Date(inicioSemana);
       fechaDia.setDate(inicioSemana.getDate() + index);
+
       const ymd = toMadridYMD(fechaDia);
+
       return {
+        index,
         nombre: nombreDia,
+        diaEnum: diasEnum[index],
         fecha: fechaDia,
         ymd,
         dia: String(fechaDia.getDate()).padStart(2, "0"),
-        mes: String(fechaDia.getMonth() + 1).padStart(2, "0"),
-        año: String(fechaDia.getFullYear()),
       };
     });
   }, [fechaBase, obtenerInicioSemana]);
 
-  const handleSelect = (dia: number, nombre: string, mes: string, año: string) => {
-    setDiaSeleccionado((prev) => (prev === dia ? null : dia));
-    devolverDato?.(String(dia), nombre, mes, año);
+  const handleSelect = (index: number, ymd: string, diaEnum: DiaNombre) => {
+    setIdxSeleccionado((prev) => (prev === index ? null : index));
+    devolverDato?.(ymd, diaEnum);
   };
 
   return (
@@ -101,10 +109,9 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
         (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white border border-gray-100")
       }
     >
-      {diasConFechas.map(({ nombre, dia, mes, año, fecha, ymd }) => {
-        const diaNum = parseInt(dia, 10);
+      {diasConFechas.map(({ index, nombre, dia, fecha, ymd, diaEnum }) => {
         const esHoy = isTodayMadrid(fecha);
-        const esSeleccionado = diaSeleccionado === diaNum;
+        const esSeleccionado = idxSeleccionado === index;
         const completado = completadasSet.has(ymd);
 
         const baseClasses =
@@ -115,10 +122,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           ? "bg-white/5 border border-white/10"
           : "bg-gray-50 border border-gray-100";
 
-        const fondoSeleccionado = isDark
-          ? "bg-white border border-white"
-          : "bg-black border border-black";
-
+        const fondoSeleccionado = isDark ? "bg-white border border-white" : "bg-black border border-black";
         const fondoHoyNoSeleccionado = "bg-transparent border-transparent";
 
         const bordeVerde =
@@ -132,31 +136,35 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
               : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
 
         const colorTextoNumero = esSeleccionado
-          ? isDark ? "#000000" : "#ffffff"
+          ? isDark
+            ? "#000000"
+            : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
               ? "#22c55e"
-              : isDark ? "#ffffff" : "#111111";
+              : isDark
+                ? "#ffffff"
+                : "#111111";
 
         const colorTextoEtiqueta = esSeleccionado
-          ? isDark ? "#000000" : "#ffffff"
+          ? isDark
+            ? "#000000"
+            : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
               ? "#22c55e"
-              : isDark ? "#94a3b8" : "#6b7280";
+              : isDark
+                ? "#94a3b8"
+                : "#6b7280";
 
-        const bordePunto = esSeleccionado
-          ? isDark ? "#000000" : "#ffffff"
-          : esHoy
-            ? "#ffffff"
-            : isDark ? "#0b1220" : "#ffffff";
+        const bordePunto = esSeleccionado ? (isDark ? "#000000" : "#ffffff") : esHoy ? "#ffffff" : isDark ? "#0b1220" : "#ffffff";
 
         return (
           <TouchableOpacity
             key={`${ymd}-${nombre}`}
-            onPress={() => activar && handleSelect(diaNum, nombre, mes, año)}
+            onPress={() => activar && handleSelect(index, ymd, diaEnum)}
             disabled={!activar}
             accessibilityRole="button"
             accessibilityState={{ selected: esSeleccionado, disabled: !activar }}
@@ -173,17 +181,11 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
               />
             )}
 
-            <Text
-              className="text-lg font-semibold mb-1"
-              style={{ color: colorTextoNumero }}
-            >
+            <Text className="text-lg font-semibold mb-1" style={{ color: colorTextoNumero }}>
               {dia}
             </Text>
 
-            <Text
-              className="text-xs font-medium uppercase"
-              style={{ color: colorTextoEtiqueta }}
-            >
+            <Text className="text-xs font-medium uppercase" style={{ color: colorTextoEtiqueta }}>
               {nombre.slice(0, 3)}
             </Text>
           </TouchableOpacity>

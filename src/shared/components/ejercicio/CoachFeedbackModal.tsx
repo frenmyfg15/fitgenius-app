@@ -1,50 +1,38 @@
-// src/shared/components/ejercicio/CoachFeedbackModal.tsx
-import React from "react";
-import {
-  Modal,
-  View,
-  Text,
-  Pressable,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { useColorScheme } from "nativewind";
-import { LinearGradient } from "expo-linear-gradient";
+// File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
+import React, { useCallback, useMemo, useRef, useEffect } from "react";
+import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import { X, Loader2, Sparkles } from "lucide-react-native";
+import { useColorScheme } from "nativewind";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 
-import type {
-  CoachResponse,
-  CoachSuggestion,
-} from "@/features/api/coach.api";
+import type { CoachResponse, CoachSuggestion } from "@/features/api/coach.api";
 
-type Props = {
-  visible: boolean;
-  loading: boolean;
-  coach: CoachResponse | null;
-  onClose: () => void;
-  onGoPremium?: () => void;
-};
+// ── Tokens & Helpers ─────────────────────────────────────────────────────────
+const tokens = {
+  color: {
+    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    ctaBg: "#22C55E",
+    ctaText: "#FFFFFF",
+    checkBg: "rgba(34,197,94,0.90)",
+  },
+  radius: { lg: 18, md: 12, sm: 6, full: 999 },
+  spacing: { xs: 2, sm: 6, md: 12, lg: 16 },
+} as const;
 
 const categoriaLabel: Record<CoachSuggestion["categoria"], string> = {
-  carga: "Carga",
-  volumen: "Volumen",
-  tecnica: "Técnica",
-  estres: "Estrés",
-  progresion: "Progresión",
-  consistencia: "Consistencia",
-  riesgo: "Riesgo",
-  general: "General",
+  carga: "Carga", volumen: "Volumen", tecnica: "Técnica", estres: "Estrés",
+  progresion: "Progresión", consistencia: "Consistencia", riesgo: "Riesgo", general: "General",
 };
 
 const categoriaColor: Record<CoachSuggestion["categoria"], string> = {
-  carga: "#38bdf8",
-  volumen: "#a855f7",
-  tecnica: "#22c55e",
-  estres: "#f97316",
-  progresion: "#3b82f6",
-  consistencia: "#0ea5e9",
-  riesgo: "#ef4444",
-  general: "#6b7280",
+  carga: "#38BDF8", volumen: "#A855F7", tecnica: "#22C55E", estres: "#F97316",
+  progresion: "#3B82F6", consistencia: "#0EA5E9", riesgo: "#EF4444", general: "#6B7280",
 };
 
 const formatNumber = (val: number | null | undefined, suffix = "") => {
@@ -52,416 +40,249 @@ const formatNumber = (val: number | null | undefined, suffix = "") => {
   return `${Number(val).toFixed(1)}${suffix}`;
 };
 
-const CoachFeedbackModal: React.FC<Props> = ({
-  visible,
-  loading,
-  coach,
-  onClose,
-  onGoPremium,
-}) => {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const marcoGradient = [
-    "rgb(0,255,64)",
-    "rgb(94,230,157)",
-    "rgb(178,0,255)",
-  ];
-
-  const cardBgDark = "rgba(20, 28, 44, 0.9)";
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
-  const esPremium = coach?.ok === true;
-  const esUpsell = coach && coach.ok === false;
-  const primeraSugerencia = coach?.data?.sugerencias?.[0];
-
-  const renderContenidoPremium = () => {
-    const hasSessions =
-      (coach?.data?.ultimasSesiones?.length ?? 0) > 0;
-    const hasSuggestions =
-      (coach?.data?.sugerencias?.length ?? 0) > 0;
-    const hasMetrics =
-      coach &&
-      (coach.data.estresPromedio != null ||
-        coach.data.volumenPromedio != null ||
-        coach.data.cargaPromedio != null);
-
-    // 💡 Estado "sin datos suficientes" (404 o todavía muy pocas sesiones)
-    if (!coach || (!hasSessions && !hasSuggestions && !hasMetrics)) {
-      return (
-        <View className="items-center py-7 px-2">
-          <Text
-            className="text-sm font-semibold text-center mb-1"
-            style={{ color: isDark ? textPrimaryDark : "#111827" }}
-          >
-            Aún no hay análisis para este ejercicio
-          </Text>
-          <Text
-            className="text-[11px] text-center leading-4 max-w-xs"
-            style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
-          >
-            Guarda un par de sesiones de este ejercicio y el Coach
-            empezará a darte feedback sobre carga, estrés y progresión.
-          </Text>
-        </View>
-      );
-    }
-
-    const { data } = coach;
-
-    return (
-      <>
-        {/* Métricas */}
-        <View className="flex-row gap-3 mb-3">
-          <View
-            className="flex-1 rounded-xl px-3 py-2"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(15,23,42,0.9)"
-                : "rgba(248,250,252,1)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(148,163,184,0.4)"
-                : "rgba(226,232,240,1)",
-            }}
-          >
-            <Text
-              className="text-[11px] mb-1"
-              style={{
-                color: isDark ? textSecondaryDark : "#6b7280",
-              }}
-            >
-              Estrés promedio
-            </Text>
-            <Text
-              className="text-lg font-semibold"
-              style={{
-                color: isDark ? textPrimaryDark : "#0f172a",
-              }}
-            >
-              {formatNumber(data.estresPromedio, "/10")}
-            </Text>
-          </View>
-
-          <View
-            className="flex-1 rounded-xl px-3 py-2"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(15,23,42,0.9)"
-                : "rgba(248,250,252,1)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(148,163,184,0.4)"
-                : "rgba(226,232,240,1)",
-            }}
-          >
-            <Text
-              className="text-[11px] mb-1"
-              style={{
-                color: isDark ? textSecondaryDark : "#6b7280",
-              }}
-            >
-              Volumen medio
-            </Text>
-            <Text
-              className="text-lg font-semibold"
-              style={{
-                color: isDark ? textPrimaryDark : "#0f172a",
-              }}
-            >
-              {formatNumber(data.volumenPromedio)}
-            </Text>
-          </View>
-
-          <View
-            className="flex-1 rounded-xl px-3 py-2"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(15,23,42,0.9)"
-                : "rgba(248,250,252,1)",
-              borderWidth: 1,
-              borderColor: isDark
-                ? "rgba(148,163,184,0.4)"
-                : "rgba(226,232,240,1)",
-            }}
-          >
-            <Text
-              className="text-[11px] mb-1"
-              style={{
-                color: isDark ? textSecondaryDark : "#6b7280",
-              }}
-            >
-              Carga media
-            </Text>
-            <Text
-              className="text-lg font-semibold"
-              style={{
-                color: isDark ? textPrimaryDark : "#0f172a",
-              }}
-            >
-              {formatNumber(data.cargaPromedio, " kg")}
-            </Text>
-          </View>
-        </View>
-
-        {/* Sugerencias */}
-        <ScrollView
-          style={{ maxHeight: 260 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {data.sugerencias?.map((sug, idx) => (
-            <View
-              key={`${sug.categoria}-${idx}`}
-              className="mb-3 rounded-xl p-3"
-              style={{
-                backgroundColor: isDark
-                  ? "rgba(15,23,42,0.9)"
-                  : "rgba(248,250,252,1)",
-                borderWidth: 1,
-                borderColor: isDark
-                  ? "rgba(148,163,184,0.5)"
-                  : "rgba(226,232,240,1)",
-              }}
-            >
-              <View className="flex-row items-center justify-between mb-1.5">
-                <Text
-                  className="text-sm font-semibold flex-1 mr-2"
-                  style={{
-                    color: isDark ? textPrimaryDark : "#111827",
-                  }}
-                >
-                  {sug.titulo}
-                </Text>
-
-                <View
-                  style={{
-                    borderRadius: 999,
-                    paddingHorizontal: 10,
-                    paddingVertical: 3,
-                    backgroundColor: `${categoriaColor[sug.categoria]}22`,
-                    borderWidth: 1,
-                    borderColor: `${categoriaColor[sug.categoria]}55`,
-                  }}
-                >
-                  <Text
-                    className="text-[10px] font-semibold"
-                    style={{ color: categoriaColor[sug.categoria] }}
-                  >
-                    {categoriaLabel[sug.categoria]}
-                  </Text>
-                </View>
-              </View>
-
-              <Text
-                className="text-[12px] leading-4"
-                style={{
-                  color: isDark ? textSecondaryDark : "#4b5563",
-                }}
-              >
-                {sug.mensaje}
-              </Text>
-            </View>
-          ))}
-
-          {(!data.sugerencias || data.sugerencias.length === 0) && (
-            <Text
-              className="text-xs"
-              style={{
-                color: isDark ? textSecondaryDark : "#6b7280",
-              }}
-            >
-              No hay sugerencias específicas todavía, pero seguiremos
-              analizando tus próximas sesiones.
-            </Text>
-          )}
-        </ScrollView>
-      </>
-    );
-  };
-
-  const renderContenidoUpsell = () => {
-    const titulo = primeraSugerencia?.titulo ?? "Activa Coach Premium";
-    const mensaje =
-      primeraSugerencia?.mensaje ??
-      "Desbloquea el análisis avanzado de tus últimas sesiones, estrés y carga de entrenamiento.";
-
-    return (
-      <View className="py-3">
-        <View
-          className="rounded-xl px-3 py-3 mb-3"
-          style={{
-            backgroundColor: isDark
-              ? "rgba(15,23,42,0.9)"
-              : "rgba(248,250,252,1)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(148,163,184,0.5)"
-              : "rgba(226,232,240,1)",
-          }}
-        >
-          <Text
-            className="text-[13px] font-semibold mb-1.5"
-            style={{
-              color: isDark ? textPrimaryDark : "#111827",
-            }}
-          >
-            {titulo}
-          </Text>
-          <Text
-            className="text-[12px] leading-4"
-            style={{
-              color: isDark ? textSecondaryDark : "#4b5563",
-            }}
-          >
-            {mensaje}
-          </Text>
-        </View>
-
-        <Text
-          className="text-[11px] mb-3"
-          style={{
-            color: isDark ? textSecondaryDark : "#6b7280",
-          }}
-        >
-          Coach Premium analiza tus últimas sesiones (volumen, carga,
-          estrés y progresión) para darte recomendaciones como un
-          entrenador personal de verdad.
-        </Text>
-
-        <TouchableOpacity
-          onPress={onGoPremium}
-          activeOpacity={0.9}
-          style={{
-            backgroundColor: "#22c55e",
-            borderRadius: 999,
-            paddingVertical: 10,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text className="text-white font-semibold text-xs">
-            Ver beneficios de Premium
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable
-        onPress={onClose}
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.6)",
-          justifyContent: "center",
-          alignItems: "center",
-          paddingHorizontal: 24,
-        }}
-      >
-        {/* Evitar cerrar al tocar dentro de la card */}
-        <Pressable
-          onPress={() => {}}
-          style={{ width: "100%", maxWidth: 460 }}
-        >
-          <LinearGradient
-            colors={marcoGradient as any}
-            className="rounded-2xl p-[1px]"
-            style={{ borderRadius: 18, overflow: "hidden" }}
-          >
-            <View
-              className="rounded-2xl p-4"
-              style={{
-                backgroundColor: isDark ? cardBgDark : "#ffffff",
-                borderWidth: 1,
-                borderColor: isDark
-                  ? cardBorderDark
-                  : "rgba(0,0,0,0.06)",
-                borderRadius: 16,
-              }}
-            >
-              {/* Header */}
-              <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row items-center gap-2">
-                  <View
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 999,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: isDark
-                        ? "rgba(34,197,94,0.15)"
-                        : "rgba(22,163,74,0.1)",
-                    }}
-                  >
-                    <Sparkles
-                      size={16}
-                      color={isDark ? "#bbf7d0" : "#16a34a"}
-                    />
-                  </View>
-                  <View>
-                    <Text
-                      className="text-sm font-semibold"
-                      style={{
-                        color: isDark ? textPrimaryDark : "#0f172a",
-                      }}
-                    >
-                      Coach Premium
-                    </Text>
-                    <Text
-                      className="text-[11px] mt-[2px]"
-                      style={{
-                        color: isDark ? textSecondaryDark : "#6b7280",
-                      }}
-                    >
-                      Feedback personalizado para este ejercicio.
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity onPress={onClose} hitSlop={10}>
-                  <X
-                    size={20}
-                    color={isDark ? "#e5e7eb" : "#374151"}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Estado loading */}
-              {loading && (
-                <View className="items-center justify-center py-6">
-                  <Loader2
-                    size={24}
-                    color={isDark ? "#e5e7eb" : "#111827"}
-                  />
-                  <Text
-                    className="text-xs mt-3"
-                    style={{
-                      color: isDark ? textSecondaryDark : "#6b7280",
-                    }}
-                  >
-                    Analizando tus últimas sesiones...
-                  </Text>
-                </View>
-              )}
-
-              {!loading && esPremium && renderContenidoPremium()}
-
-              {!loading && esUpsell && renderContenidoUpsell()}
-            </View>
-          </LinearGradient>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
+type Props = {
+  visible: boolean;
+  loading: boolean;
+  coach: CoachResponse | null;
+  onClose: () => void;
+  onGoPremium?: () => void;
+  autoDisabled?: boolean;
+  onToggleAutoDisabled?: (next: boolean) => void;
 };
 
-export default CoachFeedbackModal;
+export default function CoachFeedbackModal({
+  visible, loading, coach, onClose, onGoPremium, autoDisabled, onToggleAutoDisabled,
+}: Props) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const wasVisible = useRef(false);
+
+  const snapPoints = useMemo(() => ["50%", "85%"], []);
+  const topInset = Math.max(insets.top, 12);
+
+  useEffect(() => {
+    if (visible && !wasVisible.current) {
+      bottomSheetModalRef.current?.present();
+      wasVisible.current = true;
+    }
+    if (!visible && wasVisible.current) {
+      bottomSheetModalRef.current?.dismiss();
+      wasVisible.current = false;
+    }
+  }, [visible]);
+
+  const handleClosePress = useCallback(() => {
+    bottomSheetModalRef.current?.dismiss();
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.45}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
+  const esPremium = coach?.ok === true;
+  const esUpsell = coach?.ok === false;
+  const primeraSugerencia = coach?.data?.sugerencias?.[0];
+
+  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+  const textSecondary = isDark ? "#64748B" : "#4B5563";
+  const textMuted = isDark ? "#6B7280" : "#6B7280";
+
+  return (
+    <BottomSheetModal
+      ref={bottomSheetModalRef}
+      index={1}
+      snapPoints={snapPoints}
+      onDismiss={onClose}
+      backdropComponent={renderBackdrop}
+      enablePanDownToClose
+      enableContentPanningGesture={false}
+      enableOverDrag={false}
+      topInset={topInset}
+      handleIndicatorStyle={{ backgroundColor: isDark ? "#64748b" : "#94a3b8" }}
+      backgroundStyle={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
+      style={styles.modalZIndex}
+      containerStyle={styles.modalZIndex}
+    >
+      {/* Header */}
+      <View className="flex-row justify-between items-center px-6 pt-2 mb-4">
+        <View className="flex-row items-center gap-3">
+          <View style={[styles.headerIcon, { backgroundColor: isDark ? "rgba(34,197,94,0.12)" : "rgba(22,163,74,0.08)" }]}>
+            <Sparkles size={16} color={isDark ? "#BBF7D0" : "#16A34A"} strokeWidth={2.5} />
+          </View>
+          <View>
+            <Text className={isDark ? "text-white font-bold text-base" : "text-neutral-900 font-bold text-base"}>
+              Coach Premium
+            </Text>
+            <Text style={{ fontSize: 10, color: textSecondary }}>Feedback personalizado</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          onPress={handleClosePress}
+          activeOpacity={0.85}
+          className={"p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")}
+        >
+          <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
+        </TouchableOpacity>
+      </View>
+
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingBottom: 120, // Bottom space requested
+        }}
+      >
+        {loading ? (
+          <View className="items-center justify-center py-10">
+            <Loader2 size={28} color={textPrimary} />
+            <Text style={{ marginTop: 12, color: textSecondary, fontSize: 12 }}>Analizando sesión...</Text>
+          </View>
+        ) : esPremium ? (
+          <ContenidoPremium
+            coach={coach}
+            isDark={isDark}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            textMuted={textMuted}
+            autoDisabled={autoDisabled}
+            onToggleAutoDisabled={onToggleAutoDisabled}
+          />
+        ) : esUpsell ? (
+          <ContenidoUpsell
+            primeraSugerencia={primeraSugerencia}
+            isDark={isDark}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            textMuted={textMuted}
+            onGoPremium={onGoPremium}
+          />
+        ) : null}
+      </BottomSheetScrollView>
+    </BottomSheetModal>
+  );
+}
+
+// ── Sub-componentes ──────────────────────────────────────────────────────────
+
+function ContenidoPremium({
+  coach, isDark, textPrimary, textSecondary, textMuted, autoDisabled, onToggleAutoDisabled,
+}: any) {
+  const data = coach?.data;
+  const sugerencias = data?.sugerencias ?? [];
+
+  return (
+    <View className="flex-col gap-4">
+      <View className="flex-row gap-3">
+        <Metric label="Estrés" value={formatNumber(data?.estresPromedio, "/10")} isDark={isDark} />
+        <Metric label="Volumen" value={formatNumber(data?.volumenPromedio)} isDark={isDark} />
+        <Metric label="Carga" value={formatNumber(data?.cargaPromedio, " kg")} isDark={isDark} />
+      </View>
+
+      {sugerencias.map((sug: any, idx: number) => (
+        <View
+          key={idx}
+          style={[styles.card, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0" }]}
+        >
+          <View className="flex-row justify-between items-start mb-2 gap-2">
+            <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14, flex: 1 }}>{sug.titulo}</Text>
+            <View style={[styles.badge, { borderColor: `${categoriaColor[sug.categoria as keyof typeof categoriaColor]}55` }]}>
+              <Text style={{ color: categoriaColor[sug.categoria as keyof typeof categoriaColor], fontSize: 9, fontWeight: "700" }}>
+                {categoriaLabel[sug.categoria as keyof typeof categoriaLabel]}
+              </Text>
+            </View>
+          </View>
+          <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>{sug.mensaje}</Text>
+        </View>
+      ))}
+
+      {typeof autoDisabled === "boolean" && (
+        <Pressable onPress={() => onToggleAutoDisabled?.(!autoDisabled)} className="flex-row items-center gap-3 mt-2">
+          <View style={[styles.checkbox, { backgroundColor: autoDisabled ? tokens.color.checkBg : "transparent" }]}>
+            {autoDisabled && <View style={styles.checkMark} />}
+          </View>
+          <Text style={{ color: textMuted, fontSize: 11 }}>No mostrar automáticamente</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function Metric({ label, value, isDark }: any) {
+  return (
+    <View style={[styles.metric, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC" }]}>
+      <Text style={{ fontSize: 9, color: isDark ? "#64748B" : "#6B7280", marginBottom: 2 }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "800", color: isDark ? "#F1F5F9" : "#0F172A" }}>{value}</Text>
+    </View>
+  );
+}
+
+function ContenidoUpsell({ primeraSugerencia, isDark, textPrimary, textSecondary, textMuted, onGoPremium }: any) {
+  return (
+    <View className="gap-4">
+      <LinearGradient colors={tokens.color.frameGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.upsellFrame}>
+        <View style={[styles.upsellCard, { backgroundColor: isDark ? "#0b1220" : "#ffffff" }]}>
+          <Text style={{ color: textPrimary, fontWeight: "800", fontSize: 15, marginBottom: 4 }}>{primeraSugerencia?.titulo ?? "Coach Premium"}</Text>
+          <Text style={{ color: textSecondary, fontSize: 13 }}>{primeraSugerencia?.mensaje ?? "Análisis inteligente de tu progreso."}</Text>
+        </View>
+      </LinearGradient>
+      <Text style={{ color: textMuted, fontSize: 11, textAlign: "center", paddingHorizontal: 10 }}>
+        El Coach analiza volumen, carga y estrés para darte recomendaciones precisas.
+      </Text>
+      <TouchableOpacity onPress={onGoPremium} activeOpacity={0.8} style={styles.ctaButton}>
+        <Text style={styles.ctaText}>Ver beneficios de Premium</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalZIndex: {
+    zIndex: 1000,
+    ...(Platform.OS === "android" ? { elevation: 1000 } : null),
+  },
+  headerIcon: {
+    width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center",
+  },
+  metric: {
+    flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(148,163,184,0.1)",
+  },
+  card: {
+    padding: 16, borderRadius: 16, borderWidth: 1,
+  },
+  badge: {
+    borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+  },
+  checkbox: {
+    width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: "rgba(148,163,184,0.4)", alignItems: "center", justifyContent: "center",
+  },
+  checkMark: {
+    width: 8, height: 8, borderRadius: 2, backgroundColor: "#FFF",
+  },
+  upsellFrame: {
+    padding: 1.5, borderRadius: 16,
+  },
+  upsellCard: {
+    padding: 16, borderRadius: 14.5,
+  },
+  ctaButton: {
+    backgroundColor: tokens.color.ctaBg, paddingVertical: 14, borderRadius: 99, alignItems: "center",
+  },
+  ctaText: {
+    color: "#FFF", fontWeight: "800", fontSize: 14,
+  },
+});
