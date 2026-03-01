@@ -1,12 +1,14 @@
 // File: src/shared/components/home/TarjetaHome.tsx
 import React, { useMemo, memo } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import ReplaceEjercicioAsignadoFlow from "@/shared/components/rutina/ReplaceEjercicioAsignadoFlow";
 
 // ── Tokens (mismo sistema compartido) ────────────────────────────────────────
 const tokens = {
@@ -58,7 +60,7 @@ const GRADIENT = [
   tokens.color.gradientEnd,
 ] as const;
 
-// ── Tipos — sin cambios ───────────────────────────────────────────────────────
+// ── Tipos ───────────────────────────────────────────────────────────────────
 type GrupoMuscular =
   | "BRAZOS" | "CARDIO" | "CORE" | "ESPALDA"
   | "GLUTEO" | "HOMBROS" | "PECHOS" | "PIERNAS";
@@ -88,15 +90,17 @@ interface EjercicioDia {
   descansoSeg?: number;
 }
 interface DiaRutina {
+  id?: number;
   diaSemana: string;
   ejercicios: EjercicioDia[];
 }
 interface Rutina {
+  id?: number;
   dias?: DiaRutina[];
 }
 type Props = { rutina?: Rutina | null; dia?: string; selectedYMD?: string };
 
-// ── Assets — sin cambios ──────────────────────────────────────────────────────
+// ── Assets ───────────────────────────────────────────────────────────────────
 const brazos = require("../../../../assets/fit/rutina/brazos.png");
 const cardio = require("../../../../assets/fit/rutina/cardio.png");
 const core = require("../../../../assets/fit/rutina/core.png");
@@ -121,7 +125,7 @@ const imagenPorGrupo = (grupo?: string) => {
   return isGrupoMuscular(key) ? IMAGENES_GRUPO[key] : undefined;
 };
 
-// ── Utils — sin cambios ───────────────────────────────────────────────────────
+// ── Utils ────────────────────────────────────────────────────────────────────
 const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
   if (i.ejercicioCompuesto) return `${i.descansoSeg ?? 0} s descanso`;
   const sets = i.seriesSugeridas ?? "—";
@@ -218,7 +222,6 @@ const TarjetaEjercicio = memo(function TarjetaEjercicio({
     </TouchableOpacity>
   );
 
-  // Completado → borde gradiente; sin completar → card simple
   if (completado) {
     return (
       <LinearGradient
@@ -249,7 +252,6 @@ function ContenidoTarjeta({
 }) {
   return (
     <View style={styles.row}>
-      {/* Thumbnail */}
       <View
         style={[
           styles.thumb,
@@ -266,9 +268,7 @@ function ContenidoTarjeta({
         )}
       </View>
 
-      {/* Info */}
       <View style={styles.info}>
-        {/* Tag grupo muscular */}
         <View
           style={[
             styles.tag,
@@ -286,7 +286,6 @@ function ContenidoTarjeta({
           </Text>
         </View>
 
-        {/* Nombre */}
         <Text
           numberOfLines={1}
           style={[styles.name, { color: isDark ? tokens.color.nameDark : tokens.color.nameLight }]}
@@ -294,7 +293,6 @@ function ContenidoTarjeta({
           {nombre}
         </Text>
 
-        {/* Detalles */}
         <Text
           numberOfLines={2}
           style={[styles.details, { color: isDark ? tokens.color.detailsDark : tokens.color.detailsLight }]}
@@ -303,7 +301,6 @@ function ContenidoTarjeta({
         </Text>
       </View>
 
-      {/* Check de completado — semántico y con color propio */}
       {completado && (
         <View
           style={[
@@ -324,7 +321,6 @@ function ContenidoTarjeta({
 
 // ── TarjetaHome (principal) ───────────────────────────────────────────────────
 export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const navigation = useNavigation();
   const rutinaActivaId = useUsuarioStore((s) => s.usuario?.rutinaActivaId);
   const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso ?? "kg");
@@ -340,6 +336,9 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
     [rutinaDia]
   );
 
+  const rutinaId = (rutina as any)?.id as number | undefined;
+  const diaRutinaId = (rutinaDia as any)?.id as number | undefined;
+
   if (!rutinaDia && hasRutinaActiva) {
     return (
       <MensajeVacio
@@ -354,7 +353,6 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
   }
 
   if (!rutinaDia) return null;
-  // ── Fin lógica original ───────────────────────────────────────────────────
 
   return (
     <View style={styles.listRoot}>
@@ -365,17 +363,80 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
             item.ejercicioCompuesto?.id ??
             `${item.ejercicio?.nombre}-${item.orden ?? "x"}-${index}`
           );
+
+          const asignadoId = item.id != null ? Number(item.id) : undefined;
+          const isCompuesto = Boolean(item.ejercicioCompuesto);
+
+          const canReplace =
+            !isCompuesto &&
+            Number.isFinite(Number(rutinaId)) &&
+            Number.isFinite(Number(diaRutinaId)) &&
+            Number.isFinite(Number(asignadoId));
+
+          const renderRightActions = () => {
+            if (!canReplace) return null;
+
+            return (
+              <ReplaceEjercicioAsignadoFlow
+                rutinaId={Number(rutinaId)}
+                diaRutinaId={Number(diaRutinaId)}
+                asignadoId={Number(asignadoId)}
+              >
+                {({ open, loading }) => (
+                  <Pressable
+                    onPress={open}
+                    disabled={loading}
+                    style={{
+                      width: 120,
+                      marginLeft: 10,
+                      borderRadius: tokens.radius.lg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "rgba(34,197,94,0.18)",
+                      borderWidth: 1,
+                      borderColor: "rgba(34,197,94,0.35)",
+                    }}
+                  >
+                    <Text style={{ fontWeight: "900", color: "#22C55E" }}>
+                      {loading ? "..." : "Reemplazar"}
+                    </Text>
+                  </Pressable>
+                )}
+              </ReplaceEjercicioAsignadoFlow>
+            );
+          };
+
+          if (!canReplace) {
+            return (
+              <TarjetaEjercicio
+                key={key}
+                ejercicio={item}
+                medidaPeso={medidaPeso}
+                selectedYMD={selectedYMD}
+                onPressNavegar={(routeName, params) =>
+                  // @ts-ignore
+                  (navigation as any).navigate(routeName, params)
+                }
+              />
+            );
+          }
+
           return (
-            <TarjetaEjercicio
+            <Swipeable
               key={key}
-              ejercicio={item}
-              medidaPeso={medidaPeso}
-              selectedYMD={selectedYMD}
-              onPressNavegar={(routeName, params) =>
-                // @ts-ignore
-                (navigation as any).navigate(routeName, params)
-              }
-            />
+              renderRightActions={renderRightActions}
+              overshootRight={false}
+            >
+              <TarjetaEjercicio
+                ejercicio={item}
+                medidaPeso={medidaPeso}
+                selectedYMD={selectedYMD}
+                onPressNavegar={(routeName, params) =>
+                  // @ts-ignore
+                  (navigation as any).navigate(routeName, params)
+                }
+              />
+            </Swipeable>
           );
         })}
       </View>
@@ -383,7 +444,6 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
   );
 }
 
-// ── Estilos estáticos ─────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   listRoot: {
     width: "100%",
@@ -392,8 +452,6 @@ const styles = StyleSheet.create({
   list: {
     gap: tokens.spacing.md,
   },
-
-  // Card
   gradientBorder: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
@@ -404,7 +462,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: tokens.spacing.lg,
     overflow: "hidden",
-    // Sombra sutil
     shadowColor: "#000",
     shadowOpacity: 0.07,
     shadowRadius: 8,
@@ -414,15 +471,11 @@ const styles = StyleSheet.create({
   touchable: {
     width: "100%",
   },
-
-  // Fila interior de la card
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
   },
-
-  // Thumbnail
   thumb: {
     width: 60,
     height: 60,
@@ -441,15 +494,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#94A3B8",
   },
-
-  // Info
   info: {
     flex: 1,
     minWidth: 0,
     gap: tokens.spacing.xs,
   },
-
-  // Tag grupo muscular
   tag: {
     alignSelf: "flex-start",
     paddingHorizontal: 7,
@@ -463,21 +512,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
-
-  // Nombre ejercicio
   name: {
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.1,
   },
-
-  // Detalles (series · reps · peso)
   details: {
     fontSize: 12,
     lineHeight: 17,
   },
-
-  // Check completado
   checkCircle: {
     width: 28,
     height: 28,

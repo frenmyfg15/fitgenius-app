@@ -1,15 +1,12 @@
 // src/features/api/rutinas.api.ts
 import { api } from "./axios";
 import { handleApiError } from "@/shared/lib/handleApiError";
-import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid"; // ✅ NUEVO
+import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid";
 
 const log = (...args: any[]) => {
   if (__DEV__) console.log("[API rutinas]", ...args);
 };
 
-/* ============================================================
-   CREAR RUTINA (IA / simple)  → admite adToken
-============================================================ */
 export const crearRutina = async (
   payload: { nombre: string; instruccion?: string },
   adToken?: string
@@ -31,11 +28,11 @@ export const crearRutina = async (
   } catch (error: any) {
     log("crearRutina ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅ limpia store si token inválido
+    checkAuthTokenInvalid(error);
 
-    const errorCode = error?.response?.data?.errorCode || error?.response?.data?.code;
+    const errorCode =
+      error?.response?.data?.errorCode || error?.response?.data?.code;
 
-    // ⚠️ AD_REQUIRED → no usamos handleApiError, el caller dispara anuncio
     if (errorCode === "AD_REQUIRED") {
       throw {
         errorCode: "AD_REQUIRED",
@@ -46,14 +43,10 @@ export const crearRutina = async (
       };
     }
 
-    // 👉 resto de errores
     return handleApiError(error, "Error al crear la rutina");
   }
 };
 
-/* ============================================================
-   OBTENER UNA RUTINA
-============================================================ */
 export const obtenerRutina = async (idRutina: number) => {
   try {
     log("obtenerRutina →", idRutina);
@@ -70,15 +63,12 @@ export const obtenerRutina = async (idRutina: number) => {
   } catch (error) {
     log("obtenerRutina ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
     return handleApiError(error, "Error al obtener la rutina");
   }
 };
 
-/* ============================================================
-   OBTENER TODAS LAS RUTINAS DEL USUARIO
-============================================================ */
 export const obtenerRutinas = async () => {
   try {
     log("obtenerRutinas → /rutinas/todas/");
@@ -101,15 +91,12 @@ export const obtenerRutinas = async () => {
   } catch (error) {
     log("obtenerRutinas ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
     return handleApiError(error, "Error al obtener tus rutinas");
   }
 };
 
-/* ============================================================
-   ELIMINAR RUTINA
-============================================================ */
 export const eliminarRutinaPorId = async (rutinaId: number) => {
   try {
     log("eliminarRutinaPorId →", rutinaId);
@@ -126,15 +113,12 @@ export const eliminarRutinaPorId = async (rutinaId: number) => {
   } catch (error) {
     log("eliminarRutinaPorId ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
     return handleApiError(error, "Error al eliminar la rutina");
   }
 };
 
-/* ============================================================
-   ACTUALIZAR RUTINA ACTIVA
-============================================================ */
 export const actualizarRutinaActiva = async (rutinaId: number) => {
   try {
     log("actualizarRutinaActiva →", { rutinaId });
@@ -151,16 +135,17 @@ export const actualizarRutinaActiva = async (rutinaId: number) => {
   } catch (error) {
     log("actualizarRutinaActiva ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
     return handleApiError(error, "Error al actualizar la rutina activa");
   }
 };
 
-/* ============================================================
-   CREAR / EDITAR RUTINA PERSONALIZADA  → admite adToken
-============================================================ */
-export const crearRutinaPersonalizada = async (data: any, id?: number, adToken?: string) => {
+export const crearRutinaPersonalizada = async (
+  data: any,
+  id?: number,
+  adToken?: string
+) => {
   try {
     const isUpdate = typeof id === "number";
 
@@ -170,7 +155,6 @@ export const crearRutinaPersonalizada = async (data: any, id?: number, adToken?:
     };
 
     if (isUpdate) {
-      /* ------------ UPDATE ------------ */
       log("crearRutinaPersonalizada[UPDATE] → /rutinas/crear", {
         id,
         hasAdToken: !!adToken,
@@ -188,7 +172,6 @@ export const crearRutinaPersonalizada = async (data: any, id?: number, adToken?:
       return payload;
     }
 
-    /* ------------ CREATE ------------ */
     log("crearRutinaPersonalizada[CREATE] → /rutinas/crear", {
       hasAdToken: !!adToken,
     });
@@ -206,11 +189,11 @@ export const crearRutinaPersonalizada = async (data: any, id?: number, adToken?:
   } catch (error: any) {
     log("crearRutinaPersonalizada ← error", error);
 
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
-    const errorCode = error?.response?.data?.errorCode || error?.response?.data?.code;
+    const errorCode =
+      error?.response?.data?.errorCode || error?.response?.data?.code;
 
-    // ⭐ AD_REQUIRED → se lanza para que el caller gestione anuncio
     if (errorCode === "AD_REQUIRED") {
       throw {
         errorCode: "AD_REQUIRED",
@@ -222,13 +205,14 @@ export const crearRutinaPersonalizada = async (data: any, id?: number, adToken?:
     }
 
     const fallback =
-      typeof id === "number" ? "Error al actualizar la rutina" : "Error al crear la rutina";
+      typeof id === "number"
+        ? "Error al actualizar la rutina"
+        : "Error al crear la rutina";
 
     return handleApiError(error, fallback);
   }
 };
 
-// Tip reutilizable (igual al de ejercicios)
 export type ChatTurn = {
   role: "user" | "assistant";
   content: string;
@@ -262,9 +246,51 @@ export const preguntarRutinaManualIA = async (
 
     return respuesta;
   } catch (error) {
-    checkAuthTokenInvalid(error); // ✅
+    checkAuthTokenInvalid(error);
 
-    // handleApiError muestra el toast global y suele devolver null/undefined
     return handleApiError(error, "Error al preguntar sobre la rutina");
+  }
+};
+
+export type ReplaceEjercicioAsignadoPayload = {
+  nuevoEjercicioId: number;
+  seriesSugeridas?: number;
+  repeticionesSugeridas?: number;
+  pesoSugerido?: number;
+  descansoSeg?: number;
+  notaIA?: string;
+};
+
+export const replaceEjercicioAsignado = async (
+  rutinaId: number,
+  diaId: number,
+  asignadoId: number,
+  payload: ReplaceEjercicioAsignadoPayload
+) => {
+  try {
+    log("replaceEjercicioAsignado →", {
+      rutinaId,
+      diaId,
+      asignadoId,
+      payload,
+    });
+
+    const res = await api.put(
+      `/rutinas/${rutinaId}/dias/${diaId}/ejercicios/${asignadoId}/replace`,
+      payload
+    );
+
+    log("replaceEjercicioAsignado ← ok", {
+      status: res.status,
+      keys: Object.keys(res.data || {}),
+    });
+
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    log("replaceEjercicioAsignado ← error", error);
+
+    checkAuthTokenInvalid(error);
+
+    return handleApiError(error, "Error al reemplazar el ejercicio");
   }
 };
