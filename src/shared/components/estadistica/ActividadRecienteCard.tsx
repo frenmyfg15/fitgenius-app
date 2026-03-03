@@ -182,11 +182,6 @@ function CardBody({
             Últimos 7 días
           </Text>
         </View>
-
-        <View style={styles.kpiMiniRow}>
-          <KpiMini label="Días activos" value={diasActivos} isDark={isDark} />
-          <KpiMini label="Total sesiones" value={totalSesiones} isDark={isDark} />
-        </View>
       </View>
 
       {/* Chart */}

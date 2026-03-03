@@ -158,11 +158,6 @@ function CardBody({
           <Text style={[styles.headerTitle, { color: textPrimary }]}>Calorías quemadas</Text>
           <Text style={[styles.headerSubtitle, { color: textSecondary }]}>Resumen reciente</Text>
         </View>
-
-        <View style={styles.kpiMiniRow}>
-          <KpiMini label="Total" value={total} suffix="kcal" isDark={isDark} />
-          <KpiMini label="Promedio" value={promedio} suffix="kcal" isDark={isDark} />
-        </View>
       </View>
 
       <View style={styles.chartWrapper}>
