@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
+import { RefreshCcw } from "lucide-react-native";
 
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
@@ -49,6 +50,13 @@ const tokens = {
     checkBorderDark: "rgba(0,232,90,0.30)",
     checkBorderLight: "rgba(0,196,77,0.25)",
     checkColor: "#22C55E",
+
+    // Replace button
+    replaceBg: "rgba(34,197,94,0.10)",
+    replaceBgPressed: "rgba(34,197,94,0.22)",
+    replaceBgLoading: "rgba(34,197,94,0.06)",
+    replaceBorder: "rgba(34,197,94,0.30)",
+    replaceText: "#22C55E",
   },
   radius: { lg: 16, md: 10, sm: 6, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
@@ -365,6 +373,7 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
           );
 
           const asignadoId = item.id != null ? Number(item.id) : undefined;
+          // canReplace is only allowed for simple (non-compound) exercises
           const isCompuesto = Boolean(item.ejercicioCompuesto);
 
           const canReplace =
@@ -377,32 +386,41 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
             if (!canReplace) return null;
 
             return (
-              <ReplaceEjercicioAsignadoFlow
-                rutinaId={Number(rutinaId)}
-                diaRutinaId={Number(diaRutinaId)}
-                asignadoId={Number(asignadoId)}
-              >
-                {({ open, loading }) => (
-                  <Pressable
-                    onPress={open}
-                    disabled={loading}
-                    style={{
-                      width: 120,
-                      marginLeft: 10,
-                      borderRadius: tokens.radius.lg,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "rgba(34,197,94,0.18)",
-                      borderWidth: 1,
-                      borderColor: "rgba(34,197,94,0.35)",
-                    }}
-                  >
-                    <Text style={{ fontWeight: "900", color: "#22C55E" }}>
-                      {loading ? "..." : "Reemplazar"}
-                    </Text>
-                  </Pressable>
-                )}
-              </ReplaceEjercicioAsignadoFlow>
+              <View style={styles.replaceWrapper}>
+                <ReplaceEjercicioAsignadoFlow
+                  rutinaId={Number(rutinaId)}
+                  diaRutinaId={Number(diaRutinaId)}
+                  asignadoId={Number(asignadoId)}
+                >
+                  {({ open, loading }) => (
+                    <Pressable
+                      onPress={open}
+                      disabled={loading}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cambiar ejercicio"
+                      style={({ pressed }) => [
+                        styles.replaceButton,
+                        pressed && styles.replaceButtonPressed,
+                        loading && styles.replaceButtonLoading,
+                      ]}
+                    >
+                      <View style={styles.replaceButtonInner}>
+                        <RefreshCcw
+                          size={15}
+                          color={loading ? "rgba(34,197,94,0.4)" : tokens.color.replaceText}
+                          strokeWidth={2.5}
+                        />
+                        <Text style={[
+                          styles.replaceButtonText,
+                          loading && styles.replaceButtonTextLoading,
+                        ]}>
+                          {loading ? "..." : "Cambiar"}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  )}
+                </ReplaceEjercicioAsignadoFlow>
+              </View>
             );
           };
 
@@ -462,11 +480,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: tokens.spacing.lg,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   touchable: {
     width: "100%",
@@ -534,5 +547,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: tokens.color.checkColor,
+  },
+
+  // ── Replace button ────────────────────────────────────────────────────────
+  replaceWrapper: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    justifyContent: "center",
+    paddingLeft: tokens.spacing.sm,
+  },
+  replaceButton: {
+    width: 90,
+    borderRadius: tokens.radius.lg,
+    // stretch to fill the full row height given by Swipeable
+    alignSelf: "stretch",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tokens.color.replaceBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.replaceBorder,
+  },
+  replaceButtonPressed: {
+    backgroundColor: tokens.color.replaceBgPressed,
+    borderColor: "rgba(34,197,94,0.55)",
+  },
+  replaceButtonLoading: {
+    backgroundColor: tokens.color.replaceBgLoading,
+    borderColor: "rgba(34,197,94,0.15)",
+  },
+  replaceButtonInner: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+  },
+  replaceButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    color: tokens.color.replaceText,
+  },
+  replaceButtonTextLoading: {
+    color: "rgba(34,197,94,0.4)",
   },
 });

@@ -36,17 +36,31 @@ const getValidId = (raw: unknown): number | undefined => {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 };
 
+type EjercicioSeleccionadoState = {
+  id: number;
+  info: EjercicioVisualInfo;
+  orden: number;
+  initialValues?: Partial<
+    Pick<
+      EjercicioAsignadoInput,
+      | "seriesSugeridas"
+      | "repeticionesSugeridas"
+      | "pesoSugerido"
+      | "descansoSeg"
+      | "notaIA"
+    >
+  >;
+};
+
 export function useCrearRutinaState() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const nav = useNavigation<any>();
   const route = useRoute<any>();
 
-  /* ---------- State principal del reducer ---------- */
   const [state, dispatch] = useRutinaReducer();
   const [diaSelect, setDiaSelect] = useState<DiaSemana>("LUNES");
 
-  /* ---------- UI flags ---------- */
   const [mostrarBuscador, setMostrarBuscador] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [mostrarFormularioCompuesto, setMostrarFormularioCompuesto] =
@@ -56,15 +70,10 @@ export function useCrearRutinaState() {
 
   const [loading, setLoading] = useState(false);
 
-  /* ---------- Edición ejercicio simple ---------- */
   const [editandoEjercicio, setEditandoEjercicio] = useState(false);
-  const [ejercicioSeleccionado, setEjercicioSeleccionado] = useState<{
-    id: number;
-    info: EjercicioVisualInfo;
-    orden: number;
-  } | null>(null);
+  const [ejercicioSeleccionado, setEjercicioSeleccionado] =
+    useState<EjercicioSeleccionadoState | null>(null);
 
-  /* ---------- Compuesto ---------- */
   const [modoCompuesto, setModoCompuesto] = useState(false);
   const [compuestoTemporal, setCompuestoTemporal] = useState<
     EjercicioCompuestoTemporal[]
@@ -84,12 +93,10 @@ export function useCrearRutinaState() {
     descansoSeg: number;
   }>(null);
 
-  /* ---------- Selección lista ---------- */
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const ejerciciosDia = useMemo(() => {
     const dia = (state.dias ?? []).find((d: any) => d.diaSemana === diaSelect);
-    // Importante: devuelve la MISMA referencia si no cambia
     return (dia?.ejercicios ?? []) as Item[];
   }, [state.dias, diaSelect]);
 
@@ -106,7 +113,6 @@ export function useCrearRutinaState() {
     (state as any).clipboard && (state as any).clipboard.length > 0
   );
 
-  /* ---------- UI constants ---------- */
   const ui = useMemo(
     () => ({
       marcoGradient: ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"],
@@ -123,7 +129,6 @@ export function useCrearRutinaState() {
     [isDark]
   );
 
-  /* ---------- Edit ID: params o AsyncStorage ---------- */
   const [editId, setEditId] = useState<number | undefined>(undefined);
   const isEdit = typeof editId === "number";
 
@@ -137,10 +142,8 @@ export function useCrearRutinaState() {
     })();
   }, [route?.params?.id]);
 
-  /* ---------- Premium modal ---------- */
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
 
-  /* ---------- Acciones compuesto ---------- */
   const iniciarCompuesto = () => {
     setModoCompuesto(true);
     setMostrarBuscador(true);
@@ -158,7 +161,6 @@ export function useCrearRutinaState() {
     setMostrarFormularioCompuesto(true);
   };
 
-  /* ---------- Flujo de éxito común ---------- */
   const onSuccess = useCallback(async () => {
     if (!isEdit) {
       const { usuario, setUsuario } = useUsuarioStore.getState();
@@ -182,7 +184,6 @@ export function useCrearRutinaState() {
     nav.navigate("MisRutinas");
   }, [dispatch, isEdit, nav]);
 
-  /* ---------- Crear / Actualizar rutina (sin anuncios) ---------- */
   const handleCrearRutina = useCallback(async () => {
     if (!state.nombre.trim()) {
       return;
@@ -210,7 +211,6 @@ export function useCrearRutinaState() {
         return;
       }
 
-      // otros errores: se delega al handler general (si lo tienes en la capa API)
       throw error;
     } finally {
       setLoading(false);
@@ -240,7 +240,6 @@ export function useCrearRutinaState() {
     [state.dias, dispatch]
   );
 
-  /* ---------- Helpers selección ---------- */
   const handleEditarSeleccion = () => {
     if (!haySeleccion) return;
     const ej = ejerciciosDia[selectedIndex!];
@@ -260,6 +259,13 @@ export function useCrearRutinaState() {
         id: ej.ejercicioId!,
         info: ej.ejercicioInfo!,
         orden: ej.orden,
+        initialValues: {
+          seriesSugeridas: ej.seriesSugeridas,
+          repeticionesSugeridas: ej.repeticionesSugeridas,
+          pesoSugerido: ej.pesoSugerido,
+          descansoSeg: ej.descansoSeg,
+          notaIA: ej.notaIA,
+        },
       });
       setEditandoEjercicio(true);
     }
@@ -314,18 +320,14 @@ export function useCrearRutinaState() {
     setSelectedIndex(selectedIndex! + 1);
   };
 
-  /* ---------- Expose API ---------- */
   return {
-    // reducer
     state,
     dispatch,
 
-    // selección día
     DIAS,
     diaSelect,
     setDiaSelect,
 
-    // lista/selección
     ejerciciosDia,
     selectedIndex,
     setSelectedIndex,
@@ -334,7 +336,6 @@ export function useCrearRutinaState() {
     puedeBajar,
     puedePegar,
 
-    // flags UI
     mostrarBuscador,
     setMostrarBuscador,
     confirmClear,
@@ -345,13 +346,11 @@ export function useCrearRutinaState() {
     setMostrarFormularioNombre,
     loading,
 
-    // edición simple
     editandoEjercicio,
     setEditandoEjercicio,
     ejercicioSeleccionado,
     setEjercicioSeleccionado,
 
-    // compuesto
     modoCompuesto,
     setModoCompuesto,
     compuestoTemporal,
@@ -361,15 +360,12 @@ export function useCrearRutinaState() {
     editarCompuesto,
     setEditarCompuesto,
 
-    // meta edición
     editId,
     isEdit,
 
-    // estilos/constantes
     ui,
     isDark,
 
-    // acciones
     iniciarCompuesto,
     confirmarCompuesto,
     handleCrearRutina,
@@ -379,11 +375,9 @@ export function useCrearRutinaState() {
     handleSubirSeleccion,
     handleBajarSeleccion,
 
-    // modal premium
     premiumModalVisible,
     setPremiumModalVisible,
 
-    // utilidades externas
     Toast,
   };
 }

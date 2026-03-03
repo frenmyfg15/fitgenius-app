@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "fitgenius",
+    "name": "FitGenius",
     "slug": "fitgenius",
     "scheme": "fitgenius",
     "deeplinks": true,
-    "version": "1.0.0",
+    "version": "1.0.1",
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -37,11 +37,15 @@
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0b1220",
+      "dark": {
+        "image": "./assets/splash.png",
+        "backgroundColor": "#0b1220"
+      }
     },
     "assetBundlePatterns": [
       "**/*"
@@ -55,10 +59,11 @@
       "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0b1220"
       },
       "package": "com.novaforge.fitgenius",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
       "STRIPE_PUBLISHABLE_KEY": "pk_test_51S0nmRIYazlpLyQudoJSjSyXbLtfzZklvxcEHdzkaXVplMeijyLBz5NtWPsSTVORpDhWJ29GdKwthG053SRjzisv00LfITbdX5"

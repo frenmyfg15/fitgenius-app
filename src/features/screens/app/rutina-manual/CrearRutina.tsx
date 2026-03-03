@@ -91,28 +91,12 @@ export default function CrearRutinaScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: h.ui.bg, position: "relative" }}>
-
-      {/*
-        ─── ARQUITECTURA DE SCROLL ──────────────────────────────────────────────
-        El problema era que DiaRutinaView (DraggableFlatList) estaba dentro de un
-        ScrollView padre en el mismo eje vertical. Dos scroll containers anidados
-        compiten por los gestos y el FlatList interno nunca recibe el scroll.
-
-        Solución: separar la pantalla en dos zonas con flexbox:
-          1. ScrollView estático → solo banner de edición + selector de días
-          2. DiaRutinaView con flex:1 → ocupa el espacio restante sin anidarse
-        ─────────────────────────────────────────────────────────────────────────
-      */}
-
-      {/* ZONA 1 — Contenido estático (banner + selector días) */}
       <ScrollView
         style={{ flexGrow: 0, flexShrink: 0 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
-        // Solo scrollea si el contenido desborda (banner largo + muchos días)
         scrollEnabled={true}
       >
-        {/* Banner edición */}
         {h.isEdit ? (
           <View
             style={{
@@ -185,7 +169,6 @@ export default function CrearRutinaScreen() {
           </View>
         ) : null}
 
-        {/* Selector de días */}
         <View
           style={{
             flexDirection: "row",
@@ -261,8 +244,6 @@ export default function CrearRutinaScreen() {
         </View>
       </ScrollView>
 
-      {/* ZONA 2 — Lista de ejercicios: flex:1 para ocupar el espacio restante */}
-      {/* DiaRutinaView contiene DraggableFlatList directamente, sin ScrollView padre */}
       <View style={{ flex: 1, minHeight: 0 }}>
         <DiaRutinaView
           dia={h.diaSelect}
@@ -289,6 +270,13 @@ export default function CrearRutinaScreen() {
                 id: (ej as any).ejercicioId!,
                 info: (ej as any).ejercicioInfo!,
                 orden: ej.orden,
+                initialValues: {
+                  seriesSugeridas: (ej as any).seriesSugeridas,
+                  repeticionesSugeridas: (ej as any).repeticionesSugeridas,
+                  pesoSugerido: (ej as any).pesoSugerido,
+                  descansoSeg: (ej as any).descansoSeg,
+                  notaIA: (ej as any).notaIA,
+                },
               });
               h.setEditandoEjercicio(true);
             }
@@ -304,14 +292,12 @@ export default function CrearRutinaScreen() {
         />
       </View>
 
-      {/* ✅ Modal Chat */}
       <RutinaQuestionModal
         visible={chatVisible}
         onClose={() => setChatVisible(false)}
         rutinaJson={rutinaJson}
       />
 
-      {/* Controles del compuesto temporal (fijo) */}
       {h.modoCompuesto && h.compuestoTemporal.length > 0 && (
         <ControlesCompuesto
           compuesto={h.compuestoTemporal}
@@ -321,11 +307,12 @@ export default function CrearRutinaScreen() {
             h.setCompuestoTemporal([]);
           }}
           onConfirmar={h.confirmarCompuesto}
-          disabled={h.mostrarFormularioCompuesto || !!h.ejercicioEnCompuestoActual}
+          disabled={
+            h.mostrarFormularioCompuesto || !!h.ejercicioEnCompuestoActual
+          }
         />
       )}
 
-      {/* Controles globales (fijos) */}
       <RutinaControls
         onPreguntarRutina={() => {
           if (!hasRutina) {
@@ -390,8 +377,6 @@ export default function CrearRutinaScreen() {
         puedeBajar={h.puedeBajar}
         modoEdicion={h.isEdit}
       />
-
-      {/* ---------- Overlays / Modales ---------- */}
 
       {h.mostrarBuscador ? (
         <Overlay dim={0} padded={false}>
@@ -462,6 +447,8 @@ export default function CrearRutinaScreen() {
         <FormularioEjercicio
           visible={!!h.ejercicioSeleccionado}
           ejercicioId={h.ejercicioSeleccionado.id}
+          orden={h.ejercicioSeleccionado.orden}
+          initialValues={h.ejercicioSeleccionado.initialValues}
           esParteDeCompuesto={false}
           esCardio={h.ejercicioSeleccionado.info.grupoMuscular === "CARDIO"}
           onClose={() => h.setEjercicioSeleccionado(null)}
@@ -585,9 +572,7 @@ export default function CrearRutinaScreen() {
       <PremiumUpsellModal
         visible={h.premiumModalVisible}
         onClose={() => h.setPremiumModalVisible(false)}
-        featureName={
-          h.isEdit ? "editar rutinas manuales" : "crear rutinas manuales"
-        }
+        featureName={h.isEdit ? "editar rutinas manuales" : "crear rutinas manuales"}
         onGoPremium={() => {
           h.setPremiumModalVisible(false);
         }}

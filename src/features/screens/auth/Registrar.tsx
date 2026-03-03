@@ -7,6 +7,8 @@ import {
   Pressable,
   ActivityIndicator,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import {
   FormProvider,
@@ -38,7 +40,6 @@ export default function RegistrarScreen() {
     completarRegistro,
     resendCodigo,
     goLogin,
-    // ❌ ya no usamos: goTerminos, goPrivacidad
   } = useRegistrar();
 
   const { register, handleSubmit, formState: { errors } } = methods;
@@ -50,228 +51,242 @@ export default function RegistrarScreen() {
 
   return (
     <>
-      <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-slate-50"}
-        contentContainerStyle={{
-          minHeight: "100%",
-          paddingHorizontal: 16,
-          paddingVertical: 30,
-          justifyContent: "space-between",
-          paddingBottom: 50,
-        }}
-        keyboardShouldPersistTaps="handled"
+      {/*
+        KeyboardAvoidingView es el wrapper exterior.
+        - iOS: behavior="padding" sube el contenido el alto exacto del teclado.
+        - Android: behavior="height" recorta la altura disponible; el ScrollView
+          absorbe el resto. En Android también es útil tener
+          android:windowSoftInputMode="adjustResize" en AndroidManifest.xml
+          (Expo lo gestiona con softwareKeyboardLayoutMode en app.json).
+      */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
       >
-        <View className="flex-1 items-center justify-center">
-          <LinearGradient
-            colors={
-              isDark
-                ? ["rgba(56,189,248,0.25)", "rgba(16,185,129,0.15)", "transparent"]
-                : ["rgba(56,189,248,0.12)", "rgba(16,185,129,0.08)", "transparent"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              width: "100%",
-              maxWidth: 420,
-              borderRadius: 24,
-              padding: 1,
-            }}
-          >
-            <View
-              className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
-                ? "border-slate-700 bg-slate-900/70"
-                : "border-slate-200/80 bg-white"
-                } backdrop-blur`}
+        <ScrollView
+          className={isDark ? "bg-[#0b1220]" : "bg-slate-50"}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 16,
+            paddingTop: 30,
+            paddingBottom: 50,
+            justifyContent: "space-between",
+          }}
+          keyboardShouldPersistTaps="handled"
+          // showsVerticalScrollIndicator evita el flash visual en iOS
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex-1 items-center justify-center">
+            <LinearGradient
+              colors={
+                isDark
+                  ? ["rgba(56,189,248,0.25)", "rgba(16,185,129,0.15)", "transparent"]
+                  : ["rgba(56,189,248,0.12)", "rgba(16,185,129,0.08)", "transparent"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                borderRadius: 24,
+                padding: 1,
+              }}
             >
-              <View className="items-center mb-3">
-                <Text
-                  className={`text-2xl font-bold text-center ${isDark ? "text-white" : "text-slate-900"
-                    }`}
-                >
-                  Crear cuenta
-                </Text>
-                <Text
-                  className={`text-sm text-center mt-1 ${isDark ? "text-slate-300" : "text-slate-600"
-                    }`}
-                >
-                  Usa tus datos del asistente para terminar el registro.
-                </Text>
-              </View>
+              <View
+                className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
+                  ? "border-slate-700 bg-slate-900/70"
+                  : "border-slate-200/80 bg-white"
+                  } backdrop-blur`}
+              >
+                <View className="items-center mb-3">
+                  <Text
+                    className={`text-2xl font-bold text-center ${isDark ? "text-white" : "text-slate-900"
+                      }`}
+                  >
+                    Crear cuenta
+                  </Text>
+                  <Text
+                    className={`text-sm text-center mt-1 ${isDark ? "text-slate-300" : "text-slate-600"
+                      }`}
+                  >
+                    Usa tus datos del asistente para terminar el registro.
+                  </Text>
+                </View>
 
-              <FormProvider {...methods}>
-                <View className="mt-4 space-y-5">
-                  <Input
-                    label="Nombre"
-                    id="nombre"
-                    register={register}
-                    error={errors.nombre?.message}
-                  />
-                  <Input
-                    label="Apellido"
-                    id="apellido"
-                    register={register}
-                    error={errors.apellido?.message}
-                  />
-                  <Input
-                    label="Correo electrónico"
-                    id="correo"
-                    type="email"
-                    register={register}
-                    error={errors.correo?.message}
-                  />
-                  <Input
-                    label="Contraseña"
-                    id="contrasena"
-                    type="password"
-                    register={register}
-                    error={errors.contrasena?.message}
-                  />
-
-                  <View className="flex-row items-start gap-2 mt-1">
-                    <Controller
-                      control={methods.control}
-                      name="acepta"
-                      render={({ field: { value, onChange } }) => (
-                        <Switch
-                          value={!!value}
-                          onValueChange={onChange}
-                          thumbColor={isDark ? "#cbd5e1" : "#fff"}
-                          trackColor={{
-                            false: isDark ? "#334155" : "#cbd5e1",
-                            true: "#22c55e",
-                          }}
-                        />
-                      )}
+                <FormProvider {...methods}>
+                  <View className="mt-4 space-y-5">
+                    <Input
+                      label="Nombre"
+                      id="nombre"
+                      register={register}
+                      error={errors.nombre?.message}
+                    />
+                    <Input
+                      label="Apellido"
+                      id="apellido"
+                      register={register}
+                      error={errors.apellido?.message}
+                    />
+                    <Input
+                      label="Correo electrónico"
+                      id="correo"
+                      type="email"
+                      register={register}
+                      error={errors.correo?.message}
+                    />
+                    <Input
+                      label="Contraseña"
+                      id="contrasena"
+                      type="password"
+                      register={register}
+                      error={errors.contrasena?.message}
                     />
 
-                    <Text
-                      className={`flex-1 text-xs ${isDark ? "text-slate-300" : "text-slate-700"
-                        }`}
-                    >
-                      Acepto la{" "}
-                      <Text
-                        onPress={openPrivacidad}
-                        className="text-green-500 font-semibold underline"
-                      >
-                        información legal (Términos y Privacidad)
-                      </Text>
-                      .
-                    </Text>
-                  </View>
-
-                  {errors.acepta && (
-                    <Text className="text-red-500 text-xs -mt-1">
-                      {errors.acepta.message}
-                    </Text>
-                  )}
-
-                  {/* Botón REGISTRARSE */}
-                  <Pressable
-                    disabled={loading}
-                    onPress={handleSubmit(onSubmit, onError)}
-                    className="w-full rounded-xl overflow-hidden mt-1"
-                    style={{
-                      shadowColor: "#0f172a",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 8,
-                      shadowOffset: { width: 0, height: 4 },
-                      elevation: 4,
-                    }}
-                  >
-                    <LinearGradient
-                      colors={["#00FF40", "#5EE69D", "#B200FF"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <View className="px-4 py-3 items-center justify-center">
-                        {loading ? (
-                          <ActivityIndicator size="small" color="#ffffff" />
-                        ) : (
-                          <Text className="text-white font-bold tracking-wide">
-                            Registrarse
-                          </Text>
+                    <View className="flex-row items-start gap-2 mt-1">
+                      <Controller
+                        control={methods.control}
+                        name="acepta"
+                        render={({ field: { value, onChange } }) => (
+                          <Switch
+                            value={!!value}
+                            onValueChange={onChange}
+                            thumbColor={isDark ? "#cbd5e1" : "#fff"}
+                            trackColor={{
+                              false: isDark ? "#334155" : "#cbd5e1",
+                              true: "#22c55e",
+                            }}
+                          />
                         )}
-                      </View>
-                    </LinearGradient>
-                  </Pressable>
-                </View>
-              </FormProvider>
+                      />
 
-              {/* separador */}
-              <View className="relative my-6">
-                <View className="absolute inset-0 items-center justify-center">
-                  <View
-                    className={`w-full border-t ${isDark ? "border-slate-700/80" : "border-slate-200"
-                      }`}
-                  />
-                </View>
-                <View className="relative items-center">
-                  <View
-                    className={`px-3 py-0.5 rounded-full ${isDark ? "bg-slate-900/90" : "bg-white"
-                      }`}
-                  >
-                    <Text
-                      className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"
+                      <Text
+                        className={`flex-1 text-xs ${isDark ? "text-slate-300" : "text-slate-700"
+                          }`}
+                      >
+                        Acepto la{" "}
+                        <Text
+                          onPress={openPrivacidad}
+                          className="text-green-500 font-semibold underline"
+                        >
+                          información legal (Términos y Privacidad)
+                        </Text>
+                        .
+                      </Text>
+                    </View>
+
+                    {errors.acepta && (
+                      <Text className="text-red-500 text-xs -mt-1">
+                        {errors.acepta.message}
+                      </Text>
+                    )}
+
+                    {/* Botón REGISTRARSE */}
+                    <Pressable
+                      disabled={loading}
+                      onPress={handleSubmit(onSubmit, onError)}
+                      className="w-full rounded-xl overflow-hidden mt-1"
+                      style={{
+                        shadowColor: "#0f172a",
+                        shadowOpacity: 0.15,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 4,
+                      }}
+                    >
+                      <LinearGradient
+                        colors={["#00FF40", "#5EE69D", "#B200FF"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={{ borderRadius: 12 }}
+                      >
+                        <View className="px-4 py-3 items-center justify-center">
+                          {loading ? (
+                            <ActivityIndicator size="small" color="#ffffff" />
+                          ) : (
+                            <Text className="text-white font-bold tracking-wide">
+                              Registrarse
+                            </Text>
+                          )}
+                        </View>
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                </FormProvider>
+
+                {/* separador */}
+                <View className="relative my-6">
+                  <View className="absolute inset-0 items-center justify-center">
+                    <View
+                      className={`w-full border-t ${isDark ? "border-slate-700/80" : "border-slate-200"
+                        }`}
+                    />
+                  </View>
+                  <View className="relative items-center">
+                    <View
+                      className={`px-3 py-0.5 rounded-full ${isDark ? "bg-slate-900/90" : "bg-white"
                         }`}
                     >
-                      o
-                    </Text>
+                      <Text
+                        className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"
+                          }`}
+                      >
+                        o
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Google: mismo componente que Sesion */}
-              <GoogleSignInButton
-                text="Continuar con Google"
-                onSuccess={(res) => {
-                  handleGoogleLogin(res.token);
-                }}
-                onError={(err) => {
-                  console.log("[APP] Error Google Registro:", err.message);
-                  Toast.show({
-                    type: "error",
-                    text1: "Google",
-                    text2: "No se pudo continuar con Google. Intenta de nuevo.",
-                    position: "top",
-                  });
-                }}
-                className="mt-1"
-              />
+                <GoogleSignInButton
+                  text="Continuar con Google"
+                  onSuccess={(res) => {
+                    handleGoogleLogin(res.token);
+                  }}
+                  onError={(err) => {
+                    console.log("[APP] Error Google Registro:", err.message);
+                    Toast.show({
+                      type: "error",
+                      text1: "Google",
+                      text2: "No se pudo continuar con Google. Intenta de nuevo.",
+                      position: "top",
+                    });
+                  }}
+                  className="mt-1"
+                />
 
-              <Text
-                className={`text-sm text-center mt-6 ${isDark ? "text-slate-300" : "text-slate-700"
-                  }`}
-              >
-                ¿Ya tienes una cuenta?{" "}
-                <Text onPress={goLogin} className="text-green-500 font-semibold">
-                  Inicia sesión
+                <Text
+                  className={`text-sm text-center mt-6 ${isDark ? "text-slate-300" : "text-slate-700"
+                    }`}
+                >
+                  ¿Ya tienes una cuenta?{" "}
+                  <Text onPress={goLogin} className="text-green-500 font-semibold">
+                    Inicia sesión
+                  </Text>
                 </Text>
-              </Text>
-            </View>
-          </LinearGradient>
-        </View>
+              </View>
+            </LinearGradient>
+          </View>
 
-        {/* Footer */}
-        <View className="mt-8 items-center">
-          <Text className={isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"}>
-            © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
-          </Text>
-
-          <Pressable onPress={openPrivacidad} className="mt-2" hitSlop={10}>
-            <Text
-              className={
-                isDark
-                  ? "text-slate-300 underline text-xs"
-                  : "text-slate-600 underline text-xs"
-              }
-            >
-              Legal (Términos y Privacidad)
+          {/* Footer */}
+          <View className="mt-8 items-center">
+            <Text className={isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"}>
+              © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
             </Text>
-          </Pressable>
-        </View>
 
-      </ScrollView>
+            <Pressable onPress={openPrivacidad} className="mt-2" hitSlop={10}>
+              <Text
+                className={
+                  isDark
+                    ? "text-slate-300 underline text-xs"
+                    : "text-slate-600 underline text-xs"
+                }
+              >
+                Legal (Términos y Privacidad)
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Overlay de verificación de código */}
       {componentCode && (
@@ -291,7 +306,7 @@ export default function RegistrarScreen() {
 function Input({
   label,
   id,
-  register, // compatibilidad externa
+  register,
   error,
   type = "text",
 }: {
@@ -302,7 +317,7 @@ function Input({
   type?: "text" | "number" | "email" | "password";
 }) {
   const { control } = useFormContext<FormUsuario>();
-  const isDark = false; // no lo usamos aquí directamente, solo placeholder, se pinta por clases
+  const isDark = false;
 
   return (
     <View>

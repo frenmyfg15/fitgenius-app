@@ -27,3 +27,7 @@ android
 ./android
 app-release.apk
 .env.local
+upload-key.jks
+*.jks
+./upload-key.jks
+./*.jks

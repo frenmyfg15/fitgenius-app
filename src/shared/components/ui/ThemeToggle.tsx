@@ -1,26 +1,37 @@
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const THEME_KEY = "user_theme_preference";
 
 type Props = {
   text?: boolean;
-}
+};
 
 export default function ThemeToggle({ text = true }: Props) {
-  const { colorScheme, setColorScheme } = useColorScheme(); // 'light' | 'dark' | 'system'
+  const { colorScheme, setColorScheme } = useColorScheme();
   const [loading, setLoading] = useState(false);
+
+  // Al montar, recuperar la preferencia guardada y aplicarla
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY).then((saved) => {
+      if (saved === "light" || saved === "dark") {
+        setColorScheme(saved);
+      }
+    });
+  }, []);
 
   const next: "light" | "dark" = colorScheme === "dark" ? "light" : "dark";
 
   const toggle = async () => {
     if (loading) return;
-
     try {
       setLoading(true);
-      await Promise.resolve(setColorScheme(next)); // por si setColorScheme llega a ser async
+      setColorScheme(next);
+      await AsyncStorage.setItem(THEME_KEY, next);
     } finally {
-      // pequeño retraso opcional para evitar parpadeo
       setTimeout(() => setLoading(false), 150);
     }
   };

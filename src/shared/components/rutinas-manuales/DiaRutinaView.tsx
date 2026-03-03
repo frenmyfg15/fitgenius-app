@@ -1,9 +1,10 @@
-// src/shared/components/rutina/DiaRutinaView.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
-import DraggableFlatList, { RenderItemParams } from "react-native-draggable-flatlist";
+import DraggableFlatList, {
+  RenderItemParams,
+} from "react-native-draggable-flatlist";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 import type {
@@ -42,6 +43,57 @@ function getStableKey(item: Item): string {
   return `ej:${String(ejId)}`;
 }
 
+function buildSignature(items: Item[]): string {
+  const parts: string[] = [];
+
+  for (const it of items ?? []) {
+    const k = getStableKey(it);
+    const anyIt = it as any;
+    const esCompuesto = "compuesto" in anyIt && !!anyIt.compuesto;
+
+    if (esCompuesto) {
+      const cmp = it as CompuestoItem;
+      parts.push(
+        [
+          k,
+          `o:${cmp.orden}`,
+          `n:${cmp.nombreCompuesto ?? ""}`,
+          `t:${cmp.tipoCompuesto ?? ""}`,
+          `d:${cmp.descansoCompuesto ?? 0}`,
+          (cmp.ejerciciosCompuestos ?? [])
+            .map((e: any) =>
+              [
+                e?.ejercicioId ?? "",
+                e?.orden ?? "",
+                e?.seriesSugeridas ?? "",
+                e?.repeticionesSugeridas ?? "",
+                e?.pesoSugerido ?? "",
+                e?.descansoSeg ?? "",
+                e?.notaIA ?? "",
+              ].join(":")
+            )
+            .join("|"),
+        ].join(";")
+      );
+    } else {
+      const ej = it as EjercicioItem;
+      parts.push(
+        [
+          k,
+          `o:${ej.orden}`,
+          `s:${ej.seriesSugeridas ?? ""}`,
+          `r:${ej.repeticionesSugeridas ?? ""}`,
+          `p:${ej.pesoSugerido ?? ""}`,
+          `d:${ej.descansoSeg ?? ""}`,
+          `n:${ej.notaIA ?? ""}`,
+        ].join(";")
+      );
+    }
+  }
+
+  return parts.join("||");
+}
+
 export default function DiaRutinaView({
   dia,
   ejercicios,
@@ -54,21 +106,29 @@ export default function DiaRutinaView({
   const isDark = colorScheme === "dark";
 
   const { usuario } = useUsuarioStore();
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase(); // "kg" | "lb"
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase();
 
   const sorted = useMemo(
     () => [...(ejercicios ?? [])].sort((a, b) => a.orden - b.orden),
     [ejercicios]
   );
 
+  const sortedSignature = useMemo(() => buildSignature(sorted), [sorted]);
+
   const [data, setData] = useState<Item[]>(sorted);
+  const [dataSignature, setDataSignature] = useState<string>(() =>
+    buildSignature(sorted)
+  );
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    const currentKeys = data.map(getStableKey).join(",");
-    const nextKeys = sorted.map(getStableKey).join(",");
-    if (currentKeys !== nextKeys) setData(sorted);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorted]);
+    if (isDragging) return;
+
+    if (dataSignature !== sortedSignature) {
+      setData(sorted);
+      setDataSignature(sortedSignature);
+    }
+  }, [sorted, sortedSignature, dataSignature, isDragging]);
 
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
@@ -108,12 +168,15 @@ export default function DiaRutinaView({
 
   const onDragEnd = useCallback(
     ({ data: newData }: { data: Item[] }) => {
+      setIsDragging(false);
+
       const reordered = newData.map((it, idx) => ({
         ...it,
         orden: idx + 1,
       }));
 
       setData(reordered);
+      setDataSignature(buildSignature(reordered));
 
       dispatch({
         type: "REORDER_EJERCICIOS",
@@ -139,7 +202,15 @@ export default function DiaRutinaView({
       const imageSize = esCompuesto ? 60 : 110;
 
       return (
-        <View style={{ width: "95%", borderRadius: 16, padding: 1, alignSelf: "center", flex: 1 }}>
+        <View
+          style={{
+            width: "95%",
+            borderRadius: 16,
+            padding: 1,
+            alignSelf: "center",
+            flex: 1,
+          }}
+        >
           {isSelected && (
             <LinearGradient
               colors={frameGradient as any}
@@ -200,8 +271,17 @@ export default function DiaRutinaView({
               </View>
 
               <View style={{ flex: 1, minWidth: 0 as any }}>
-                <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: textPrimary }}>
-                  {esCompuesto ? `Compuesto (${ejerciciosDelItem.length})` : principal.ejercicioInfo?.nombre}
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "700",
+                    color: textPrimary,
+                  }}
+                >
+                  {esCompuesto
+                    ? `Compuesto (${ejerciciosDelItem.length})`
+                    : principal.ejercicioInfo?.nombre}
                 </Text>
 
                 <View
@@ -212,8 +292,12 @@ export default function DiaRutinaView({
                     gap: 8,
                   }}
                 >
-                  <Chip isDark={isDark}>Series: {principal.seriesSugeridas ?? "-"}</Chip>
-                  <Chip isDark={isDark}>Reps: {principal.repeticionesSugeridas ?? "-"}</Chip>
+                  <Chip isDark={isDark}>
+                    Series: {principal.seriesSugeridas ?? "-"}
+                  </Chip>
+                  <Chip isDark={isDark}>
+                    Reps: {principal.repeticionesSugeridas ?? "-"}
+                  </Chip>
                   <Chip isDark={isDark}>
                     Peso: {principal.pesoSugerido ?? "-"} {weightUnit}
                   </Chip>
@@ -236,24 +320,31 @@ export default function DiaRutinaView({
   }
 
   return (
-    <View style={{ width: "100%", marginTop: 16, flex: 1, minHeight: 0, }}>
+    <View style={{ width: "100%", marginTop: 16, flex: 1, minHeight: 0 }}>
       <DraggableFlatList
         data={data}
         keyExtractor={getStableKey}
         renderItem={renderItem}
+        onDragBegin={() => setIsDragging(true)}
         onDragEnd={onDragEnd}
         activationDistance={8}
         scrollEnabled
         nestedScrollEnabled
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        ListFooterComponent={() => <View style={{ height: 130 }} />}
         showsVerticalScrollIndicator={false}
       />
-      <View style={{ height: 130, width: 100 }} />
     </View>
   );
 }
 
-function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
+function Chip({
+  children,
+  isDark,
+}: {
+  children: React.ReactNode;
+  isDark: boolean;
+}) {
   return (
     <View
       style={{

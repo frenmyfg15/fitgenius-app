@@ -1,4 +1,3 @@
-// src/features/premium/PremiumPaymentScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -33,7 +32,6 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const PRICE = "4,99 €";
 
-// 🎨 Tema premium adaptable
 const getPremiumTheme = (isDark: boolean) => ({
   background: isDark ? "#020617" : "#F8FAFC",
 
@@ -74,8 +72,6 @@ export default function PremiumPaymentScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
-
-  /* ========= PAGO ========= */
 
   const handlePay = async () => {
     if (!cardComplete) {
@@ -136,7 +132,6 @@ export default function PremiumPaymentScreen() {
         return;
       }
 
-      // Actualizar usuario
       if (usuario) {
         const u: UsuarioLogin = {
           ...usuario,
@@ -170,8 +165,6 @@ export default function PremiumPaymentScreen() {
     }
   };
 
-  /* ========= UI ========= */
-
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: theme.background }]}
@@ -181,7 +174,6 @@ export default function PremiumPaymentScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* HEADER */}
         <View style={styles.topBar}>
           <View style={styles.headerLeft}>
             <View
@@ -225,7 +217,6 @@ export default function PremiumPaymentScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* HERO - PRECIO PREMIUM */}
         <LinearGradient
           colors={theme.gradientHero as any}
           start={{ x: 0, y: 0 }}
@@ -285,7 +276,6 @@ export default function PremiumPaymentScreen() {
           </View>
         </LinearGradient>
 
-        {/* BENEFICIOS DESTACADOS */}
         <View
           style={[
             styles.benefitsCard,
@@ -329,7 +319,6 @@ export default function PremiumPaymentScreen() {
           />
         </View>
 
-        {/* COMPARATIVA DETALLADA */}
         <View
           style={[
             styles.compareCard,
@@ -417,7 +406,6 @@ export default function PremiumPaymentScreen() {
           />
         </View>
 
-        {/* CTA */}
         <View style={{ marginTop: 24 }}>
           <TouchableOpacity
             onPress={() => setShowPayModal(true)}
@@ -447,7 +435,6 @@ export default function PremiumPaymentScreen() {
         </View>
       </ScrollView>
 
-      {/* ============ PAYMENT MODAL ============ */}
       <Modal
         visible={showPayModal}
         animationType="slide"
@@ -457,7 +444,7 @@ export default function PremiumPaymentScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
         >
           <View style={styles.modalBackdrop}>
             <View
@@ -495,7 +482,6 @@ export default function PremiumPaymentScreen() {
                 Suscripción mensual por {PRICE}. Cancela cuando quieras sin compromisos.
               </Text>
 
-              {/* TARJETA */}
               <View style={{ marginTop: 16, marginBottom: 18 }}>
                 <CardField
                   postalCodeEnabled={false}
@@ -518,7 +504,6 @@ export default function PremiumPaymentScreen() {
                 />
               </View>
 
-              {/* ERROR */}
               {!!errorMsg && (
                 <View style={styles.errorRow}>
                   <XCircle
@@ -536,7 +521,6 @@ export default function PremiumPaymentScreen() {
                 </View>
               )}
 
-              {/* BOTÓN PAGO */}
               <TouchableOpacity
                 onPress={handlePay}
                 disabled={loading || !cardComplete}
@@ -590,8 +574,6 @@ export default function PremiumPaymentScreen() {
     </SafeAreaView>
   );
 }
-
-/* ============ Subcomponentes ============ */
 
 function BenefitItem({
   icon,
@@ -686,19 +668,16 @@ function CompareRow({
   );
 }
 
-/* ===================== Styles ===================== */
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 100,
     paddingTop: 10,
   },
 
-  /* Header */
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -735,7 +714,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  /* Hero */
   heroGradient: {
     borderRadius: 24,
     padding: 2.5,
@@ -778,7 +756,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* Benefits */
   benefitsCard: {
     borderRadius: 20,
     paddingHorizontal: 18,
@@ -819,7 +796,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  /* Compare */
   compareCard: {
     borderRadius: 20,
     paddingHorizontal: 18,
@@ -881,7 +857,6 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
-  /* CTA */
   ctaWrapper: {
     borderRadius: 999,
     overflow: "hidden",
@@ -907,7 +882,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  /* Modal */
   modalBackdrop: {
     flex: 1,
     justifyContent: "flex-end",

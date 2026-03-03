@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "908335534107-e0qkc5ha4u3f6d6p0nai9ksvqgsehqse.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novaforge.fitgenius",
+            "certificate_hash": "77bd6ecf50891c83e205a16a8eaaff779404063d"
+          }
+        },
+        {
+          "client_id": "908335534107-h3ja8ush9udit5p8qqprh2bq69ddr780.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novaforge.fitgenius",
+            "certificate_hash": "0522866e5ddae812e94e01864738eb39bc35efbf"
+          }
+        },
+        {
           "client_id": "908335534107-pmeq55lpk8sa7s4bttpg8cjkl2glf39a.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

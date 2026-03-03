@@ -1,4 +1,3 @@
-// src/shared/components/rutina/FormularioEjercicio.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -28,10 +27,23 @@ export type EjercicioAsignadoInput = {
   notaIA: string;
 };
 
+type InitialValues = Partial<
+  Pick<
+    EjercicioAsignadoInput,
+    | "seriesSugeridas"
+    | "repeticionesSugeridas"
+    | "pesoSugerido"
+    | "descansoSeg"
+    | "notaIA"
+    | "orden"
+  >
+>;
+
 type Props = {
   visible: boolean;
   ejercicioId: number;
   orden?: number;
+  initialValues?: InitialValues;
   onConfirm: (data: EjercicioAsignadoInput) => void;
   onClose: () => void;
   esParteDeCompuesto?: boolean;
@@ -49,6 +61,7 @@ export default function FormularioEjercicio({
   visible,
   ejercicioId,
   orden,
+  initialValues,
   onConfirm,
   onClose,
   esParteDeCompuesto,
@@ -73,16 +86,6 @@ export default function FormularioEjercicio({
       bottomSheetModalRef.current?.dismiss();
     }
   }, [visible]);
-  useEffect(() => {
-    if (!visible) return;
-
-    setSeries("");
-    setReps("");
-    setPeso("");
-    setDescanso("");
-    setNota("");
-    setErrors({});
-  }, [visible, ejercicioId]);
 
   const [seriesSugeridas, setSeries] = useState<string>("");
   const [repeticionesSugeridas, setReps] = useState<string>("");
@@ -90,6 +93,26 @@ export default function FormularioEjercicio({
   const [descansoSeg, setDescanso] = useState<string>("");
   const [notaIA, setNota] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const v = initialValues ?? {};
+    setSeries(
+      typeof v.seriesSugeridas === "number" ? String(v.seriesSugeridas) : ""
+    );
+    setReps(
+      typeof v.repeticionesSugeridas === "number"
+        ? String(v.repeticionesSugeridas)
+        : ""
+    );
+    setPeso(typeof v.pesoSugerido === "number" ? String(v.pesoSugerido) : "");
+    setDescanso(
+      typeof v.descansoSeg === "number" ? String(v.descansoSeg) : ""
+    );
+    setNota(typeof v.notaIA === "string" ? v.notaIA : "");
+    setErrors({});
+  }, [visible, ejercicioId, initialValues]);
 
   const isCardioLocal = Boolean(esCardio);
 
@@ -146,11 +169,11 @@ export default function FormularioEjercicio({
 
     onConfirm({
       ejercicioId,
-      orden: orden ?? 0,
-      seriesSugeridas: Number(seriesSugeridas),
-      repeticionesSugeridas: Number(repeticionesSugeridas),
-      pesoSugerido: Number(pesoSugerido),
-      descansoSeg: esParteDeCompuesto ? 0 : Number(descansoSeg),
+      orden: orden ?? initialValues?.orden ?? 0,
+      seriesSugeridas: parsed.data.seriesSugeridas,
+      repeticionesSugeridas: parsed.data.repeticionesSugeridas,
+      pesoSugerido: parsed.data.pesoSugerido,
+      descansoSeg: esParteDeCompuesto ? 0 : (parsed.data.descansoSeg ?? 0),
       notaIA,
     });
 
@@ -369,7 +392,7 @@ export default function FormularioEjercicio({
                     color: "#ffffff",
                   }}
                 >
-                  Confirmar y {orden ? "guardar cambios" : "añadir"}
+                  Confirmar y {orden ?? initialValues?.orden ? "guardar cambios" : "añadir"}
                 </Text>
               </Pressable>
             </View>

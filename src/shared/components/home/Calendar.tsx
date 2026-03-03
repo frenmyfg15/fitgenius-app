@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "react-native";
 import { configureReanimatedLogger, ReanimatedLogLevel } from "react-native-reanimated";
 
 configureReanimatedLogger({ level: ReanimatedLogLevel.warn, strict: false });
@@ -57,6 +58,36 @@ const TodayGradient = React.memo(() => (
   />
 ));
 
+const insigneaPng = require("../../../../assets/insignea.png");
+
+// ── Insignia pro ─────────────────────────────────────────────────────────────
+const InsigniaCompletado = React.memo(function InsigniaCompletado() {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        top: -7,
+        right: -5,
+        width: 22,
+        height: 22,
+        zIndex: 10,
+        shadowColor: "#22c55e",
+        shadowOpacity: 0.85,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 8,
+      }}
+    >
+      <Image
+        source={insigneaPng}
+        style={{ width: 22, height: 22 }}
+        resizeMode="contain"
+      />
+    </View>
+  );
+});
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
 export default function Calendar({ devolverDato, activar = true, completadas = {} }: Props) {
   const [idxSeleccionado, setIdxSeleccionado] = useState<number | null>(null);
   const { colorScheme } = useColorScheme();
@@ -125,20 +156,15 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
         const fondoSeleccionado = isDark ? "bg-white border border-white" : "bg-black border border-black";
         const fondoHoyNoSeleccionado = "bg-transparent border-transparent";
 
-        const bordeVerde =
-          completado && !esSeleccionado ? (isDark ? "border-[#22c55e]/50" : "border-[#22c55e]") : "";
-
         const contenedorClasses =
           esSeleccionado
             ? `${baseClasses} ${fondoSeleccionado} ${disabledStyle}`
             : esHoy
-              ? `${baseClasses} ${fondoHoyNoSeleccionado} ${bordeVerde} ${disabledStyle}`
-              : `${baseClasses} ${fondoNormal} ${bordeVerde} ${disabledStyle}`;
+              ? `${baseClasses} ${fondoHoyNoSeleccionado} ${disabledStyle}`
+              : `${baseClasses} ${fondoNormal} ${disabledStyle}`;
 
         const colorTextoNumero = esSeleccionado
-          ? isDark
-            ? "#000000"
-            : "#ffffff"
+          ? isDark ? "#000000" : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
@@ -148,9 +174,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
                 : "#111111";
 
         const colorTextoEtiqueta = esSeleccionado
-          ? isDark
-            ? "#000000"
-            : "#ffffff"
+          ? isDark ? "#000000" : "#ffffff"
           : esHoy
             ? "#ffffff"
             : completado
@@ -158,8 +182,6 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
               : isDark
                 ? "#94a3b8"
                 : "#6b7280";
-
-        const bordePunto = esSeleccionado ? (isDark ? "#000000" : "#ffffff") : esHoy ? "#ffffff" : isDark ? "#0b1220" : "#ffffff";
 
         return (
           <TouchableOpacity
@@ -170,15 +192,13 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
             accessibilityState={{ selected: esSeleccionado, disabled: !activar }}
             className={contenedorClasses}
             activeOpacity={0.9}
+            style={{ overflow: "visible" }}
           >
             {esHoy && !esSeleccionado && <TodayGradient />}
 
+            {/* Insignia pro para días completados */}
             {completado && (
-              <View
-                className="absolute top-1 left-1 w-2.5 h-2.5 rounded-full bg-[#22c55e]"
-                style={{ borderWidth: 1.5, borderColor: bordePunto, zIndex: 2 }}
-                accessibilityLabel="Completado"
-              />
+              <InsigniaCompletado />
             )}
 
             <Text className="text-lg font-semibold mb-1" style={{ color: colorTextoNumero }}>
