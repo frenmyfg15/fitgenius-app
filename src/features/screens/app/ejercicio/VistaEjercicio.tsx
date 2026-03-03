@@ -288,6 +288,7 @@ export default function VistaEjercicio() {
     mostrarCoach();
   }, [isPremium, handleGoToPayment, mostrarCoach]);
 
+
   if (!ejercicio) {
     return (
       <View

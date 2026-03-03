@@ -1,3 +1,4 @@
+// src/shared/hooks/useVistaEjercicioState.ts
 import { useEffect, useRef, useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
@@ -27,6 +28,13 @@ export type Params = {
 type Serie = { reps: number; peso: number };
 
 const COACH_AUTO_DISABLED_KEY = "coach:autoDisabled:v1";
+
+const toPositiveInt = (v: any): number | null => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.trunc(n);
+  return i > 0 ? i : null;
+};
 
 export function useVistaEjercicioState(params: Params) {
   const { slug, asignadoId, ejercicio: ejercicioPrefetch } = params;
@@ -62,6 +70,21 @@ export function useVistaEjercicioState(params: Params) {
   const cacheGet = useEjercicioCache((s) => s.get);
   const cacheSet = useEjercicioCache((s) => s.set);
   const cacheDel = useEjercicioCache((s) => s.del);
+
+  // ✅ Resolver IDs canónicos de forma defensiva
+  const getSimpleEjercicioId = useCallback((e: any): number | null => {
+    return (
+      toPositiveInt(e?.ejercicioId) ??
+      toPositiveInt(e?.ejercicioAsignado?.ejercicioId) ??
+      toPositiveInt(e?.ejercicio?.id) ??
+      toPositiveInt(e?.id) ??
+      null
+    );
+  }, []);
+
+  const getCompuestoId = useCallback((e: any): number | null => {
+    return toPositiveInt(e?.ejercicioCompuestoId) ?? toPositiveInt(e?.ejercicioCompuesto?.id) ?? null;
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -116,27 +139,45 @@ export function useVistaEjercicioState(params: Params) {
     });
   };
 
-  const applyEjercicio = useCallback(async (data: any) => {
-    setEjercicio(data);
+  const applyEjercicio = useCallback(
+    async (data: any) => {
+      setEjercicio(data);
 
-    const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
-    setTiempoRestante(tiempo);
+      const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
+      setTiempoRestante(tiempo);
 
-    if (!data?.id) {
-      setStorageKey(null);
-      return;
-    }
+      // Guardado local de series: usa ID canónico si es simple; si no, no persistimos
+      const isCompuesto = Boolean(getCompuestoId(data));
+      if (isCompuesto) {
+        setStorageKey(null);
+        return;
+      }
 
-    const key = `series-${data.id}`;
-    setStorageKey(key);
+      const simpleId =
+        Number.isFinite(Number(ejercicio?.ejercicioId)) && Number(ejercicio?.ejercicioId) > 0
+          ? Number(ejercicio.ejercicioId)
+          : Number.isFinite(Number(ejercicio?.ejercicio?.id)) && Number(ejercicio?.ejercicio?.id) > 0
+            ? Number(ejercicio.ejercicio.id)
+            : Number.isFinite(Number(ejercicio?.id)) && Number(ejercicio?.id) > 0
+              ? Number(ejercicio.id)
+              : undefined;
+      if (!simpleId) {
+        setStorageKey(null);
+        return;
+      }
 
-    try {
-      const saved = await AsyncStorage.getItem(key);
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) setSeries(parsed);
-    } catch { }
-  }, []);
+      const key = `series-${simpleId}`;
+      setStorageKey(key);
+
+      try {
+        const saved = await AsyncStorage.getItem(key);
+        if (!saved) return;
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setSeries(parsed);
+      } catch { }
+    },
+    [getSimpleEjercicioId, getCompuestoId]
+  );
 
   useEffect(() => {
     let aborted = false;
@@ -174,15 +215,10 @@ export function useVistaEjercicioState(params: Params) {
   }, [slug, ejercicioPrefetch, cacheGet, cacheSet, applyEjercicio]);
 
   const fetchCoach = useCallback(async () => {
-    const isCompuesto = Boolean(
-      ejercicio?.ejercicioCompuestoId || ejercicio?.ejercicioCompuesto?.id
-    );
+    const compuestoId = getCompuestoId(ejercicio);
+    const isCompuesto = Boolean(compuestoId);
 
-    const simpleId = ejercicio?.id;
-    const compuestoId =
-      ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id;
-
-    const id = isCompuesto ? compuestoId : simpleId;
+    const id = isCompuesto ? compuestoId : getSimpleEjercicioId(ejercicio);
     if (!id) return;
 
     try {
@@ -190,8 +226,9 @@ export function useVistaEjercicioState(params: Params) {
       const res = isCompuesto
         ? await obtenerCoachCompuesto(id)
         : await obtenerCoach(id);
+
       setCoachData(res);
-    } catch {
+    } catch (err: any) {
       Toast.show({
         type: "error",
         text1: "No se pudo cargar el análisis",
@@ -199,7 +236,7 @@ export function useVistaEjercicioState(params: Params) {
     } finally {
       setCoachLoading(false);
     }
-  }, [ejercicio]);
+  }, [ejercicio, getCompuestoId, getSimpleEjercicioId]);
 
   const mostrarCoach = useCallback(() => {
     setCoachVisible(true);
@@ -215,32 +252,39 @@ export function useVistaEjercicioState(params: Params) {
     if (!userIsPremium) return;
     if (coachAutoDisabled) return;
 
-    const isCompuesto = Boolean(
-      ejercicio?.ejercicioCompuestoId || ejercicio?.ejercicioCompuesto?.id
-    );
+    const compuestoId = getCompuestoId(ejercicio);
+    const isCompuesto = Boolean(compuestoId);
 
-    const key = isCompuesto
-      ? `compuesto:${ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id}`
-      : `ejercicio:${ejercicio?.id}`;
+    const id = isCompuesto ? compuestoId : getSimpleEjercicioId(ejercicio);
+    if (!id) return;
 
-    if (!key.includes("undefined") && !key.endsWith(":null")) {
-      if (didAutoShowRef.current === key) return;
-      if (key.endsWith(":undefined") || key.endsWith(":NaN")) return;
-      didAutoShowRef.current = key;
-      mostrarCoach();
-    }
-  }, [usuario?.haPagado, coachAutoDisabled, ejercicio?.id, ejercicio?.ejercicioCompuestoId, ejercicio?.ejercicioCompuesto?.id, mostrarCoach]);
+    const key = isCompuesto ? `compuesto:${id}` : `ejercicio:${id}`;
+
+    if (didAutoShowRef.current === key) return;
+    didAutoShowRef.current = key;
+    mostrarCoach();
+  }, [
+    usuario?.haPagado,
+    coachAutoDisabled,
+    ejercicio,
+    getCompuestoId,
+    getSimpleEjercicioId,
+    mostrarCoach,
+  ]);
 
   const guardarSeries = async () => {
     if (guardando) return;
-    if (!usuario?.id || !ejercicio?.id) return;
+    if (!usuario?.id) return;
+
+    const simpleId = getSimpleEjercicioId(ejercicio);
+    if (!simpleId) return;
 
     const ejercicioAsignadoId = asignadoId ? Number(asignadoId) : undefined;
     if (!ejercicioAsignadoId || !Number.isFinite(ejercicioAsignadoId)) return;
 
     const payload = {
       usuarioId: usuario.id,
-      ejercicioId: ejercicio.id,
+      ejercicioId: simpleId,
       series,
       ejercicioAsignado: ejercicioAsignadoId,
       nivelEstres: nivelEstres ?? undefined,
@@ -293,14 +337,12 @@ export function useVistaEjercicioState(params: Params) {
     if (guardando) return;
     if (!usuario?.id) return;
 
-    const ejercicioCompuestoId =
-      ejercicio?.ejercicioCompuestoId ?? ejercicio?.ejercicioCompuesto?.id;
-
-    if (!ejercicioCompuestoId || !Number.isFinite(Number(ejercicioCompuestoId))) return;
+    const compuestoId = getCompuestoId(ejercicio);
+    if (!compuestoId) return;
 
     const payload = {
       usuarioId: usuario.id,
-      ejercicioCompuestoId: Number(ejercicioCompuestoId),
+      ejercicioCompuestoId: Number(compuestoId),
       series: seriesComp,
       nivelEstres: nivelEstres ?? undefined,
     };
