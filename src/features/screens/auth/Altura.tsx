@@ -60,7 +60,6 @@ export default function AlturaLocalScreen() {
     setLocalCm(normalizeAlturaCm(cm));
   }, []);
 
-  // ✅ guardar cuando se sale de la pantalla
   useFocusEffect(
     useCallback(() => {
       return () => {
@@ -70,9 +69,11 @@ export default function AlturaLocalScreen() {
         if (currentStore !== finalCm) {
           setField("altura", finalCm);
         }
+
+        // ✅ siempre persiste la unidad actual
+        setField("medidaAltura", unidad);
       };
-      // Nota: dejamos usuario fuera a propósito para no recrear cleanup constantemente.
-    }, [setField])
+    }, [setField, unidad])
   );
 
   const alturaValida = localCm >= 100;

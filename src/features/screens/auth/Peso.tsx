@@ -61,7 +61,6 @@ export default function PesoScreen() {
     setLocalKg(normalizePesoKg(kgBase));
   }, []);
 
-  // ✅ guardar cuando se sale de la pantalla (igual que altura)
   useFocusEffect(
     useCallback(() => {
       return () => {
@@ -71,9 +70,11 @@ export default function PesoScreen() {
         if (currentStore !== finalKg) {
           setField("peso", finalKg);
         }
+
+        // ✅ siempre persiste la unidad actual
+        setField("medidaPeso", lastLocalKgRef.current ? unidad : "KG");
       };
-      // Nota: dejamos usuario fuera a propósito para no recrear cleanup constantemente.
-    }, [setField])
+    }, [setField, unidad])
   );
 
   const pesoValido = localKg > 30;

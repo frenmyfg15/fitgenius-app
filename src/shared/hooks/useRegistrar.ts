@@ -84,6 +84,7 @@ function construirUsuarioPayload(
   }
 
   if (faltantes.length > 0) {
+    console.log("❌ Campos faltantes:", faltantes);
     Alert.alert(
       "Faltan datos",
       "Completa tu perfil antes de registrarte en el asistente."
@@ -196,6 +197,7 @@ export function useRegistrar() {
 
   // Email + contraseña -> fusionamos con wizard y enviamos código
   const onSubmit = (formUsuario: FormUsuario) => {
+    console.log("🧙 wizardUsuario:", JSON.stringify(wizardUsuario, null, 2));
     const payload = construirUsuarioPayload(
       {
         nombre: formUsuario.nombre,
@@ -209,7 +211,7 @@ export function useRegistrar() {
     if (!payload) return;
 
     setPayloadUsuario(payload);
-    enviarCodigo(payload.correo as unknown as string).catch(() => {});
+    enviarCodigo(payload.correo as unknown as string).catch(() => { });
   };
 
   // Google -> usando token del GoogleSignInButton

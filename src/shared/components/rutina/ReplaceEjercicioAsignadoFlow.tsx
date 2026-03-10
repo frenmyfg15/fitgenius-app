@@ -1,6 +1,15 @@
 // src/shared/components/rutina/ReplaceEjercicioAsignadoFlow.tsx
 import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, Modal, Pressable, TextInput, ActivityIndicator } from "react-native";
+import {
+    View,
+    Text,
+    Modal,
+    Pressable,
+    TextInput,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
 import { useColorScheme } from "nativewind";
 import Toast from "react-native-toast-message";
 
@@ -64,6 +73,17 @@ export default function ReplaceEjercicioAsignadoFlow({
 
     const [loading, setLoading] = useState(false);
 
+    // ✅ Botón habilitado solo cuando todos los campos tienen valor numérico válido
+    const canSubmit = useMemo(() => {
+        return (
+            !!nuevoEjercicioId &&
+            toNumberOrNull(series) !== null &&
+            toNumberOrNull(reps) !== null &&
+            toNumberOrNull(peso) !== null &&
+            toNumberOrNull(descanso) !== null
+        );
+    }, [nuevoEjercicioId, series, reps, peso, descanso]);
+
     const theme = useMemo(() => {
         const bg = isDark ? "#0b1220" : "#ffffff";
         const surface = isDark ? "rgba(255,255,255,0.06)" : "#f8fafc";
@@ -87,7 +107,6 @@ export default function ReplaceEjercicioAsignadoFlow({
 
     const open = useCallback(() => {
         if (disabled) return;
-        // validación rápida para evitar llamadas rotas
         if (!Number.isFinite(rutinaId) || !Number.isFinite(diaRutinaId) || !Number.isFinite(asignadoId)) {
             Toast.show({ type: "error", text1: "Faltan ids para reemplazar" });
             return;
@@ -121,7 +140,6 @@ export default function ReplaceEjercicioAsignadoFlow({
 
             await replaceEjercicioAsignado(rutinaId, diaRutinaId, asignadoId, payload);
 
-            // 🔁 fuerza refresh en Home (cache + rev)
             clearRutinaCache();
             bumpRoutineRev();
 
@@ -129,7 +147,6 @@ export default function ReplaceEjercicioAsignadoFlow({
             setShowDetalles(false);
             onReplaced?.();
         } catch (e: any) {
-            // tu api ya hace handleApiError, pero por si acaso:
             Toast.show({
                 type: "error",
                 text1: "No se pudo reemplazar",
@@ -137,7 +154,6 @@ export default function ReplaceEjercicioAsignadoFlow({
             });
         } finally {
             setLoading(false);
-            // mantenemos seleccion por si quieren reintentar
         }
     }, [
         nuevoEjercicioId,
@@ -167,14 +183,32 @@ export default function ReplaceEjercicioAsignadoFlow({
                 />
             )}
 
-            {/* 2) Modal inputs */}
+            {/* 2) Modal inputs — igual que antes, solo añadimos KeyboardAvoidingView */}
             <Modal
                 visible={showDetalles}
                 transparent
                 animationType="fade"
                 onRequestClose={() => (loading ? null : setShowDetalles(false))}
             >
-                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
+                {/*
+                    KeyboardAvoidingView empuja el bottom sheet hacia arriba
+                    cuando el teclado aparece, sin tocar el diseño del sheet.
+                    En iOS usamos "padding"; en Android "height" funciona mejor.
+                */}
+                <KeyboardAvoidingView
+                    style={{ flex: 1, justifyContent: "flex-end" }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    {/* Overlay oscuro — toca fuera para cerrar */}
+                    <Pressable
+                        style={{
+                            ...StyleSheet_absoluteFill,
+                            backgroundColor: "rgba(0,0,0,0.55)",
+                        }}
+                        onPress={() => (loading ? null : setShowDetalles(false))}
+                    />
+
+                    {/* Sheet — idéntico al original */}
                     <View
                         style={{
                             backgroundColor: theme.bg,
@@ -189,7 +223,9 @@ export default function ReplaceEjercicioAsignadoFlow({
                             Ajustes del reemplazo
                         </Text>
                         <Text style={{ color: theme.muted, marginTop: 6, fontSize: 12 }}>
-                            {nuevoEjercicioNombre ? `Nuevo ejercicio: ${nuevoEjercicioNombre}` : "Nuevo ejercicio seleccionado"}
+                            {nuevoEjercicioNombre
+                                ? `Nuevo ejercicio: ${nuevoEjercicioNombre}`
+                                : "Nuevo ejercicio seleccionado"}
                         </Text>
 
                         <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
@@ -220,8 +256,9 @@ export default function ReplaceEjercicioAsignadoFlow({
                                 <Text style={{ color: theme.text, fontWeight: "800" }}>Cancelar</Text>
                             </Pressable>
 
+                            {/* ✅ disabled hasta que canSubmit sea true */}
                             <Pressable
-                                disabled={loading}
+                                disabled={loading || !canSubmit}
                                 onPress={submitReplace}
                                 style={{
                                     flex: 1,
@@ -230,7 +267,7 @@ export default function ReplaceEjercicioAsignadoFlow({
                                     borderWidth: 1,
                                     borderColor: theme.line,
                                     backgroundColor: isDark ? "rgba(34,197,94,0.18)" : "rgba(34,197,94,0.12)",
-                                    opacity: loading ? 0.7 : 1,
+                                    opacity: loading || !canSubmit ? 0.35 : 1,
                                     alignItems: "center",
                                     justifyContent: "center",
                                     flexDirection: "row",
@@ -252,11 +289,20 @@ export default function ReplaceEjercicioAsignadoFlow({
                             </Text>
                         </Pressable>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </>
     );
 }
+
+// Helper para el overlay absoluto sin importar StyleSheet
+const StyleSheet_absoluteFill = {
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+};
 
 function Field({
     label,

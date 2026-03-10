@@ -6,7 +6,7 @@ const local = false;
 
 const URL = local
   ? "http://192.168.1.146:3000"
-  : "https://fitgenius-server-production-c4c8.up.railway.app";
+  : "https://fitgenius-server-production-5009.up.railway.app";
 
 export const api = axios.create({
   baseURL: URL,
@@ -14,17 +14,3 @@ export const api = axios.create({
   timeout: 200000,
   withCredentials: true,
 });
-
-// Asignar dinámicamente el header x-device-id
-getDeviceId().then((id) => {
-  api.defaults.headers.common["x-device-id"] = id;
-});
-
-// 🔑 Token opcional (añade o quita Authorization)
-export const setAuthToken = (token?: string) => {
-  if (token) {
-    api.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common.Authorization;
-  }
-};
