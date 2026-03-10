@@ -2,7 +2,7 @@
 import axios from "axios";
 import { api } from "./axios";
 import { handleApiError } from "@/shared/lib/handleApiError";
-import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid"; // ✅ NUEVO
+import { checkAuthTokenInvalid } from "@/shared/lib/checkAuthTokenInvalid";
 
 const log = (...args: any[]) => {
   if (__DEV__) console.log("[API estadisticas]", ...args);
@@ -30,6 +30,12 @@ const isDayPassError = (error: unknown): StatsError | null => {
   return null;
 };
 
+const isPremiumRequiredError = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return false;
+  const data = error.response?.data as any;
+  return data?.errorCode === "PREMIUM_REQUIRED";
+};
+
 /* ============================================================
    ACTIVIDAD RECIENTE
 ============================================================ */
@@ -43,20 +49,14 @@ export const obtenerActividadReciente = async () => {
     });
     return res.data?.data;
   } catch (error) {
-    // 🔐 1) token inválido → logout
     checkAuthTokenInvalid(error);
 
-    // 🎟️ 2) day pass
     const dayPass = isDayPassError(error);
     if (dayPass) {
       throw dayPass;
     }
 
-    // ❌ 3) error normal
-    throw handleApiError(
-      error,
-      "Error al obtener actividad reciente"
-    );
+    throw handleApiError(error, "Error al obtener actividad reciente");
   }
 };
 
@@ -77,10 +77,7 @@ export const obtenerDistribucionMuscular = async () => {
       throw dayPass;
     }
 
-    throw handleApiError(
-      error,
-      "Error al obtener distribución muscular"
-    );
+    throw handleApiError(error, "Error al obtener distribución muscular");
   }
 };
 
@@ -101,16 +98,15 @@ export const obtenerEstadisticasCalorias = async () => {
       throw dayPass;
     }
 
-    throw handleApiError(
-      error,
-      "Error al obtener calorías quemadas"
-    );
+    throw handleApiError(error, "Error al obtener calorías quemadas");
   }
 };
 
 export const obtenerAdherenciaYConsistencia = async () => {
   try {
-    log("obtenerAdherenciaYConsistencia → /estadisticas/adherencia-consistencia");
+    log(
+      "obtenerAdherenciaYConsistencia → /estadisticas/adherencia-consistencia"
+    );
     const res = await api.get("/estadisticas/adherencia-consistencia");
     log("obtenerAdherenciaYConsistencia ← ok", {
       status: res.status,
@@ -125,10 +121,11 @@ export const obtenerAdherenciaYConsistencia = async () => {
       throw dayPass;
     }
 
-    throw handleApiError(
-      error,
-      "Error al obtener adherencia y consistencia"
-    );
+    if (isPremiumRequiredError(error)) {
+      return null;
+    }
+
+    throw handleApiError(error, "Error al obtener adherencia y consistencia");
   }
 };
 
@@ -157,10 +154,11 @@ export const obtenerCargaInternaSemanal = async (semanas?: number) => {
       throw dayPass;
     }
 
-    throw handleApiError(
-      error,
-      "Error al obtener la carga interna semanal"
-    );
+    if (isPremiumRequiredError(error)) {
+      return null;
+    }
+
+    throw handleApiError(error, "Error al obtener la carga interna semanal");
   }
 };
 
@@ -189,10 +187,11 @@ export const obtenerDiasColorEstres = async (dias?: number) => {
       throw dayPass;
     }
 
-    throw handleApiError(
-      error,
-      "Error al obtener los días por nivel de estrés"
-    );
+    if (isPremiumRequiredError(error)) {
+      return null;
+    }
+
+    throw handleApiError(error, "Error al obtener los días por nivel de estrés");
   }
 };
 
@@ -228,6 +227,10 @@ export const obtenerProgresoSubjetivoEjercicios = async (opts?: {
     const dayPass = isDayPassError(error);
     if (dayPass) {
       throw dayPass;
+    }
+
+    if (isPremiumRequiredError(error)) {
+      return null;
     }
 
     throw handleApiError(
