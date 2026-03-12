@@ -1,15 +1,8 @@
 // File: src/shared/components/ui/IaGenerate.tsx
 import React from "react";
 import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
+  View, Text, Modal, TouchableOpacity, TextInput,
+  ScrollView, KeyboardAvoidingView, Platform, StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Asterisk, Sparkles, Lock } from "lucide-react-native";
@@ -18,8 +11,9 @@ import { useNavigation } from "@react-navigation/native";
 import CargaRutina from "./CargaRutina";
 import { useIaGenerate } from "@/shared/hooks/useIaGenerate";
 import NoAdsModal from "@/shared/components/ads/NoAdsModal";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens ────────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
     gradientStart: "rgb(0,255,64)",
@@ -39,19 +33,13 @@ const tokens = {
     inputBgDark: "rgba(255,255,255,0.05)",
     inputBgLight: "#F8FAFC",
 
-    chipBgDark: "rgba(255,255,255,0.05)",
-    chipBgLight: "#F1F5F9",
-
-    // Botón ghost (Cancelar)
     ghostBgDark: "rgba(255,255,255,0.04)",
     ghostBgLight: "rgba(2,6,23,0.03)",
     ghostBorderDark: "rgba(255,255,255,0.09)",
     ghostBorderLight: "rgba(2,6,23,0.08)",
 
-    // Lock icon
     lockDark: "#FACC15",
     lockLight: "#D97706",
-
     overlay: "rgba(0,0,0,0.55)",
     errorRed: "#EF4444",
   },
@@ -65,19 +53,25 @@ const GRADIENT = [
   tokens.color.gradientEnd,
 ] as const;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const LUGARES_CASA = ["casa", "hogar", "home", "en casa"];
+const esCasa = (lugar?: string) =>
+  !!lugar && LUGARES_CASA.some((l) => lugar.toLowerCase().includes(l));
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 type Props = { onCreate?: () => void };
 
 // ── Componente principal ─────────────────────────────────────────────────────
 export default function IaGenerate({ onCreate }: Props) {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const navigation = useNavigation<any>();
+  const usuario = useUsuarioStore((s) => s.usuario);
+
   const {
     loading, showModal, nombre, instruccion,
     maxNombre, maxInstr, nombreLen, instrLen,
-    suggestionChips, isDark, lockedByPlan,
+    isDark, lockedByPlan,
     abrirModal, cerrarModal, crear,
-    handleChangeNombre, handleChangeInstruccion, setInstruccion,
+    handleChangeNombre, handleChangeInstruccion,
     noAdsModalVisible, setNoAdsModalVisible,
     noAdsRetrying, reintentarAnuncioIa,
   } = useIaGenerate(onCreate);
@@ -89,11 +83,10 @@ export default function IaGenerate({ onCreate }: Props) {
     }
     abrirModal();
   };
-  // ── Fin lógica original ───────────────────────────────────────────────────
 
   return (
     <>
-      {/* ── Botón trigger principal ──────────────────────────────────────── */}
+      {/* ── Botón trigger ────────────────────────────────────────────────── */}
       <LinearGradient
         colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
@@ -107,47 +100,28 @@ export default function IaGenerate({ onCreate }: Props) {
             end={{ x: 1, y: 1 }}
             style={[styles.triggerInner, { borderColor: tokens.color.borderDark }]}
           >
-            <TriggerContent
-              loading={loading}
-              lockedByPlan={lockedByPlan}
-              isDark={isDark}
-              onPress={handlePressMain}
-            />
+            <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
           </LinearGradient>
         ) : (
           <View style={[styles.triggerInner, { backgroundColor: "#ffffff", borderColor: tokens.color.borderLight }]}>
-            <TriggerContent
-              loading={loading}
-              lockedByPlan={lockedByPlan}
-              isDark={isDark}
-              onPress={handlePressMain}
-            />
+            <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
           </View>
         )}
       </LinearGradient>
 
-      {/* ── Modal configuración IA ───────────────────────────────────────── */}
-      <Modal
-        visible={showModal}
-        animationType="fade"
-        transparent
-        onRequestClose={cerrarModal}
-      >
+      {/* ── Modal configuración ──────────────────────────────────────────── */}
+      <Modal visible={showModal} animationType="fade" transparent onRequestClose={cerrarModal}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.flex1}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
         >
-          {/* Toca fuera para cerrar */}
           <TouchableOpacity
             activeOpacity={1}
             onPress={cerrarModal}
             style={[styles.modalBackdrop, { backgroundColor: tokens.color.overlay }]}
           >
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-              style={styles.modalContainer}
-            >
+            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
               <LinearGradient
                 colors={GRADIENT as any}
                 start={{ x: 0, y: 0 }}
@@ -161,11 +135,27 @@ export default function IaGenerate({ onCreate }: Props) {
                     end={{ x: 1, y: 1 }}
                     style={[styles.modalInnerShell, { borderColor: tokens.color.borderDark }]}
                   >
-                    <ModalInner {...modalInnerProps({ isDark, nombre, nombreLen, maxNombre, instruccion, instrLen, maxInstr, suggestionChips, crear, cerrarModal, loading, handleChangeNombre, handleChangeInstruccion, setInstruccion })} />
+                    <ModalInner
+                      isDark={isDark}
+                      nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
+                      instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
+                      lugarEntrenamiento={usuario?.lugarEntrenamiento}
+                      crear={crear} cerrarModal={cerrarModal} loading={loading}
+                      handleChangeNombre={handleChangeNombre}
+                      handleChangeInstruccion={handleChangeInstruccion}
+                    />
                   </LinearGradient>
                 ) : (
                   <View style={[styles.modalInnerShell, { backgroundColor: "#ffffff", borderColor: tokens.color.borderLight }]}>
-                    <ModalInner {...modalInnerProps({ isDark, nombre, nombreLen, maxNombre, instruccion, instrLen, maxInstr, suggestionChips, crear, cerrarModal, loading, handleChangeNombre, handleChangeInstruccion, setInstruccion })} />
+                    <ModalInner
+                      isDark={isDark}
+                      nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
+                      instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
+                      lugarEntrenamiento={usuario?.lugarEntrenamiento}
+                      crear={crear} cerrarModal={cerrarModal} loading={loading}
+                      handleChangeNombre={handleChangeNombre}
+                      handleChangeInstruccion={handleChangeInstruccion}
+                    />
                   </View>
                 )}
               </LinearGradient>
@@ -174,14 +164,14 @@ export default function IaGenerate({ onCreate }: Props) {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Spinner de generación ─────────────────────────────────────────── */}
+      {/* ── Spinner generación ────────────────────────────────────────────── */}
       {loading && (
         <Modal visible={loading} transparent animationType="fade">
           <CargaRutina />
         </Modal>
       )}
 
-      {/* ── Modal no hay anuncios ─────────────────────────────────────────── */}
+      {/* ── Modal sin anuncios ────────────────────────────────────────────── */}
       <NoAdsModal
         visible={noAdsModalVisible}
         loading={noAdsRetrying}
@@ -196,10 +186,7 @@ export default function IaGenerate({ onCreate }: Props) {
   );
 }
 
-// ── Helper: evita repetir props en el bloque isDark/!isDark del modal ─────────
-function modalInnerProps(p: ModalInnerProps) { return p; }
-
-// ── Sub-componente: contenido del botón trigger ───────────────────────────────
+// ── TriggerContent ────────────────────────────────────────────────────────────
 function TriggerContent({
   loading, lockedByPlan, isDark, onPress,
 }: {
@@ -221,10 +208,8 @@ function TriggerContent({
       accessibilityState={{ disabled: loading }}
       style={styles.triggerBtn}
     >
-      {lockedByPlan && (
-        <Lock size={15} color={lockColor} strokeWidth={2.2} />
-      )}
-      <Sparkles size={15} color={isDark ? "#fff" : tokens.color.textPrimaryLight} strokeWidth={2} />
+      {lockedByPlan && <Lock size={14} color={lockColor} strokeWidth={2.2} />}
+      <Sparkles size={14} color={isDark ? "#fff" : tokens.color.textPrimaryLight} strokeWidth={2} />
       <Text style={[styles.triggerText, { color: textColor }]}>
         {lockedByPlan ? "Desbloquear IA" : "Generar con IA"}
       </Text>
@@ -232,7 +217,7 @@ function TriggerContent({
   );
 }
 
-// ── Sub-componente: interior del modal ───────────────────────────────────────
+// ── ModalInner ────────────────────────────────────────────────────────────────
 type ModalInnerProps = {
   isDark: boolean;
   nombre: string;
@@ -241,20 +226,20 @@ type ModalInnerProps = {
   instruccion: string;
   instrLen: number;
   maxInstr: number;
-  suggestionChips: string[];
+  lugarEntrenamiento?: string;
   crear: () => Promise<void> | void;
   cerrarModal: () => void;
   loading: boolean;
   handleChangeNombre: (t: string) => void;
   handleChangeInstruccion: (t: string) => void;
-  setInstruccion: (updater: string | ((prev: string) => string)) => void;
 };
 
 function ModalInner({
   isDark, nombre, nombreLen, maxNombre,
   instruccion, instrLen, maxInstr,
-  suggestionChips, crear, cerrarModal, loading,
-  handleChangeNombre, handleChangeInstruccion, setInstruccion,
+  lugarEntrenamiento,
+  crear, cerrarModal, loading,
+  handleChangeNombre, handleChangeInstruccion,
 }: ModalInnerProps) {
   const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
   const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
@@ -265,29 +250,32 @@ function ModalInner({
   return (
     <View style={styles.modalContent}>
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* Header */}
       <View style={[styles.modalHeader, { borderBottomColor: border }]}>
         <View style={styles.modalHeaderText}>
           <Text style={[styles.modalTitle, { color: textPrimary }]} accessibilityRole="header">
             Configura tu rutina con IA
           </Text>
           <Text style={[styles.modalSubtitle, { color: textSecondary }]}>
-            Dale un nombre y añade instrucciones para personalizarla.
+            Dale un nombre e instrucciones opcionales.
+          </Text>
+
+          <Text style={[styles.infoText, { color: textSecondary, marginTop: 6 }]}>
+            Se priorizarán ejercicios de {esCasa(lugarEntrenamiento) ? "casa" : "gym"} · Cámbialo en tu perfil
           </Text>
         </View>
 
-        {/* Botón cerrar */}
         <TouchableOpacity
           onPress={cerrarModal}
           accessibilityRole="button"
-          accessibilityLabel="Cerrar modal"
+          accessibilityLabel="Cerrar"
           style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F1F5F9", borderColor: border }]}
         >
           <Text style={[styles.closeBtnText, { color: textPrimary }]}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── Body ───────────────────────────────────────────────────────── */}
+      {/* Body */}
       <ScrollView
         style={styles.modalBody}
         contentContainerStyle={styles.modalBodyContent}
@@ -297,105 +285,55 @@ function ModalInner({
         {/* Campo: nombre */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
-            <Text style={[styles.label, { color: textPrimary }]}>
-              Nombre de la rutina
-            </Text>
-            <Asterisk
-              size={11}
-              color={tokens.color.errorRed}
-              strokeWidth={2.5}
-              accessibilityLabel="Campo obligatorio"
-            />
+            <Text style={[styles.label, { color: textPrimary }]}>Nombre de la rutina</Text>
+            <Asterisk size={10} color={tokens.color.errorRed} strokeWidth={2.5} accessibilityLabel="Obligatorio" />
           </View>
-
           <TextInput
             value={nombre}
             onChangeText={handleChangeNombre}
-            placeholder="Ej: Push/Pull/Legs 8 semanas"
+            placeholder="Ej: Push/Pull/Legs"
             placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
             editable={!loading}
             maxLength={maxNombre}
             accessibilityLabel="Nombre de la rutina"
-            style={[
-              styles.input,
-              { backgroundColor: inputBg, borderColor: border, color: textPrimary },
-            ]}
+            style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: textPrimary }]}
           />
-
-          <View style={styles.inputMeta}>
-            <Text style={[styles.inputHint, { color: textSecondary }]}>
-              Tu rutina se llamará{" "}
-              <Text style={{ color: textPrimary, fontWeight: "600" }}>
-                {nombre || "—"}
-              </Text>
-            </Text>
-            <Text style={[styles.counter, { color: textSecondary }]}>
-              {nombreLen}/{maxNombre}
-            </Text>
-          </View>
+          <Text style={[styles.counter, { color: textSecondary, textAlign: "right" }]}>
+            {nombreLen}/{maxNombre}
+          </Text>
         </View>
 
         {/* Campo: instrucciones */}
         <View style={styles.fieldGroup}>
           <Text style={[styles.label, { color: textPrimary }]}>
-            Instrucciones para la IA{" "}
+            Instrucciones{" "}
             <Text style={{ color: textSecondary, fontWeight: "400" }}>(opcional)</Text>
           </Text>
-
           <TextInput
             value={instruccion}
             onChangeText={handleChangeInstruccion}
-            placeholder="Cuéntanos días, material, objetivos…"
+            placeholder="Días, material, objetivos…"
             placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
             multiline
             textAlignVertical="top"
             editable={!loading}
             maxLength={maxInstr}
             accessibilityLabel="Instrucciones para la IA"
-            style={[
-              styles.inputMultiline,
-              { backgroundColor: inputBg, borderColor: border, color: textPrimary },
-            ]}
+            style={[styles.inputMultiline, { backgroundColor: inputBg, borderColor: border, color: textPrimary }]}
           />
-
-          <View style={styles.inputMeta}>
-            <Text style={[styles.inputHint, { color: textSecondary, flex: 1, marginRight: tokens.spacing.sm }]}>
-              Cuanta más info des (días, material, objetivos), mejor.
-            </Text>
-            <Text style={[styles.counter, { color: textSecondary }]}>
-              {instrLen}/{maxInstr}
-            </Text>
-          </View>
+          <Text style={[styles.counter, { color: textSecondary, textAlign: "right" }]}>
+            {instrLen}/{maxInstr}
+          </Text>
         </View>
 
-        {/* Chips de sugerencia */}
-        <View style={styles.chipsRow}>
-          {suggestionChips.map((s) => (
-            <TouchableOpacity
-              key={s}
-              onPress={() =>
-                setInstruccion((prev) =>
-                  prev ? `${prev}${prev.endsWith("\n") ? "" : "\n"}${s}` : s
-                )
-              }
-              accessibilityRole="button"
-              accessibilityLabel={`Añadir sugerencia: ${s}`}
-              style={[
-                styles.chip,
-                { backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight, borderColor: border },
-              ]}
-            >
-              <Text style={[styles.chipText, { color: textPrimary }]}>{s}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+
       </ScrollView>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <View style={[styles.modalFooter, { borderTopColor: border }]}>
         <View style={styles.footerActions}>
 
-          {/* Cancelar (ghost) */}
+          {/* Cancelar */}
           <TouchableOpacity
             onPress={cerrarModal}
             disabled={loading}
@@ -411,20 +349,17 @@ function ModalInner({
               },
             ]}
           >
-            <Text style={[styles.cancelBtnText, { color: textPrimary }]}>
-              Cancelar
-            </Text>
+            <Text style={[styles.cancelBtnText, { color: textPrimary }]}>Cancelar</Text>
           </TouchableOpacity>
 
-          {/* Confirmar y generar (primary) */}
+          {/* Confirmar */}
           {canSubmit ? (
-            // Habilitado: borde gradiente
             <TouchableOpacity
               onPress={crear}
               disabled={loading}
               activeOpacity={0.88}
               accessibilityRole="button"
-              accessibilityLabel={loading ? "Generando rutina" : "Confirmar y generar rutina"}
+              accessibilityLabel={loading ? "Generando rutina" : "Confirmar y generar"}
               accessibilityState={{ disabled: loading, busy: loading }}
               style={[styles.submitShadow, { opacity: loading ? 0.82 : 1 }]}
             >
@@ -434,15 +369,13 @@ function ModalInner({
                 end={{ x: 1, y: 1 }}
                 style={styles.submitGradient}
               >
-                <Sparkles size={15} color="#fff" strokeWidth={2.2} />
+                <Sparkles size={14} color="#fff" strokeWidth={2.2} />
                 <Text style={styles.submitText}>
                   {loading ? "Generando…" : "Confirmar y generar"}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
           ) : (
-            // Deshabilitado: apariencia neutra, sin gradiente
-            // FIX original: color tenía typo "3fffrgba(...)" — corregido
             <View
               style={[
                 styles.submitDisabled,
@@ -455,23 +388,17 @@ function ModalInner({
               importantForAccessibility="no-hide-descendants"
             >
               <Sparkles
-                size={15}
+                size={14}
                 color={isDark ? "rgba(241,245,249,0.35)" : "rgba(15,23,42,0.35)"}
                 strokeWidth={2.2}
               />
-              <Text
-                style={[
-                  styles.submitText,
-                  { color: isDark ? "rgba(241,245,249,0.35)" : "rgba(15,23,42,0.35)" },
-                ]}
-              >
+              <Text style={[styles.submitText, { color: isDark ? "rgba(241,245,249,0.35)" : "rgba(15,23,42,0.35)" }]}>
                 Confirmar y generar
               </Text>
             </View>
           )}
         </View>
 
-        {/* Hint: activa el botón poniendo un nombre */}
         {!canSubmit && (
           <Text style={[styles.footerHint, { color: textSecondary }]}>
             Pon un nombre para habilitar el botón.
@@ -482,58 +409,33 @@ function ModalInner({
   );
 }
 
-// ── Estilos estáticos ────────────────────────────────────────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
 
-  // Trigger (botón externo)
-  triggerGradient: {
-    borderRadius: tokens.radius.full,
-    padding: 1.5,
-    overflow: "hidden",
-  },
-  triggerInner: {
-    borderRadius: tokens.radius.full - 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-  },
+  // Trigger
+  triggerGradient: { borderRadius: tokens.radius.full, padding: 1.5, overflow: "hidden" },
+  triggerInner: { borderRadius: tokens.radius.full - 1, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   triggerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 6,
     paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
-  triggerText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.1,
-  },
+  triggerText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.1 },
 
-  // Modal backdrop + posicionamiento
+  // Modal
   modalBackdrop: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: tokens.spacing.md,
   },
-  modalContainer: {
-    width: "100%",
-    maxWidth: 640,
-  },
-  modalGradient: {
-    borderRadius: tokens.radius.xl,
-    padding: 1.5,
-    overflow: "hidden",
-  },
-  modalInnerShell: {
-    borderRadius: tokens.radius.xl - 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-  },
-  modalContent: {
-    overflow: "hidden",
-  },
+  modalContainer: { width: "100%", maxWidth: 640, flexShrink: 1 },
+  modalGradient: { borderRadius: tokens.radius.xl, padding: 1.5, overflow: "hidden" },
+  modalInnerShell: { borderRadius: tokens.radius.xl - 1, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  modalContent: { overflow: "hidden", flexShrink: 1 },
 
   // Header
   modalHeader: {
@@ -541,100 +443,56 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.md,
+    paddingTop: tokens.spacing.md,
+    paddingBottom: tokens.spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalHeaderText: {
-    flex: 1,
-    marginRight: tokens.spacing.md,
-    gap: 3,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  modalHeaderText: { flex: 1, marginRight: tokens.spacing.md, gap: 2 },
+  modalTitle: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
+  modalSubtitle: { fontSize: 12, lineHeight: 17 },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  closeBtnText: { fontSize: 13, fontWeight: "600" },
 
-  // Body scroll
-  modalBody: { maxHeight: 420 },
-  modalBodyContent: {
-    paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.md,
-    gap: tokens.spacing.md,
-  },
+  // Body
+  modalBody: { flexShrink: 1 },
+  modalBodyContent: { paddingHorizontal: tokens.spacing.lg, paddingVertical: tokens.spacing.md, gap: tokens.spacing.md },
 
   // Fields
   fieldGroup: { gap: tokens.spacing.xs },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  label: { fontSize: 12, fontWeight: "600" },
+  infoText: { fontSize: 11, lineHeight: 16 },
   input: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
-    fontSize: 14,
+    fontSize: 13,
   },
   inputMultiline: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
-    fontSize: 14,
-    minHeight: 120,
+    fontSize: 13,
+    minHeight: 100,
   },
-  inputMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  inputHint: { fontSize: 11, flex: 1, marginRight: tokens.spacing.sm },
   counter: { fontSize: 11 },
-
-  // Chips
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: tokens.radius.full,
-    borderWidth: 1,
-  },
-  chipText: { fontSize: 12, fontWeight: "500" },
 
   // Footer
   modalFooter: {
     paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.md,
-    paddingBottom: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
+    paddingBottom: tokens.spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: tokens.spacing.sm,
+    gap: tokens.spacing.xs,
   },
   footerActions: {
     flexDirection: "row",
@@ -644,55 +502,38 @@ const styles = StyleSheet.create({
   },
 
   // Cancelar
-  cancelBtn: {
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 11,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-  },
-  cancelBtnText: { fontSize: 14, fontWeight: "600" },
+  cancelBtn: { paddingHorizontal: tokens.spacing.md, paddingVertical: 10, borderRadius: tokens.radius.md, borderWidth: 1 },
+  cancelBtnText: { fontSize: 13, fontWeight: "600" },
 
-  // Submit habilitado
+  // Submit
   submitShadow: {
     borderRadius: tokens.radius.md,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   submitGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
+    gap: 6,
     paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: tokens.radius.md,
   },
-  submitText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: 0.1,
-  },
-
-  // Submit deshabilitado
+  submitText: { fontSize: 13, fontWeight: "800", color: "#fff", letterSpacing: 0.1 },
   submitDisabled: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
+    gap: 6,
     paddingHorizontal: tokens.spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
   },
-
-  // Hint footer
-  footerHint: {
-    fontSize: 11,
-    textAlign: "right",
-  },
+  footerHint: { fontSize: 11, textAlign: "right" },
 });

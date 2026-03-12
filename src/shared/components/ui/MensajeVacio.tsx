@@ -1,66 +1,28 @@
-// File: src/shared/components/ui/MensajeVacio.tsx
-//
-// REDESIGN — React Native + NativeWind v4
-// Sistema de tokens: consistente con MisRutinas.tsx
-// Lógica           : 100% intacta (props, navegación, condicionales)
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DESIGN TOKENS — mismo sistema que MisRutinas.tsx
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Tokens ────────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
-    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#64748B",
-    textSecondaryLight: "#475569",
-
-    // Superficie botón
+    textSecondaryDark: "#475569",
+    textSecondaryLight: "#64748B",
     surfaceDark: "#0F1829",
     surfaceLight: "#FFFFFF",
-
-    // Gradiente borde botón primary (idéntico a MisRutinas)
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
-
-    // Imagen: halo de fondo sutil
-    haloDark: "rgba(0,232,90,0.07)",
-    haloLight: "rgba(0,196,77,0.06)",
-    haloBorderDark: "rgba(0,232,90,0.14)",
-    haloBorderLight: "rgba(0,196,77,0.12)",
+    dividerDark: "rgba(255,255,255,0.06)",
+    dividerLight: "rgba(0,0,0,0.06)",
+    gradient: ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const,
   },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-  },
-  radius: {
-    full: 999,
-    xl: 20,
-  },
+  spacing: { sm: 8, md: 16, lg: 24, xl: 32 },
+  radius: { full: 999 },
 } as const;
 
-const MARCO_GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TIPOS — sin cambios (API pública intacta)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 interface MensajeVacioProps {
-  icono?: string;
   titulo: string;
   descripcion: string | React.ReactNode;
   textoBoton: string;
@@ -68,21 +30,11 @@ interface MensajeVacioProps {
   paddingTop?: number;
   mostrarBoton?: boolean;
   nombreImagen?:
-  | "pesa"
-  | "feed"
-  | "analisis"
-  | "campana"
-  | "amigos"
-  | "descanso"
-  | "estadistica"
-  | "crear"
-  | "nopost"
-  | "rutinas";
+  | "pesa" | "feed" | "analisis" | "campana" | "amigos"
+  | "descanso" | "estadistica" | "crear" | "nopost" | "rutinas";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILS — sin cambios
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Assets ────────────────────────────────────────────────────────────────────
 const images = {
   pesa: require("../../../../assets/mensajeVacio/pesa.png"),
   feed: require("../../../../assets/mensajeVacio/feed.png"),
@@ -96,132 +48,70 @@ const images = {
   rutinas: require("../../../../assets/mensajeVacio/rutinas.png"),
 } as const;
 
-const obtenerImagen = (nombre: string) =>
-  (images as any)[nombre] ?? images.pesa;
+const getImage = (name: string) => (images as any)[name] ?? images.pesa;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Componente ────────────────────────────────────────────────────────────────
 const MensajeVacio: React.FC<MensajeVacioProps> = ({
   titulo,
   descripcion,
   textoBoton,
   rutaDestino,
-  paddingTop = 60,
+  paddingTop = 40,
   mostrarBoton = true,
   nombreImagen = "pesa",
 }) => {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  // ── Fin lógica original ───────────────────────────────────────────────────
+
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const surface = isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight;
+  const divider = isDark ? tokens.color.dividerDark : tokens.color.dividerLight;
 
   return (
     <View
       style={[styles.root, { paddingTop }]}
-      // FIX: "summary" no es un accessibilityRole válido en RN.
-      // "none" es correcto para contenedores informativos sin rol semántico propio.
       accessibilityRole="none"
       accessibilityLabel="Mensaje informativo"
     >
-      {/* ── Imagen con halo decorativo ────────────────────────────────────────
-          El halo aporta profundidad sin añadir complejidad.
-          La imagen sube de 96 × 96 → 128 × 128 para mejor presencia.
-      ─────────────────────────────────────────────────────────────────────── */}
-      <View
-        style={[
-          styles.imageHalo,
-          {
-            backgroundColor: isDark
-              ? tokens.color.haloDark
-              : tokens.color.haloLight,
-            borderColor: isDark
-              ? tokens.color.haloBorderDark
-              : tokens.color.haloBorderLight,
-          },
-        ]}
-      >
-        <Image
-          source={obtenerImagen(nombreImagen)}
-          accessibilityIgnoresInvertColors
-          style={styles.image}
-          resizeMode="contain"
-        />
-      </View>
+      <Image
+        source={getImage(nombreImagen)}
+        accessibilityIgnoresInvertColors
+        style={styles.image}
+        resizeMode="contain"
+      />
 
-      {/* ── Título ────────────────────────────────────────────────────────── */}
-      <Text
-        style={[
-          styles.title,
-          {
-            color: isDark
-              ? tokens.color.textPrimaryDark
-              : tokens.color.textPrimaryLight,
-          },
-        ]}
-        accessibilityRole="header"
-      >
+      <View style={[styles.divider, { backgroundColor: divider }]} />
+
+      <Text style={[styles.title, { color: textPrimary }]} accessibilityRole="header">
         {titulo}
       </Text>
 
-      {/* ── Descripción ───────────────────────────────────────────────────── */}
       <View style={styles.descWrapper}>
         {typeof descripcion === "string" ? (
-          <Text
-            style={[
-              styles.description,
-              {
-                color: isDark
-                  ? tokens.color.textSecondaryDark
-                  : tokens.color.textSecondaryLight,
-              },
-            ]}
-          >
-            {descripcion}
-          </Text>
+          <Text style={[styles.description, { color: textSecondary }]}>{descripcion}</Text>
         ) : (
           <View style={styles.descNode}>{descripcion}</View>
         )}
       </View>
 
-      {/* ── Botón CTA — solo si mostrarBoton = true (lógica sin cambios) ──── */}
       {mostrarBoton && (
         <LinearGradient
-          colors={MARCO_GRADIENT as any}
-          // Mantengo ambos: className original + style. Sin cambios de comportamiento.
-          className="rounded-2xl p-[1px]"
+          colors={tokens.color.gradient}
           style={styles.gradientBorder}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           <TouchableOpacity
             onPress={() => navigation.navigate(rutaDestino as never)}
-            style={[
-              styles.ctaInner,
-              {
-                backgroundColor: isDark
-                  ? tokens.color.surfaceDark
-                  : tokens.color.surfaceLight,
-              },
-            ]}
-            activeOpacity={0.85}
+            style={[styles.ctaInner, { backgroundColor: surface }]}
+            activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={textoBoton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text
-              style={[
-                styles.ctaText,
-                {
-                  color: isDark
-                    ? tokens.color.textPrimaryDark
-                    : tokens.color.textPrimaryLight,
-                },
-              ]}
-            >
-              {textoBoton}
-            </Text>
+            <Text style={[styles.ctaText, { color: textPrimary }]}>{textoBoton}</Text>
           </TouchableOpacity>
         </LinearGradient>
       )}
@@ -231,73 +121,59 @@ const MensajeVacio: React.FC<MensajeVacioProps> = ({
 
 export default MensajeVacio;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STYLES
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // Contenedor raíz
   root: {
-    paddingHorizontal: tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  // Halo circular detrás de la imagen
-  imageHalo: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,      // perfecto círculo
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: tokens.spacing.lg,
   },
   image: {
-    width: 112,
-    height: 112,
+    width: 72,
+    height: 72,
+    marginBottom: tokens.spacing.lg,
   },
-
-  // Título
+  divider: {
+    width: 28,
+    height: 1.5,
+    borderRadius: 2,
+    marginBottom: tokens.spacing.md,
+  },
   title: {
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "700",
     textAlign: "center",
-    letterSpacing: -0.3,
-    lineHeight: 28,
+    letterSpacing: -0.2,
+    lineHeight: 24,
     marginBottom: tokens.spacing.sm,
   },
-
-  // Descripción
   descWrapper: {
-    maxWidth: 320,
-    marginBottom: tokens.spacing.xl,
+    maxWidth: 280,
+    marginBottom: tokens.spacing.lg,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 20,
     textAlign: "center",
   },
   descNode: {
     alignItems: "center",
   },
-
-  // Botón gradiente
   gradientBorder: {
-    borderRadius: tokens.radius.full, // sobreescribe el 15 del className — más coherente con el sistema
-    overflow: "hidden",
-    padding: 1.5,
+    borderRadius: tokens.radius.full,
+    padding: 1,
   },
   ctaInner: {
-    paddingHorizontal: tokens.spacing.xl,
-    paddingVertical: 12,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: 10,
     borderRadius: tokens.radius.full,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 160, // área táctil mínima cómoda
+    minWidth: 140,
   },
   ctaText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.1,
   },
 });

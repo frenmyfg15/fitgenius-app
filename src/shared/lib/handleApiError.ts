@@ -1,33 +1,30 @@
 import { showGlobalError } from "@/shared/components/ui/GlobalErrorModalProvider";
 import { forceLogout } from "./forceLogout";
 
+const AUTH_ERROR_CODES = new Set([
+  "AUTH_TOKEN_EXPIRED",
+  "AUTH_INVALID_TOKEN",
+  "AUTH_TOKEN_MISSING",
+]);
+
 export function handleApiError(
   error: any,
   fallbackMessage = "Ha ocurrido un error"
 ): never {
-  const backendMessage =
-    error?.response?.data?.message || error?.response?.data?.error;
+  const data = error?.response?.data;
 
-  const errorCode = error?.response?.data?.errorCode;
+  const message: string = data?.message || fallbackMessage;
+  const errorCode: string | undefined = data?.errorCode;
+  const requestId: string | undefined = data?.requestId;
 
-  const finalMessage = backendMessage || fallbackMessage;
+  console.error("[API ERROR]", { message, errorCode, requestId, raw: error });
 
-  console.error("[API ERROR]", {
-    message: finalMessage,
-    errorCode,
-    raw: error,
-  });
-
-  if (
-    errorCode === "AUTH_TOKEN_EXPIRED" ||
-    errorCode === "AUTH_INVALID_TOKEN" ||
-    errorCode === "AUTH_TOKEN_MISSING"
-  ) {
+  if (errorCode && AUTH_ERROR_CODES.has(errorCode)) {
     forceLogout();
     throw new Error("Sesión expirada");
   }
 
-  showGlobalError(finalMessage, errorCode);
+  showGlobalError(message, errorCode);
 
-  throw new Error(finalMessage);
+  throw new Error(message);
 }

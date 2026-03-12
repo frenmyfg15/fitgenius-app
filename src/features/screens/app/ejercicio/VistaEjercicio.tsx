@@ -187,7 +187,7 @@ export default function VistaEjercicio() {
     return comps
       .map((c: any) =>
         c.ejercicio?.idGif
-          ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${c.ejercicio.idGif}.gif`
+          ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${ejercicio.idGif}.gif`
           : null
       )
       .filter(Boolean) as string[];
