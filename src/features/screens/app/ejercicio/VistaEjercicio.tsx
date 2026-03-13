@@ -145,6 +145,8 @@ export default function VistaEjercicio() {
     coachVisible,
     mostrarCoach,
     ocultarCoach,
+    coachAutoDisabled,
+    setCoachAutoDisabledPersist
   } = useVistaEjercicioState({
     slug,
     asignadoId,
@@ -654,6 +656,8 @@ export default function VistaEjercicio() {
         coach={coachData}
         onClose={ocultarCoach}
         onGoPremium={handleGoToPayment}
+        autoDisabled={coachAutoDisabled}
+        onToggleAutoDisabled={setCoachAutoDisabledPersist}
       />
 
       <ExerciseQuestionModal

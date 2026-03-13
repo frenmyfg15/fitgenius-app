@@ -1,6 +1,5 @@
 // src/features/cuenta/hooks/useCuenta.ts
 import { useCallback, useMemo, useState } from "react";
-import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
@@ -22,41 +21,6 @@ export function useCuenta() {
 
   const [closing, setClosing] = useState(false);
 
-  const getReadableError = useCallback(
-    (err: unknown, fallback = "No se pudo cerrar sesión. Inténtalo de nuevo.") => {
-      if (axios.isAxiosError(err)) {
-        if (err.request && !err.response) {
-          return "No se pudo contactar al servidor. Revisa tu conexión.";
-        }
-        const serverMsg =
-          (err.response?.data as any)?.error ??
-          (err.response?.data as any)?.message ??
-          (err.response?.data as any)?.msg;
-        if (serverMsg) return serverMsg;
-        if (err.response?.status === 401) return "Tu sesión ya no es válida. Vuelve a iniciar sesión.";
-        if (err.response?.status === 500) return "Hubo un problema en el servidor al cerrar tu sesión.";
-        return err.message || fallback;
-      }
-      if (err instanceof Error) return err.message || fallback;
-      return fallback;
-    },
-    []
-  );
-
-  const logWarning = useCallback(
-    (tag: string, err: unknown, userMsg: string) => {
-      console.warn(`⚠️ [${tag}]`, {
-        userMessage: userMsg,
-        isAxiosError: axios.isAxiosError(err),
-        status: axios.isAxiosError(err) ? err.response?.status : undefined,
-        serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-        rawError: err,
-        userId: usuario?.id,
-      });
-    },
-    [usuario?.id]
-  );
-
   const go = useCallback(
     (name: string) => {
       // @ts-ignore – nombres gestionados por tu stack
@@ -69,30 +33,19 @@ export function useCuenta() {
     setClosing(true);
     try {
       await logoutToken();
-      logout();
-      // Sin Toast de éxito: el usuario ya ve que vuelve al login / cambia la UI
-    } catch (err) {
-      const msg = getReadableError(err);
-      logWarning("LogoutError", err, msg);
+    } catch {
+      // Si falla el endpoint igual cerramos la sesión local —
+      // el cambio de UI es feedback suficiente para el usuario.
     } finally {
+      logout();
       setClosing(false);
     }
-  }, [logout, getReadableError, logWarning]);
+  }, [logout]);
 
   const state = useMemo(
-    () => ({
-      isDark,
-      usuario,
-      isPremium,
-      haPagado,
-      closing,
-    }),
+    () => ({ isDark, usuario, isPremium, haPagado, closing }),
     [isDark, usuario, isPremium, haPagado, closing]
   );
 
-  return {
-    ...state,
-    go,
-    cerrarSesion,
-  };
+  return { ...state, go, cerrarSesion };
 }

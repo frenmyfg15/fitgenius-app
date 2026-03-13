@@ -1,6 +1,6 @@
 // src/features/fit/hooks/useEditarPerfil.ts
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Toast from "react-native-toast-message";
+import { Toast } from "@/shared/components/ui/Toast";
 import {
   useUsuarioStore,
   type PerfilFormData,
@@ -12,51 +12,31 @@ function isEqualArray(a: string[], b: string[]) {
 }
 
 export function useEditarPerfil() {
-  const { usuario, updatePerfil } = useUsuarioStore();
+  const { usuario } = useUsuarioStore();
   const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState<PerfilFormData>(() => ({
-    pesoObjetivo: usuario?.pesoObjetivo || 0,
-    sexo: usuario?.sexo || "",
-    nivel: usuario?.nivelExperiencia || "",
-    actividad: usuario?.actividadDiaria || "",
-    objetivo: usuario?.objetivoPrincipal || "",
-    duracion: usuario?.duracionSesion || "",
-    lugar: usuario?.lugarEntrenamiento || "",
-    enfoque: usuario?.enfoquesMusculares || [],
-    limitaciones: usuario?.limitaciones || [],
-    dias: usuario?.dias || [],
-    equipamiento: usuario?.equipamiento || [],
-  }));
+  const buildForm = (u: typeof usuario): PerfilFormData => ({
+    pesoObjetivo: u?.pesoObjetivo || 0,
+    sexo: u?.sexo || "",
+    nivel: u?.nivelExperiencia || "",
+    actividad: u?.actividadDiaria || "",
+    objetivo: u?.objetivoPrincipal || "",
+    duracion: u?.duracionSesion || "",
+    lugar: u?.lugarEntrenamiento || "",
+    enfoque: u?.enfoquesMusculares || [],
+    limitaciones: u?.limitaciones || [],
+    dias: u?.dias || [],
+    equipamiento: u?.equipamiento || [],
+  });
+
+  const [formData, setFormData] = useState<PerfilFormData>(() => buildForm(usuario));
 
   useEffect(() => {
-    console.log("[EditarPerfil] Usuario cargado:", usuario);
-  }, [usuario]);
-
-  useEffect(() => {
-    if (!usuario) {
-      console.log("[EditarPerfil] No hay usuario, no se sincroniza formData");
-      return;
-    }
-    const next: PerfilFormData = {
-      pesoObjetivo: usuario.pesoObjetivo || 0,
-      sexo: usuario.sexo || "",
-      nivel: usuario.nivelExperiencia || "",
-      actividad: usuario.actividadDiaria || "",
-      objetivo: usuario.objetivoPrincipal || "",
-      duracion: usuario.duracionSesion || "",
-      lugar: usuario.lugarEntrenamiento || "",
-      enfoque: usuario.enfoquesMusculares || [],
-      limitaciones: usuario.limitaciones || [],
-      dias: usuario.dias || [],
-      equipamiento: usuario.equipamiento || [],
-    };
-    console.log("[EditarPerfil] Sincronizando formData desde usuario:", next);
-    setFormData(next);
+    if (!usuario) return;
+    setFormData(buildForm(usuario));
   }, [usuario]);
 
   const handleText = (name: keyof PerfilFormData, value: any) => {
-    console.log("[EditarPerfil] handleText:", name, "->", value);
     setFormData((prev) => ({ ...prev, [name]: value } as PerfilFormData));
   };
 
@@ -64,21 +44,18 @@ export function useEditarPerfil() {
     field: "enfoque" | "limitaciones" | "dias" | "equipamiento",
     value: string
   ) => {
-    console.log("[EditarPerfil] toggleArrayValue:", field, "value:", value);
     setFormData((prev) => {
       const arr = (prev[field] as string[]) || [];
       const next = arr.includes(value)
         ? arr.filter((i) => i !== value)
         : [...arr, value];
-      console.log("[EditarPerfil] Nuevo valor para", field, ":", next);
       return { ...prev, [field]: next } as PerfilFormData;
     });
   };
 
   const hayCambios = useMemo(() => {
     if (!usuario) return false;
-
-    const changed =
+    return (
       formData.pesoObjetivo !== usuario.pesoObjetivo ||
       formData.sexo !== usuario.sexo ||
       formData.nivel !== usuario.nivelExperiencia ||
@@ -89,113 +66,58 @@ export function useEditarPerfil() {
       !isEqualArray(formData.enfoque, usuario.enfoquesMusculares || []) ||
       !isEqualArray(formData.dias, usuario.dias || []) ||
       !isEqualArray(formData.equipamiento, usuario.equipamiento || []) ||
-      !isEqualArray(formData.limitaciones, usuario.limitaciones || []);
-
-    console.log("[EditarPerfil] hayCambios:", changed, {
-      formData,
-      usuarioOriginal: {
-        actividad: usuario.actividadDiaria,
-        dias: usuario.dias,
-        duracion: usuario.duracionSesion,
-        enfoque: usuario.enfoquesMusculares,
-        equipamiento: usuario.equipamiento,
-        limitaciones: usuario.limitaciones,
-        lugar: usuario.lugarEntrenamiento,
-        nivel: usuario.nivelExperiencia,
-        objetivo: usuario.objetivoPrincipal,
-        pesoObjetivo: usuario.pesoObjetivo,
-        sexo: usuario.sexo,
-      },
-    });
-
-    return changed;
+      !isEqualArray(formData.limitaciones, usuario.limitaciones || [])
+    );
   }, [formData, usuario]);
 
   const handleSubmit = useCallback(async () => {
-    if (!hayCambios) {
-      console.log("[EditarPerfil] handleSubmit sin cambios, no se envía");
-      return;
-    }
+    if (!hayCambios) return;
 
-    // ✅ MAPEAMOS al contrato ACTUAL del backend (service destruye: nivel, actividad, objetivo, duracion, lugar, enfoque...)
     const payload = {
-      pesoObjetivo: Number((formData as any).pesoObjetivo) || 0,
+      pesoObjetivo: Number(formData.pesoObjetivo) || 0,
       sexo: formData.sexo,
-
       nivel: formData.nivel,
       actividad: formData.actividad,
       objetivo: formData.objetivo,
       duracion: formData.duracion,
       lugar: formData.lugar,
-
       enfoque: formData.enfoque ?? [],
       limitaciones: formData.limitaciones ?? [],
       dias: formData.dias ?? [],
       equipamiento: formData.equipamiento ?? [],
     };
 
-    console.log("[EditarPerfil] Payload a enviar a actualizarPerfil:", {
-      payload,
-      tipos: {
-        pesoObjetivo: typeof payload.pesoObjetivo,
-        sexo: typeof payload.sexo,
-        nivel: typeof payload.nivel,
-        actividad: typeof payload.actividad,
-        objetivo: typeof payload.objetivo,
-        duracion: typeof payload.duracion,
-        lugar: typeof payload.lugar,
-        enfoque: Array.isArray(payload.enfoque) ? "array" : typeof payload.enfoque,
-        limitaciones: Array.isArray(payload.limitaciones)
-          ? "array"
-          : typeof payload.limitaciones,
-        dias: Array.isArray(payload.dias) ? "array" : typeof payload.dias,
-        equipamiento: Array.isArray(payload.equipamiento)
-          ? "array"
-          : typeof payload.equipamiento,
-      },
-    });
-
     try {
       setSaving(true);
+      await actualizarPerfil(payload as any);
 
-      const res = await actualizarPerfil(payload as any);
-      console.log("[EditarPerfil] Respuesta actualizarPerfil OK:", res);
-
-      // ✅ Actualizamos el store en el formato que usa "usuario" (evita que queden keys sueltas: nivel/lugar/etc)
       useUsuarioStore.setState((prev) => ({
         ...prev,
         usuario: prev.usuario
           ? {
-              ...prev.usuario,
-              pesoObjetivo: payload.pesoObjetivo,
-              sexo: payload.sexo,
-              nivelExperiencia: payload.nivel,
-              actividadDiaria: payload.actividad,
-              objetivoPrincipal: payload.objetivo,
-              duracionSesion: payload.duracion,
-              lugarEntrenamiento: payload.lugar,
-              enfoquesMusculares: payload.enfoque,
-              limitaciones: payload.limitaciones,
-              dias: payload.dias,
-              equipamiento: payload.equipamiento,
-            }
+            ...prev.usuario,
+            pesoObjetivo: payload.pesoObjetivo,
+            sexo: payload.sexo,
+            nivelExperiencia: payload.nivel,
+            actividadDiaria: payload.actividad,
+            objetivoPrincipal: payload.objetivo,
+            duracionSesion: payload.duracion,
+            lugarEntrenamiento: payload.lugar,
+            enfoquesMusculares: payload.enfoque,
+            limitaciones: payload.limitaciones,
+            dias: payload.dias,
+            equipamiento: payload.equipamiento,
+          }
           : prev.usuario,
       }));
 
       Toast.show({
         type: "success",
-        text1: "¡Perfil actualizado con éxito!",
+        text1: "Perfil actualizado",
+        text2: "Tus cambios se han guardado correctamente.",
       });
-    } catch (err: any) {
-      console.error("[EditarPerfil] Error al actualizar perfil:", err);
-
-      if (err?.response?.data) {
-        console.log(
-          "[EditarPerfil] Error response.data:",
-          JSON.stringify(err.response.data, null, 2)
-        );
-      }
-      // Errores mostrados por handleApiError en la capa API
+    } catch {
+      // Errores gestionados por handleApiError en la capa API
     } finally {
       setSaving(false);
     }

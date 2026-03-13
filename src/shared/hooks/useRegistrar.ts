@@ -27,12 +27,10 @@ const schema = z.object({
   contrasena: z
     .string()
     .min(6, "La contraseña debe tener al menos 6 caracteres"),
-  acepta: z
-    .boolean()
-    .refine((v) => v === true, {
-      message:
-        "Debes aceptar los Términos y Condiciones y la Política de Privacidad",
-    }),
+  acepta: z.boolean().refine((v) => v === true, {
+    message:
+      "Debes aceptar los Términos y Condiciones y la Política de Privacidad",
+  }),
 });
 
 export type FormUsuario = z.infer<typeof schema>;
@@ -84,7 +82,6 @@ function construirUsuarioPayload(
   }
 
   if (faltantes.length > 0) {
-    console.log("❌ Campos faltantes:", faltantes);
     Alert.alert(
       "Faltan datos",
       "Completa tu perfil antes de registrarte en el asistente."
@@ -152,13 +149,13 @@ export function useRegistrar() {
   const [componentCode, setComponentCode] = useState(false);
   const [payloadUsuario, setPayloadUsuario] = useState<Usuario | null>(null);
 
-  /* ---------- Helpers ---------- */
   const resetRegistroState = useCallback(async () => {
     try {
       await AsyncStorage.multiRemove([LS_USUARIO_KEY, LS_STEP_KEY]);
     } catch {
-      /* no-op */
+      // no-op
     }
+
     resetForm({
       nombre: "",
       apellido: "",
@@ -170,6 +167,7 @@ export function useRegistrar() {
 
   const onError = (errs: typeof errors) => {
     const firstKey = Object.keys(errs)[0] as keyof FormUsuario | undefined;
+
     if (firstKey) {
       setFocus(firstKey);
       const msg =
@@ -189,15 +187,10 @@ export function useRegistrar() {
         position: "top",
       });
       setComponentCode(true);
-    } catch (err) {
-      // Solo log, la gestión de errores de API se hace en otro sitio
-      console.error("🔴 [SendCodeError]", err);
-    }
+    } catch { }
   }, []);
 
-  // Email + contraseña -> fusionamos con wizard y enviamos código
   const onSubmit = (formUsuario: FormUsuario) => {
-    console.log("🧙 wizardUsuario:", JSON.stringify(wizardUsuario, null, 2));
     const payload = construirUsuarioPayload(
       {
         nombre: formUsuario.nombre,
@@ -214,7 +207,6 @@ export function useRegistrar() {
     enviarCodigo(payload.correo as unknown as string).catch(() => { });
   };
 
-  // Google -> usando token del GoogleSignInButton
   const handleGoogleLogin = async (token: string) => {
     if (!getValues("acepta")) {
       setError("acepta", {
@@ -237,9 +229,7 @@ export function useRegistrar() {
       setUsuario(res.usuario);
       await resetRegistroState();
       navigation.navigate("FitRutina");
-    } catch (err) {
-      // Solo log, error UI lo manejas en otra capa
-      console.error("Error al iniciar sesión con Google:", err);
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -284,9 +274,7 @@ export function useRegistrar() {
         setComponentCode(false);
         await resetRegistroState();
         navigation.navigate("FitRutina");
-      } catch (err) {
-        // Solo log, sin mostrar error al usuario
-        console.error("🔴 [RegisterError]", err);
+      } catch {
       } finally {
         setLoading(false);
       }
@@ -305,6 +293,7 @@ export function useRegistrar() {
     const correo =
       (payloadUsuario ?? { correo: getValues("correo") }).correo ??
       getValues("correo");
+
     if (!correo) {
       Alert.alert(
         "Correo requerido",
@@ -312,6 +301,7 @@ export function useRegistrar() {
       );
       return Promise.resolve();
     }
+
     return enviarCodigo(correo as string);
   }, [enviarCodigo, getValues, payloadUsuario]);
 
@@ -321,7 +311,7 @@ export function useRegistrar() {
     loading,
     componentCode,
     setComponentCode,
-    onSubmit,
+    onSubmit: handleSubmit(onSubmit, onError),
     onError,
     handleGoogleLogin,
     completarRegistro,

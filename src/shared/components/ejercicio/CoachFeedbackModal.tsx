@@ -1,6 +1,6 @@
 // File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
-import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet, Switch } from "react-native";
 import { X, Loader2, Sparkles } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,7 +13,6 @@ import {
 
 import type { CoachResponse, CoachSuggestion } from "@/features/api/coach.api";
 
-// ── Tokens & Helpers ─────────────────────────────────────────────────────────
 const tokens = {
   color: {
     frameGradient: ["#00E85A", "#A855F7"] as string[],
@@ -99,6 +98,10 @@ export default function CoachFeedbackModal({
   const textSecondary = isDark ? "#64748B" : "#4B5563";
   const textMuted = isDark ? "#6B7280" : "#6B7280";
 
+  // El toggle muestra "Mostrar al entrar" cuando autoDisabled=false (es decir, SÍ se muestra)
+  // y "No mostrar" cuando autoDisabled=true
+  const toggleActivo = !autoDisabled; // true = se muestra al entrar
+
   return (
     <BottomSheetModal
       ref={bottomSheetModalRef}
@@ -129,13 +132,55 @@ export default function CoachFeedbackModal({
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={handleClosePress}
-          activeOpacity={0.85}
-          className={"p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")}
-        >
-          <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          {/* Toggle elegante — solo visible para usuarios premium */}
+          {typeof autoDisabled === "boolean" && (
+            <Pressable
+              onPress={() => onToggleAutoDisabled?.(!autoDisabled)}
+              style={[
+                styles.togglePill,
+                {
+                  backgroundColor: toggleActivo
+                    ? isDark ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.10)"
+                    : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                  borderColor: toggleActivo
+                    ? "rgba(34,197,94,0.35)"
+                    : isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+                },
+              ]}
+            >
+              {/* Dot indicador */}
+              <View
+                style={[
+                  styles.toggleDot,
+                  {
+                    backgroundColor: toggleActivo ? "#22C55E" : isDark ? "#475569" : "#CBD5E1",
+                  },
+                ]}
+              />
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "600",
+                  color: toggleActivo
+                    ? "#22C55E"
+                    : isDark ? "#64748B" : "#94A3B8",
+                  letterSpacing: 0.2,
+                }}
+              >
+                {toggleActivo ? "Mostrar al entrar" : "No mostrar"}
+              </Text>
+            </Pressable>
+          )}
+
+          <TouchableOpacity
+            onPress={handleClosePress}
+            activeOpacity={0.85}
+            className={"p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")}
+          >
+            <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <BottomSheetScrollView
@@ -144,7 +189,7 @@ export default function CoachFeedbackModal({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 24,
-          paddingBottom: 120, // Bottom space requested
+          paddingBottom: 180,
         }}
       >
         {loading ? (
@@ -159,8 +204,6 @@ export default function CoachFeedbackModal({
             textPrimary={textPrimary}
             textSecondary={textSecondary}
             textMuted={textMuted}
-            autoDisabled={autoDisabled}
-            onToggleAutoDisabled={onToggleAutoDisabled}
           />
         ) : esUpsell ? (
           <ContenidoUpsell
@@ -180,7 +223,7 @@ export default function CoachFeedbackModal({
 // ── Sub-componentes ──────────────────────────────────────────────────────────
 
 function ContenidoPremium({
-  coach, isDark, textPrimary, textSecondary, textMuted, autoDisabled, onToggleAutoDisabled,
+  coach, isDark, textPrimary, textSecondary,
 }: any) {
   const data = coach?.data;
   const sugerencias = data?.sugerencias ?? [];
@@ -196,7 +239,10 @@ function ContenidoPremium({
       {sugerencias.map((sug: any, idx: number) => (
         <View
           key={idx}
-          style={[styles.card, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0" }]}
+          style={[styles.card, {
+            backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC",
+            borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0",
+          }]}
         >
           <View className="flex-row justify-between items-start mb-2 gap-2">
             <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14, flex: 1 }}>{sug.titulo}</Text>
@@ -209,15 +255,6 @@ function ContenidoPremium({
           <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>{sug.mensaje}</Text>
         </View>
       ))}
-
-      {typeof autoDisabled === "boolean" && (
-        <Pressable onPress={() => onToggleAutoDisabled?.(!autoDisabled)} className="flex-row items-center gap-3 mt-2">
-          <View style={[styles.checkbox, { backgroundColor: autoDisabled ? tokens.color.checkBg : "transparent" }]}>
-            {autoDisabled && <View style={styles.checkMark} />}
-          </View>
-          <Text style={{ color: textMuted, fontSize: 11 }}>No mostrar automáticamente</Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -234,10 +271,19 @@ function Metric({ label, value, isDark }: any) {
 function ContenidoUpsell({ primeraSugerencia, isDark, textPrimary, textSecondary, textMuted, onGoPremium }: any) {
   return (
     <View className="gap-4">
-      <LinearGradient colors={tokens.color.frameGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.upsellFrame}>
+      <LinearGradient
+        colors={tokens.color.frameGradient as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.upsellFrame}
+      >
         <View style={[styles.upsellCard, { backgroundColor: isDark ? "#0b1220" : "#ffffff" }]}>
-          <Text style={{ color: textPrimary, fontWeight: "800", fontSize: 15, marginBottom: 4 }}>{primeraSugerencia?.titulo ?? "Coach Premium"}</Text>
-          <Text style={{ color: textSecondary, fontSize: 13 }}>{primeraSugerencia?.mensaje ?? "Análisis inteligente de tu progreso."}</Text>
+          <Text style={{ color: textPrimary, fontWeight: "800", fontSize: 15, marginBottom: 4 }}>
+            {primeraSugerencia?.titulo ?? "Coach Premium"}
+          </Text>
+          <Text style={{ color: textSecondary, fontSize: 13 }}>
+            {primeraSugerencia?.mensaje ?? "Análisis inteligente de tu progreso."}
+          </Text>
         </View>
       </LinearGradient>
       <Text style={{ color: textMuted, fontSize: 11, textAlign: "center", paddingHorizontal: 10 }}>
@@ -258,6 +304,20 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center",
   },
+  togglePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  toggleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   metric: {
     flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(148,163,184,0.1)",
   },
@@ -266,12 +326,6 @@ const styles = StyleSheet.create({
   },
   badge: {
     borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
-  },
-  checkbox: {
-    width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: "rgba(148,163,184,0.4)", alignItems: "center", justifyContent: "center",
-  },
-  checkMark: {
-    width: 8, height: 8, borderRadius: 2, backgroundColor: "#FFF",
   },
   upsellFrame: {
     padding: 1.5, borderRadius: 16,

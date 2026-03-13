@@ -62,7 +62,9 @@ export function useVistaEjercicioState(params: Params) {
   const [coachVisible, setCoachVisible] = useState(false);
 
   const [coachAutoDisabled, setCoachAutoDisabled] = useState(false);
+  const [coachPrefLoaded, setCoachPrefLoaded] = useState(false); // ✅ nuevo flag
   const didAutoShowRef = useRef<string | null>(null);
+
 
   const experienciaPlus = 1.25;
   const calorias = useRef(0);
@@ -71,7 +73,6 @@ export function useVistaEjercicioState(params: Params) {
   const cacheSet = useEjercicioCache((s) => s.set);
   const cacheDel = useEjercicioCache((s) => s.del);
 
-  // ✅ Resolver IDs canónicos de forma defensiva
   const getSimpleEjercicioId = useCallback((e: any): number | null => {
     return (
       toPositiveInt(e?.ejercicioId) ??
@@ -86,12 +87,16 @@ export function useVistaEjercicioState(params: Params) {
     return toPositiveInt(e?.ejercicioCompuestoId) ?? toPositiveInt(e?.ejercicioCompuesto?.id) ?? null;
   }, []);
 
+  // ✅ Leer preferencia de AsyncStorage y marcar como cargado al finalizar
   useEffect(() => {
     (async () => {
       try {
         const v = await AsyncStorage.getItem(COACH_AUTO_DISABLED_KEY);
         setCoachAutoDisabled(v === "1");
       } catch { }
+      finally {
+        setCoachPrefLoaded(true);
+      }
     })();
   }, []);
 
@@ -146,7 +151,6 @@ export function useVistaEjercicioState(params: Params) {
       const tiempo = data?.ejercicioAsignado?.descansoSeg || 60;
       setTiempoRestante(tiempo);
 
-      // Guardado local de series: usa ID canónico si es simple; si no, no persistimos
       const isCompuesto = Boolean(getCompuestoId(data));
       if (isCompuesto) {
         setStorageKey(null);
@@ -247,7 +251,10 @@ export function useVistaEjercicioState(params: Params) {
     setCoachVisible(false);
   }, []);
 
+  // ✅ Esperar a que cargue la preferencia antes de auto-mostrar
   useEffect(() => {
+    if (!coachPrefLoaded) return;
+
     const userIsPremium = Boolean(usuario?.haPagado);
     if (!userIsPremium) return;
     if (coachAutoDisabled) return;
@@ -264,6 +271,7 @@ export function useVistaEjercicioState(params: Params) {
     didAutoShowRef.current = key;
     mostrarCoach();
   }, [
+    coachPrefLoaded, // ✅ dependencia clave
     usuario?.haPagado,
     coachAutoDisabled,
     ejercicio,

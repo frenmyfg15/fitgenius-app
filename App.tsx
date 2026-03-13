@@ -1,7 +1,7 @@
 // App.tsx
 import "react-native-gesture-handler";
-import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, LogBox, View } from "react-native";
+import React, { useEffect } from "react";
+import { ActivityIndicator, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   NavigationContainer,
@@ -20,6 +20,7 @@ import { StripeProvider } from "@stripe/stripe-react-native";
 import Constants from "expo-constants";
 
 import { GlobalErrorModalProvider } from "@/shared/components/ui/GlobalErrorModalProvider";
+import { ToastProvider } from "@/shared/components/ui/Toast";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Sesion from "@/features/screens/auth/Sesion";
@@ -29,11 +30,9 @@ import * as Sentry from "@sentry/react-native";
 
 import { usePersistedColorScheme } from "@/theme/usePersistedColorScheme";
 import { getMe } from "@/features/api/usuario.api";
-import Toast from "react-native-toast-message";
 
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
-// Configuración de Sentry
 Sentry.init({
   dsn: "https://4c6aa91122ad7f362c9aa79df79e428b@o4510526940577792.ingest.de.sentry.io/4510526942609488",
   sendDefaultPii: false,
@@ -87,7 +86,6 @@ export default Sentry.wrap(function App() {
   const { usuario, rehydrated, setUsuario } = useUsuarioStore();
   const { isReady: themeReady } = usePersistedColorScheme();
 
-  // Efecto para Sentry
   useEffect(() => {
     if (!rehydrated) return;
     if (usuario) {
@@ -103,41 +101,35 @@ export default Sentry.wrap(function App() {
     }
   }, [rehydrated, usuario]);
 
-  // Efecto para recuperar sesión
   useEffect(() => {
     if (!rehydrated) return;
     let cancelled = false;
     getMe()
-      .then((me) => {
-        if (!cancelled && me?.id) setUsuario(me);
-      })
-      .catch((e) => {
-        console.log("[App] getMe failed:", e?.response?.data ?? e?.message ?? e);
-      });
+      .then((me) => { if (!cancelled && me?.id) setUsuario(me); })
+      .catch(() => { });
     return () => { cancelled = true; };
   }, [rehydrated, setUsuario]);
 
-  /**
-   * Proveedores base de la aplicación.
-   * El BottomSheetModalProvider NO va aquí porque los componentes dentro del modal
-   * necesitan acceder al NavigationContainer.
-   */
+  // Proveedores base — BottomSheetModalProvider va DENTRO del NavigationContainer
+  // para que los modales tengan acceso a la navegación.
   const Providers = ({ children }: { children: React.ReactNode }) => (
     <StripeProvider
       publishableKey={PUBLISHABLE_KEY}
       merchantIdentifier="merchant.com.fitgenius"
       urlScheme="fitgenius"
     >
-      <GlobalErrorModalProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider>{children}</SafeAreaProvider>
-        </GestureHandlerRootView>
-      </GlobalErrorModalProvider>
-      <Toast />
+      <SafeAreaProvider>
+        <ToastProvider>
+          <GlobalErrorModalProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              {children}
+            </GestureHandlerRootView>
+          </GlobalErrorModalProvider>
+        </ToastProvider>
+      </SafeAreaProvider>
     </StripeProvider>
   );
 
-  // Pantalla de carga mientras se recupera la sesión/tema
   if (!rehydrated || !themeReady) {
     return (
       <Providers>
@@ -160,25 +152,17 @@ export default Sentry.wrap(function App() {
           const name = getActiveRouteName(navigationRef.getRootState());
           if (name) Sentry.setTag("screen", name);
         }}
-
         onStateChange={() => {
           const name = getActiveRouteName(navigationRef.getRootState());
           if (name) Sentry.setTag("screen", name);
         }}
       >
-        {/* IMPORTANTE: BottomSheetModalProvider DENTRO del NavigationContainer
-            Esto permite que los modales (PanelEstadisticas, etc) tengan acceso 
-            a la navegación y eviten el error de "Couldn't find a navigation object".
-        */}
         <BottomSheetModalProvider>
           {usuario ? (
             <AppNavigator />
           ) : (
             <RootAuthStack.Navigator
-              screenOptions={{
-                headerShown: false,
-                animation: "slide_from_right",
-              }}
+              screenOptions={{ headerShown: false, animation: "slide_from_right" }}
             >
               <RootAuthStack.Screen name="Sesion" component={Sesion} />
               <RootAuthStack.Screen name="Registro" component={AuthNavigator} />

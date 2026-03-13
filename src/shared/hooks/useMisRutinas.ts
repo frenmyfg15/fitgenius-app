@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import Toast from "react-native-toast-message";
 
 import { obtenerRutinas } from "@/features/api/rutinas.api";
 import { Rutina } from "@/features/type/rutinas";
@@ -19,6 +18,7 @@ export function useMisRutinas() {
   const rutinasCache = useRutinasCache();
   const cacheGetRef = useRef(rutinasCache.get);
   const cacheSetRef = useRef(rutinasCache.set);
+
   useEffect(() => {
     cacheGetRef.current = rutinasCache.get;
     cacheSetRef.current = rutinasCache.set;
@@ -29,6 +29,7 @@ export function useMisRutinas() {
   const maxIA = isPremium ? Number.POSITIVE_INFINITY : 1;
 
   const mountedRef = useRef(true);
+
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -50,10 +51,12 @@ export function useMisRutinas() {
       if (err.request && !err.response) {
         return "No se pudo contactar al servidor. Revisa tu conexión.";
       }
+
       const serverMsg =
         (err.response?.data as any)?.error ??
         (err.response?.data as any)?.message ??
         (err.response?.data as any)?.msg;
+
       if (serverMsg) return serverMsg;
       if (err.response?.status === 401)
         return "No estás autorizado para ver estas rutinas.";
@@ -61,20 +64,12 @@ export function useMisRutinas() {
         return "No se encontraron rutinas.";
       if (err.response?.status === 500)
         return "Fallo interno del servidor al cargar rutinas.";
+
       return err.message || fallback;
     }
+
     if (err instanceof Error) return err.message || fallback;
     return fallback;
-  };
-
-  const logWarning = (tag: string, err: unknown, userMsg: string) => {
-    console.warn(`⚠️ [${tag}]`, {
-      userMessage: userMsg,
-      isAxiosError: axios.isAxiosError(err),
-      status: axios.isAxiosError(err) ? err.response?.status : undefined,
-      serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-      rawError: err,
-    });
   };
 
   const mostrar = useCallback((id: number) => {
@@ -87,10 +82,10 @@ export function useMisRutinas() {
     setTimeout(() => setIdMostrar(null), 300);
   }, []);
 
-  // ✅ fetch con opción force para ignorar cache
   const fetchRutinas = useCallback(
     async (opts?: { force?: boolean }) => {
       setIfMounted(setLoading, true);
+
       try {
         const res = await obtenerRutinas();
         const list: Rutina[] = Array.isArray(res)
@@ -100,15 +95,8 @@ export function useMisRutinas() {
         setIfMounted(setRutinas, list);
         cacheSetRef.current?.(list);
       } catch (err) {
-        const msg = getReadableError(err);
-        logWarning("MisRutinasFetchError", err, msg);
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: msg,
-        });
+        getReadableError(err);
 
-        // fallback cache si falla red
         if (!opts?.force) {
           const cached = cacheGetRef.current?.();
           if (cached && Array.isArray(cached) && cached.length) {
@@ -122,24 +110,22 @@ export function useMisRutinas() {
     [setIfMounted]
   );
 
-  // ✅ al montar: usa cache si existe, pero NO bloquees la posibilidad de fetch
   useEffect(() => {
     const cached = cacheGetRef.current?.();
+
     if (cached && Array.isArray(cached) && cached.length) {
       setRutinas(cached);
-      // opcional: refresco silencioso en background:
       fetchRutinas({ force: true });
       return;
     }
+
     fetchRutinas({ force: true });
   }, [fetchRutinas]);
 
-  // ✅ si cambia revision global → recarga forzada
   useEffect(() => {
     fetchRutinas({ force: true });
   }, [routineRev, fetchRutinas]);
 
-  // ✅ función que sí se puede await (para refreshControl / IA button)
   const reloadRutinas = useCallback(async () => {
     await fetchRutinas({ force: true });
   }, [fetchRutinas]);
@@ -160,7 +146,7 @@ export function useMisRutinas() {
     idMostrar,
     mostrar,
     cerrarVisor,
-    reloadRutinas, // ✅ en vez de toggleReload
+    reloadRutinas,
     totalIA,
     maxIA,
     isPremium,

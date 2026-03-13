@@ -3,12 +3,14 @@ import { Dimensions } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Toast from "react-native-toast-message";
 
 /* ---- Stores / API ---- */
 import { useSyncStore } from "@/features/store/useSyncStore";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { crearRutinaPersonalizada } from "@/features/api/rutinas.api";
+
+/* ---- UI ---- */
+import { Toast } from "@/shared/components/ui/Toast";
 
 /* ---- Tipos ---- */
 import type {
@@ -63,10 +65,8 @@ export function useCrearRutinaState() {
 
   const [mostrarBuscador, setMostrarBuscador] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [mostrarFormularioCompuesto, setMostrarFormularioCompuesto] =
-    useState(false);
-  const [mostrarFormularioNombre, setMostrarFormularioNombre] =
-    useState(false);
+  const [mostrarFormularioCompuesto, setMostrarFormularioCompuesto] = useState(false);
+  const [mostrarFormularioNombre, setMostrarFormularioNombre] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -75,14 +75,11 @@ export function useCrearRutinaState() {
     useState<EjercicioSeleccionadoState | null>(null);
 
   const [modoCompuesto, setModoCompuesto] = useState(false);
-  const [compuestoTemporal, setCompuestoTemporal] = useState<
-    EjercicioCompuestoTemporal[]
-  >([]);
-  const [ejercicioEnCompuestoActual, setEjercicioEnCompuestoActual] =
-    useState<{
-      id: number;
-      info: EjercicioVisualInfo;
-    } | null>(null);
+  const [compuestoTemporal, setCompuestoTemporal] = useState<EjercicioCompuestoTemporal[]>([]);
+  const [ejercicioEnCompuestoActual, setEjercicioEnCompuestoActual] = useState<{
+    id: number;
+    info: EjercicioVisualInfo;
+  } | null>(null);
 
   const [editarCompuesto, setEditarCompuesto] = useState<null | {
     compuestoId: number;
@@ -106,9 +103,7 @@ export function useCrearRutinaState() {
     selectedIndex < ejerciciosDia.length;
 
   const puedeSubir = !!haySeleccion && selectedIndex! > 0;
-  const puedeBajar =
-    !!haySeleccion && selectedIndex! < ejerciciosDia.length - 1;
-
+  const puedeBajar = !!haySeleccion && selectedIndex! < ejerciciosDia.length - 1;
   const puedePegar = Boolean(
     (state as any).clipboard && (state as any).clipboard.length > 0
   );
@@ -144,6 +139,8 @@ export function useCrearRutinaState() {
 
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
 
+  // ─── Compuesto ────────────────────────────────────────────────────────────────
+
   const iniciarCompuesto = () => {
     setModoCompuesto(true);
     setMostrarBuscador(true);
@@ -161,6 +158,8 @@ export function useCrearRutinaState() {
     setMostrarFormularioCompuesto(true);
   };
 
+  // ─── Guardar rutina ───────────────────────────────────────────────────────────
+
   const onSuccess = useCallback(async () => {
     if (!isEdit) {
       const { usuario, setUsuario } = useUsuarioStore.getState();
@@ -172,12 +171,17 @@ export function useCrearRutinaState() {
       }
       Toast.show({
         type: "success",
-        text1: "Rutina creada exitosamente",
+        text1: "Rutina creada",
+        text2: "Tu nueva rutina ya está disponible.",
       });
       dispatch({ type: "CLEAR" });
     } else {
       await AsyncStorage.removeItem("rutinaEditId");
-      Toast.show({ type: "success", text1: "Rutina actualizada" });
+      Toast.show({
+        type: "success",
+        text1: "Rutina actualizada",
+        text2: "Los cambios se han guardado correctamente.",
+      });
     }
 
     useSyncStore.getState().bumpRoutineRev();
@@ -185,9 +189,7 @@ export function useCrearRutinaState() {
   }, [dispatch, isEdit, nav]);
 
   const handleCrearRutina = useCallback(async () => {
-    if (!state.nombre.trim()) {
-      return;
-    }
+    if (!state.nombre.trim()) return;
 
     const payload = {
       nombre: state.nombre,
@@ -196,7 +198,6 @@ export function useCrearRutinaState() {
     };
 
     setLoading(true);
-
     try {
       await crearRutinaPersonalizada(payload, editId);
       await onSuccess();
@@ -217,28 +218,27 @@ export function useCrearRutinaState() {
     }
   }, [state, editId, onSuccess]);
 
-  const handleCancelarEdicion = useCallback(
-    async () => {
-      try {
-        dispatch({ type: "SET_NOMBRE", payload: "" });
-        dispatch({ type: "SET_DESCRIPCION", payload: "" });
+  // ─── Cancelar edición ─────────────────────────────────────────────────────────
 
-        const diasPresentes = (state.dias ?? []).map((d: any) => d.diaSemana);
-        diasPresentes.forEach((ds: any) => {
-          dispatch({
-            type: "REORDER_EJERCICIOS",
-            payload: { diaSemana: ds, ejercicios: [] },
-          });
+  const handleCancelarEdicion = useCallback(async () => {
+    try {
+      dispatch({ type: "SET_NOMBRE", payload: "" });
+      dispatch({ type: "SET_DESCRIPCION", payload: "" });
+
+      const diasPresentes = (state.dias ?? []).map((d: any) => d.diaSemana);
+      diasPresentes.forEach((ds: any) => {
+        dispatch({
+          type: "REORDER_EJERCICIOS",
+          payload: { diaSemana: ds, ejercicios: [] },
         });
+      });
 
-        await AsyncStorage.multiRemove(["crearRutinaState", "rutinaEditId"]);
-        setEditId(undefined);
-      } catch {
-        // noop
-      }
-    },
-    [state.dias, dispatch]
-  );
+      await AsyncStorage.multiRemove(["crearRutinaState", "rutinaEditId"]);
+      setEditId(undefined);
+    } catch { }
+  }, [state.dias, dispatch]);
+
+  // ─── Selección ────────────────────────────────────────────────────────────────
 
   const handleEditarSeleccion = () => {
     if (!haySeleccion) return;
@@ -276,10 +276,12 @@ export function useCrearRutinaState() {
     const ej = ejerciciosDia[selectedIndex!];
 
     if ("compuesto" in ej && ej.compuesto) {
-      const compuestoId = ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!;
       dispatch({
         type: "REMOVE_EJERCICIO",
-        payload: { diaSemana: diaSelect, compuestoId },
+        payload: {
+          diaSemana: diaSelect,
+          compuestoId: ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
+        },
       });
     } else {
       dispatch({
@@ -297,10 +299,9 @@ export function useCrearRutinaState() {
       nueva[selectedIndex!],
       nueva[selectedIndex! - 1],
     ];
-    const reorden = nueva.map((e, i) => ({ ...e, orden: i + 1 }));
     dispatch({
       type: "REORDER_EJERCICIOS",
-      payload: { diaSemana: diaSelect, ejercicios: reorden },
+      payload: { diaSemana: diaSelect, ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })) },
     });
     setSelectedIndex(selectedIndex! - 1);
   };
@@ -312,13 +313,14 @@ export function useCrearRutinaState() {
       nueva[selectedIndex! + 1],
       nueva[selectedIndex!],
     ];
-    const reorden = nueva.map((e, i) => ({ ...e, orden: i + 1 }));
     dispatch({
       type: "REORDER_EJERCICIOS",
-      payload: { diaSemana: diaSelect, ejercicios: reorden },
+      payload: { diaSemana: diaSelect, ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })) },
     });
     setSelectedIndex(selectedIndex! + 1);
   };
+
+  // ─── Return ───────────────────────────────────────────────────────────────────
 
   return {
     state,
@@ -377,7 +379,5 @@ export function useCrearRutinaState() {
 
     premiumModalVisible,
     setPremiumModalVisible,
-
-    Toast,
   };
 }

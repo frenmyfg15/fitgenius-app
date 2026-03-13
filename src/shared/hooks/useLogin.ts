@@ -1,18 +1,13 @@
 // hooks/useLogin.ts
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useColorScheme } from "nativewind";
 
 import { loginUsuario, loginUsuarioGoogle } from "@/features/api/usuario.api";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
-import {
-  configurarGoogle,
-  loginConGoogleNativo,
-} from "@/firebase/loginConGoogleNative";
-import { useColorScheme } from "nativewind";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AuthStackParamList } from "@/features/navigation/Auth";
-import { useNavigation } from "@react-navigation/native";
+import { configurarGoogle, loginConGoogleNativo } from "@/firebase/loginConGoogleNative";
 
 type FormValues = { correo: string; contrasena: string };
 
@@ -25,7 +20,6 @@ export const useLogin = () => {
 
   const { setUsuario } = useUsuarioStore();
 
-  // Fondo según tema
   const bgGradient = useMemo(
     () =>
       isDark
@@ -34,7 +28,6 @@ export const useLogin = () => {
     [isDark]
   );
 
-  // Form
   const {
     control,
     handleSubmit,
@@ -48,74 +41,43 @@ export const useLogin = () => {
     configurarGoogle();
   }, []);
 
-  // ——— Acciones ———
-  const submitLogin = useCallback(
-    async (data: FormValues) => {
-      setLoading(true);
-      try {
-        const res = await loginUsuario(data.correo, data.contrasena);
-        setUsuario(res.usuario ?? res);
-        // Sin Toast de éxito: el propio flujo de navegación indica que entró correctamente
-      } catch (err) {
-        // Solo log, los errores de API se gestionan en otra capa
-        console.warn("⚠️ [LoginError]", {
-          isAxiosError: axios.isAxiosError(err),
-          status: axios.isAxiosError(err) ? err.response?.status : undefined,
-          serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-          rawError: err,
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setUsuario]
-  );
+  // ─── Acciones ─────────────────────────────────────────────────────────────────
 
-  // Inicia Google, obtiene token Firebase y lo manda al backend
+  const submitLogin = useCallback(async (data: FormValues) => {
+    setLoading(true);
+    try {
+      const res = await loginUsuario(data.correo, data.contrasena);
+      setUsuario(res.usuario ?? res);
+      // Sin toast: la navegación al home es feedback suficiente
+    } catch { }
+    finally {
+      setLoading(false);
+    }
+  }, [setUsuario]);
+
   const startGoogleLogin = useCallback(async () => {
     setLoading(true);
     try {
       const { token: firebaseIdToken } = await loginConGoogleNativo();
       const res = await loginUsuarioGoogle(firebaseIdToken);
-      console.log(res.usuario);
-
       setUsuario(res?.usuario ?? res);
-      // Sin Toast de éxito
-    } catch (err) {
-      console.warn("⚠️ [LoginGoogleNativeError]", {
-        isAxiosError: axios.isAxiosError(err),
-        status: axios.isAxiosError(err) ? err.response?.status : undefined,
-        serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-        rawError: err,
-      });
-    } finally {
+    } catch { }
+    finally {
       setLoading(false);
     }
   }, [setUsuario]);
 
-  // Si ya tienes el token (por ejemplo, pasado desde otro flujo)
-  const loginConGoogle = useCallback(
-    async (token: string) => {
-      setLoading(true);
-      try {
-        const res = await loginUsuarioGoogle(token);
-        setUsuario(res?.usuario ?? res);
-        // Sin Toast de éxito
-      } catch (err) {
-        console.warn("⚠️ [LoginGoogleTokenError]", {
-          isAxiosError: axios.isAxiosError(err),
-          status: axios.isAxiosError(err) ? err.response?.status : undefined,
-          serverData: axios.isAxiosError(err) ? err.response?.data : undefined,
-          rawError: err,
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setUsuario]
-  );
+  const loginConGoogle = useCallback(async (token: string) => {
+    setLoading(true);
+    try {
+      const res = await loginUsuarioGoogle(token);
+      setUsuario(res?.usuario ?? res);
+    } catch { }
+    finally {
+      setLoading(false);
+    }
+  }, [setUsuario]);
 
-  // ——— Exponer al componente ———
   return {
     nav,
     isDark,
