@@ -1,7 +1,15 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createNativeStackNavigator,
+} from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -40,10 +48,29 @@ const tokens = {
 };
 
 /* ---------- Tipos ---------- */
-export type HomeStackParamList = { Home: undefined; VistaEjercicio: any; };
-export type ProgresoStackParamList = { Estadisticas: undefined; ProgresoHistorial: undefined; };
-export type RutinasStackParamList = { MisRutinas: undefined; CrearRutina: undefined; };
-export type PerfilStackParamList = { Cuenta: undefined; EditarPerfil: undefined; CambiarContrasena: undefined; EliminarCuenta: undefined; PremiumSuccess: undefined; PremiumPayment: undefined; };
+export type HomeStackParamList = {
+  Home: undefined;
+  VistaEjercicio: any;
+};
+
+export type ProgresoStackParamList = {
+  Estadisticas: undefined;
+  ProgresoHistorial: undefined;
+};
+
+export type RutinasStackParamList = {
+  MisRutinas: undefined;
+  CrearRutina: undefined;
+};
+
+export type PerfilStackParamList = {
+  Cuenta: undefined;
+  EditarPerfil: undefined;
+  CambiarContrasena: undefined;
+  EliminarCuenta: undefined;
+  PremiumSuccess: undefined;
+  PremiumPayment: undefined;
+};
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -51,7 +78,32 @@ const ProgresoStack = createNativeStackNavigator<ProgresoStackParamList>();
 const RutinasStack = createNativeStackNavigator<RutinasStackParamList>();
 const PerfilStack = createNativeStackNavigator<PerfilStackParamList>();
 
-const stackOptions = { headerShown: false, animation: "slide_from_right" as const };
+const stackOptions = {
+  headerShown: false,
+  animation: "slide_from_right" as const,
+};
+
+/* ---------- Root screen por tab ---------- */
+const TAB_ROOT_SCREEN: Record<string, string> = {
+  Inicio: "Home",
+  Rutinas: "MisRutinas",
+  Progreso: "Estadisticas",
+  Perfil: "Cuenta",
+};
+
+/* ---------- Helper para ir siempre a la raíz del tab ---------- */
+function navigateToTabRoot(navigation: any, tabName: string) {
+  const rootScreen = TAB_ROOT_SCREEN[tabName];
+
+  if (!rootScreen) {
+    navigation.navigate(tabName);
+    return;
+  }
+
+  navigation.navigate(tabName, {
+    screen: rootScreen,
+  });
+}
 
 /* ---------- Stacks ---------- */
 function HomeStackNavigator() {
@@ -68,6 +120,7 @@ function HomeStackNavigator() {
     </HomeStack.Navigator>
   );
 }
+
 function ProgresoStackNavigator() {
   return (
     <ProgresoStack.Navigator screenOptions={stackOptions}>
@@ -75,6 +128,7 @@ function ProgresoStackNavigator() {
     </ProgresoStack.Navigator>
   );
 }
+
 function RutinasStackNavigator() {
   return (
     <RutinasStack.Navigator screenOptions={stackOptions}>
@@ -83,15 +137,27 @@ function RutinasStackNavigator() {
     </RutinasStack.Navigator>
   );
 }
+
 function PerfilStackNavigator() {
   return (
     <PerfilStack.Navigator screenOptions={stackOptions}>
       <PerfilStack.Screen name="Cuenta" component={Cuenta} />
       <PerfilStack.Screen name="EditarPerfil" component={EditarPerfil} />
-      <PerfilStack.Screen name="CambiarContrasena" component={CambiarContrasena} />
+      <PerfilStack.Screen
+        name="CambiarContrasena"
+        component={CambiarContrasena}
+      />
       <PerfilStack.Screen name="EliminarCuenta" component={EliminarCuenta} />
-      <PerfilStack.Screen name="PremiumPayment" component={PremiumPaymentScreen} options={{ presentation: "modal" }} />
-      <PerfilStack.Screen name="PremiumSuccess" component={PremiumSuccess} options={{ presentation: "modal" }} />
+      <PerfilStack.Screen
+        name="PremiumPayment"
+        component={PremiumPaymentScreen}
+        options={{ presentation: "modal" }}
+      />
+      <PerfilStack.Screen
+        name="PremiumSuccess"
+        component={PremiumSuccess}
+        options={{ presentation: "modal" }}
+      />
     </PerfilStack.Navigator>
   );
 }
@@ -104,41 +170,47 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 /* ---------- CustomTabBar Adaptativo ---------- */
-function CustomTabBar({ state, descriptors, navigation }: any) {
+function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const cardBg = isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight;
-  const cardBorder = isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight;
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const cardBorder = isDark
+    ? tokens.color.cardBorderDark
+    : tokens.color.cardBorderLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
 
   const mainIndex = state.routes.findIndex((r: any) => r.name === "Inicio");
   const isMainFocused = state.index === mainIndex;
 
-  /**
-   * AJUSTE DE ALTURA:
-   * Hemos subido el valor base de 20 a 30 para Android con botones.
-   * En iOS/Gestos, añadimos 10 puntos extra al inset para que no quede pegado a la barra.
-   */
-  const dynamicBottom = insets.bottom > 0
-    ? insets.bottom + (Platform.OS === 'ios' ? 10 : 15)
-    : 30;
+  const dynamicBottom =
+    insets.bottom > 0
+      ? insets.bottom + (Platform.OS === "ios" ? 10 : 15)
+      : 30;
 
   return (
     <View style={[styles.tabContainer, { bottom: dynamicBottom }]}>
       {/* BOTÓN PRINCIPAL (INICIO) */}
       <View style={styles.mainBtnWrapper}>
         <LinearGradient
-          colors={[tokens.color.gradientStart, tokens.color.gradientMid, tokens.color.gradientEnd]}
+          colors={[
+            tokens.color.gradientStart,
+            tokens.color.gradientMid,
+            tokens.color.gradientEnd,
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBorder}
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => navigation.navigate("Inicio")}
+            onPress={() => navigateToTabRoot(navigation, "Inicio")}
             style={[styles.mainBtnInner, { backgroundColor: cardBg }]}
           >
             <Ionicons
@@ -151,29 +223,47 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       </View>
 
       {/* BARRA FLOTANTE */}
-      <View style={[styles.floatingBar, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-        {state.routes.filter((r: any) => r.name !== "Inicio").map((route: any) => {
-          const routeIndex = state.routes.findIndex((r: any) => r.name === route.name);
-          const isFocused = state.index === routeIndex;
-          const iconName = TAB_ICONS[route.name];
+      <View
+        style={[
+          styles.floatingBar,
+          { backgroundColor: cardBg, borderColor: cardBorder },
+        ]}
+      >
+        {state.routes
+          .filter((r: any) => r.name !== "Inicio")
+          .map((route: any) => {
+            const routeIndex = state.routes.findIndex(
+              (r: any) => r.name === route.name
+            );
+            const isFocused = state.index === routeIndex;
+            const iconName = TAB_ICONS[route.name];
 
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={() => navigation.navigate(route.name)}
-              style={styles.tabItem}
-            >
-              <Ionicons
-                name={isFocused ? (iconName.replace("-outline", "") as any) : iconName}
-                size={22}
-                color={isFocused ? textPrimary : textSecondary}
-              />
-              <Text style={[styles.tabLabel, { color: isFocused ? textPrimary : textSecondary }]}>
-                {route.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={() => navigateToTabRoot(navigation, route.name)}
+                style={styles.tabItem}
+              >
+                <Ionicons
+                  name={
+                    isFocused
+                      ? (iconName.replace("-outline", "") as any)
+                      : iconName
+                  }
+                  size={22}
+                  color={isFocused ? textPrimary : textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: isFocused ? textPrimary : textSecondary },
+                  ]}
+                >
+                  {route.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
       </View>
     </View>
   );
@@ -183,18 +273,51 @@ export default function AppNavigator() {
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ header: () => <Header />, tabBarHideOnKeyboard: true }}
+      screenOptions={{
+        header: () => <Header />,
+        tabBarHideOnKeyboard: true,
+      }}
     >
-      <Tab.Screen name="Inicio" component={HomeStackNavigator} />
-      <Tab.Screen name="Rutinas" component={RutinasStackNavigator} />
-      <Tab.Screen name="Progreso" component={ProgresoStackNavigator} />
+      <Tab.Screen
+        name="Inicio"
+        component={HomeStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigateToTabRoot(navigation, "Inicio");
+          },
+        })}
+      />
+
+      <Tab.Screen
+        name="Rutinas"
+        component={RutinasStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigateToTabRoot(navigation, "Rutinas");
+          },
+        })}
+      />
+
+      <Tab.Screen
+        name="Progreso"
+        component={ProgresoStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigateToTabRoot(navigation, "Progreso");
+          },
+        })}
+      />
+
       <Tab.Screen
         name="Perfil"
         component={PerfilStackNavigator}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate("Perfil", { screen: "Cuenta" });
+            navigateToTabRoot(navigation, "Perfil");
           },
         })}
       />
