@@ -4,11 +4,11 @@ export const lugar = [
   {
     id: "GIMNASIO",
     nombre: "Gimnasio",
-    imagen: require("../../../../assets/register/lugar/gimnasio.png"),
+    imagen: require("../../../../assets/register/lugar/gimnasio.webp"),
   },
   {
     id: "CASA",
     nombre: "Casa",
-    imagen: require("../../../../assets/register/lugar/casa.png"),
+    imagen: require("../../../../assets/register/lugar/casa.webp"),
   },
 ];

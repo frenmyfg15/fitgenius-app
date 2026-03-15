@@ -59,13 +59,13 @@ const tokens = {
 type Nivel = { nombre: string; experiencia: number; icono: ImageSourcePropType };
 
 const NIVELES: Nivel[] = [
-  { nombre: "Bronce", experiencia: 0, icono: require("../../../../assets/fit/cuenta/bronce.png") },
-  { nombre: "Plata", experiencia: 500, icono: require("../../../../assets/fit/cuenta/plata.png") },
-  { nombre: "Oro", experiencia: 1500, icono: require("../../../../assets/fit/cuenta/oro.png") },
-  { nombre: "Platino", experiencia: 3000, icono: require("../../../../assets/fit/cuenta/platino.png") },
-  { nombre: "Diamante", experiencia: 5000, icono: require("../../../../assets/fit/cuenta/diamante.png") },
-  { nombre: "Maestro", experiencia: 8000, icono: require("../../../../assets/fit/cuenta/maestro.png") },
-  { nombre: "Élite", experiencia: 12000, icono: require("../../../../assets/fit/cuenta/elite.png") },
+  { nombre: "Bronce", experiencia: 0, icono: require("../../../../assets/fit/cuenta/bronce.webp") },
+  { nombre: "Plata", experiencia: 500, icono: require("../../../../assets/fit/cuenta/plata.webp") },
+  { nombre: "Oro", experiencia: 1500, icono: require("../../../../assets/fit/cuenta/oro.webp") },
+  { nombre: "Platino", experiencia: 3000, icono: require("../../../../assets/fit/cuenta/platino.webp") },
+  { nombre: "Diamante", experiencia: 5000, icono: require("../../../../assets/fit/cuenta/diamante.webp") },
+  { nombre: "Maestro", experiencia: 8000, icono: require("../../../../assets/fit/cuenta/maestro.webp") },
+  { nombre: "Élite", experiencia: 12000, icono: require("../../../../assets/fit/cuenta/elite.webp") },
 ];
 
 const XP_POR_EJERCICIO = 1.25;

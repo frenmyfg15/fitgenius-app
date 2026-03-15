@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
-import { View, Text, Platform, TouchableOpacity } from "react-native";
+import { View, Text, Platform, TouchableOpacity, StyleSheet } from "react-native";
 import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,18 +38,16 @@ export default function PanelEstadisticas({
   const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const isOpenRef = useRef(false); // ✅ guard anti double present/dismiss
+  const isOpenRef = useRef(false);
+  const wasVisible = useRef(false);
 
   const snapPoints = useMemo(() => ["40%", "80%"], []);
-
-  const wasVisible = useRef(false);
 
   useEffect(() => {
     if (visible && !wasVisible.current) {
       bottomSheetModalRef.current?.present();
       wasVisible.current = true;
     }
-
     if (!visible && wasVisible.current) {
       bottomSheetModalRef.current?.dismiss();
       wasVisible.current = false;
@@ -76,13 +74,16 @@ export default function PanelEstadisticas({
   const hasData = Boolean(detallesSeries && detallesSeries.length > 0);
   const topInset = Math.max(insets.top, 12);
 
+  // 🔹 Padding inferior = tab bar + safe area + margen extra para que nada se corte
+  const bottomPadding = insets.bottom + 100;
+
   return (
     <BottomSheetModal
       ref={bottomSheetModalRef}
       index={1}
       snapPoints={snapPoints}
       onDismiss={() => {
-        isOpenRef.current = false; // ✅ sincroniza estado real
+        isOpenRef.current = false;
         onClose();
       }}
       backdropComponent={renderBackdrop}
@@ -107,21 +108,18 @@ export default function PanelEstadisticas({
       }}
     >
       {/* Header */}
-      <View className="flex-row justify-between items-center px-6 pt-2 mb-4">
-        <Text
-          className={
-            isDark
-              ? "text-white font-extrabold text-lg"
-              : "text-neutral-900 font-extrabold text-lg"
-          }
-        >
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: isDark ? "#ffffff" : "#171717" }]}>
           Estadísticas del ejercicio
         </Text>
 
         <TouchableOpacity
           onPress={handleClosePress}
           activeOpacity={0.85}
-          className={"p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")}
+          style={[
+            styles.closeBtn,
+            { backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#e5e5e5" },
+          ]}
         >
           <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
         </TouchableOpacity>
@@ -133,11 +131,12 @@ export default function PanelEstadisticas({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: 24,
-          paddingBottom: 120,
+          // 🔹 padding inferior dinámico: safe area + margen generoso
+          paddingBottom: bottomPadding,
         }}
       >
         {hasData ? (
-          <View className="flex-col gap-6">
+          <View style={styles.content}>
             <GraficoPesoPorSerie series={detallesSeries as any} esCardio={esCardio} />
             <EstadisticasRendimiento detallesSeries={detallesSeries as any} esCardio={esCardio} />
             <VisualizacionesSugeridas detallesSeries={detallesSeries as any} esCardio={esCardio} />
@@ -156,3 +155,26 @@ export default function PanelEstadisticas({
     </BottomSheetModal>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  closeBtn: {
+    padding: 8,
+    borderRadius: 999,
+  },
+  content: {
+    flexDirection: "column",
+    gap: 24,
+  },
+});

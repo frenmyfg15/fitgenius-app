@@ -5,33 +5,42 @@ import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { ThermometerSun } from "lucide-react-native";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
   color: {
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    // Frame gradient — 3 colores igual que IMCVisual
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
 
-    cardBgDark: "rgba(15,24,41,0.75)",
+    // Card interior
+    cardBgDark: "rgba(15,24,41,1)",   // opaco, igual que IMCVisual
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
 
+    // Icono
     iconBgDark: "rgba(251,191,36,0.10)",
     iconBgLight: "rgba(252,211,77,0.25)",
     iconAmberDark: "#FBBF24",
     iconAmberLight: "#D97706",
 
+    // Track de barra
     trackDark: "rgba(15,23,42,0.9)",
     trackLight: "#E5E7EB",
 
+    // Colores de estrés
     green: "#22C55E",
     amber: "#F59E0B",
     red: "#EF4444",
 
+    // Calendario
     calendarNeutralDark: "rgba(15,23,42,0.9)",
     calendarNeutralLight: "#F4F4F5",
     calendarBorderDark: "rgba(148,163,184,0.35)",
     calendarBorderLight: "#E4E4E7",
 
+    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
@@ -39,28 +48,31 @@ const tokens = {
     textMutedDark: "#94A3B8",
     textMutedLight: "#6B7280",
 
+    // Empty state
     emptyIconBgDark: "rgba(255,255,255,0.10)",
     emptyIconBgLight: "#F1F5F9",
     emptyTitleDark: "#E5E7EB",
     emptyTitleLight: "#334155",
     emptySubtitleDark: "#94A3B8",
     emptySubtitleLight: "#64748B",
+
+    // Nota
+    noteBorderDark: "rgba(255,255,255,0.08)",
+    noteBorderLight: "rgba(0,0,0,0.06)",
   },
-  radius: { lg: 16, md: 12, sm: 8 },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
 } as const;
 
-type ResumenEstres = {
-  verde?: number;
-  ambar?: number;
-  rojo?: number;
-};
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
 
-type DetalleDia = {
-  fecha?: string;
-  nivelEstres?: number;
-  color?: "verde" | "ambar" | "rojo";
-};
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+type ResumenEstres = { verde?: number; ambar?: number; rojo?: number };
+type DetalleDia = { fecha?: string; nivelEstres?: number; color?: "verde" | "ambar" | "rojo" };
 
 type Props = {
   diasActivos?: number;
@@ -68,6 +80,7 @@ type Props = {
   detalles?: DetalleDia[];
 };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 const DiasColorEstresCard: React.FC<Props> = ({ diasActivos, resumen, detalles }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -75,17 +88,16 @@ const DiasColorEstresCard: React.FC<Props> = ({ diasActivos, resumen, detalles }
   const totalVerde = resumen?.verde ?? 0;
   const totalAmbar = resumen?.ambar ?? 0;
   const totalRojo = resumen?.rojo ?? 0;
-
   const total = totalVerde + totalAmbar + totalRojo;
-  const safeDiasActivos = diasActivos ?? total;
 
+  const safeDiasActivos = diasActivos ?? total;
   const pct = (count: number) => (total > 0 ? Math.round((count / total) * 100) : 0);
   const hasData = total > 0;
 
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={tokens.color.frameGradient as any}
+        colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}
@@ -121,15 +133,9 @@ const DiasColorEstresCard: React.FC<Props> = ({ diasActivos, resumen, detalles }
 
 export default DiasColorEstresCard;
 
+// ── CardBody ──────────────────────────────────────────────────────────────────
 function CardBody({
-  isDark,
-  diasActivos,
-  totalVerde,
-  totalAmbar,
-  totalRojo,
-  total,
-  pct,
-  detalles,
+  isDark, diasActivos, totalVerde, totalAmbar, totalRojo, total, pct, detalles,
 }: {
   isDark: boolean;
   diasActivos: number;
@@ -150,12 +156,17 @@ function CardBody({
 
   return (
     <View style={styles.cardBody}>
+      {/* Header — misma tipografía que IMCVisual */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View
             style={[
               styles.iconWrap,
-              { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+              {
+                backgroundColor: isDark
+                  ? tokens.color.iconBgDark
+                  : tokens.color.iconBgLight,
+              },
             ]}
           >
             <ThermometerSun
@@ -165,7 +176,9 @@ function CardBody({
           </View>
 
           <View>
-            <Text style={[styles.headerTitle, { color: textPrimary }]}>Días por nivel de estrés</Text>
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>
+              Días por nivel de estrés
+            </Text>
             <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
               Mapa de cómo se han sentido tus entrenos
             </Text>
@@ -174,15 +187,22 @@ function CardBody({
 
         <View style={styles.headerRight}>
           <Text style={[styles.headerKpiLabel, { color: textMuted }]}>Días activos</Text>
-          <Text style={[styles.headerKpiValue, { color: textPrimary }]}>{diasActivos || "–"}</Text>
+          <Text style={[styles.headerKpiValue, { color: textPrimary }]}>
+            {diasActivos || "–"}
+          </Text>
         </View>
       </View>
 
+      {/* Barra apilada + leyenda */}
       <View style={styles.summary}>
         <View
           style={[
             styles.stackedBar,
-            { backgroundColor: isDark ? tokens.color.trackDark : tokens.color.trackLight },
+            {
+              backgroundColor: isDark
+                ? tokens.color.trackDark
+                : tokens.color.trackLight,
+            },
           ]}
         >
           <View style={{ width: `${verdePct}%`, backgroundColor: tokens.color.green }} />
@@ -191,37 +211,30 @@ function CardBody({
         </View>
 
         <View style={styles.legendRow}>
-          <LegendItem
-            isDark={isDark}
-            color={tokens.color.green}
-            label="Días suaves"
-            value={totalVerde}
-            pct={pct(totalVerde)}
-          />
-          <LegendItem
-            isDark={isDark}
-            color={tokens.color.amber}
-            label="Días moderados"
-            value={totalAmbar}
-            pct={pct(totalAmbar)}
-          />
-          <LegendItem
-            isDark={isDark}
-            color={tokens.color.red}
-            label="Días muy duros"
-            value={totalRojo}
-            pct={pct(totalRojo)}
-          />
+          <LegendItem isDark={isDark} color={tokens.color.green} label="Días suaves" value={totalVerde} pct={pct(totalVerde)} />
+          <LegendItem isDark={isDark} color={tokens.color.amber} label="Días moderados" value={totalAmbar} pct={pct(totalAmbar)} />
+          <LegendItem isDark={isDark} color={tokens.color.red} label="Días muy duros" value={totalRojo} pct={pct(totalRojo)} />
         </View>
       </View>
 
+      {/* Calendario */}
       {detalles && detalles.length > 0 && (
         <View style={styles.calendarWrap}>
           <CalendarHeatmap isDark={isDark} detalles={detalles} />
         </View>
       )}
 
-      <View style={styles.note}>
+      {/* Nota */}
+      <View
+        style={[
+          styles.note,
+          {
+            borderTopColor: isDark
+              ? tokens.color.noteBorderDark
+              : tokens.color.noteBorderLight,
+          },
+        ]}
+      >
         <Text style={[styles.noteText, { color: textSecondary }]}>
           Busca muchos días en verde, algunos ámbar y pocos rojos: así construyes progreso sin
           pasarte de carga.
@@ -231,12 +244,9 @@ function CardBody({
   );
 }
 
+// ── LegendItem ────────────────────────────────────────────────────────────────
 function LegendItem({
-  isDark,
-  color,
-  label,
-  value,
-  pct,
+  isDark, color, label, value, pct,
 }: {
   isDark: boolean;
   color: string;
@@ -262,6 +272,7 @@ function LegendItem({
   );
 }
 
+// ── CalendarHeatmap ───────────────────────────────────────────────────────────
 function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: DetalleDia[] }) {
   const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
   const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textMutedLight;
@@ -271,7 +282,6 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
     const map = new Map<string, "verde" | "ambar" | "rojo">();
     for (const d of detalles) {
       if (!d.fecha) continue;
-
       let c: "verde" | "ambar" | "rojo";
       if (d.color) {
         c = d.color;
@@ -280,58 +290,38 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
       } else {
         c = "verde";
       }
-
-      const key = new Date(d.fecha).toISOString().slice(0, 10);
-      map.set(key, c);
+      map.set(new Date(d.fecha).toISOString().slice(0, 10), c);
     }
     return map;
   }, [detalles]);
 
   const refDate = useMemo(() => {
     if (!detalles.length) return new Date();
-    const validDates = detalles
+    const valid = detalles
       .map((d) => (d.fecha ? new Date(d.fecha) : null))
       .filter((d): d is Date => !!d && !Number.isNaN(d.getTime()));
-    if (!validDates.length) return new Date();
-    return validDates.reduce((a, b) => (b > a ? b : a));
+    return valid.length ? valid.reduce((a, b) => (b > a ? b : a)) : new Date();
   }, [detalles]);
 
   const year = refDate.getFullYear();
   const month = refDate.getMonth();
   const firstOfMonth = new Date(year, month, 1);
-  const lastOfMonth = new Date(year, month + 1, 0);
-  const firstWeekday = firstOfMonth.getDay();
-  const daysInMonth = lastOfMonth.getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = (firstOfMonth.getDay() - 1 + 7) % 7;
 
-  const startOffset = (firstWeekday - 1 + 7) % 7;
-
-  const cells: { key: string; dayNumber: number | null; color: "verde" | "ambar" | "rojo" | null }[] =
-    [];
-
-  for (let i = 0; i < startOffset; i++) {
-    cells.push({ key: `empty-${i}`, dayNumber: null, color: null });
-  }
-
+  const cells: { key: string; dayNumber: number | null; color: "verde" | "ambar" | "rojo" | null }[] = [];
+  for (let i = 0; i < startOffset; i++) cells.push({ key: `empty-${i}`, dayNumber: null, color: null });
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month, day);
     const key = d.toISOString().slice(0, 10);
-    const c = dayMap.get(key) ?? null;
-    cells.push({ key, dayNumber: day, color: c });
+    cells.push({ key, dayNumber: day, color: dayMap.get(key) ?? null });
   }
 
   const bgNeutral = isDark ? tokens.color.calendarNeutralDark : tokens.color.calendarNeutralLight;
-
-  const getBg = (c: "verde" | "ambar" | "rojo" | null) => {
-    if (c === "verde") return tokens.color.green;
-    if (c === "ambar") return tokens.color.amber;
-    if (c === "rojo") return tokens.color.red;
-    return bgNeutral;
-  };
-
-  const getTextColor = (c: "verde" | "ambar" | "rojo" | null) => {
-    if (!c) return isDark ? "#CBD5F5" : "#4B5563";
-    return "#F9FAFB";
-  };
+  const getBg = (c: "verde" | "ambar" | "rojo" | null) =>
+    c === "verde" ? tokens.color.green : c === "ambar" ? tokens.color.amber : c === "rojo" ? tokens.color.red : bgNeutral;
+  const getTColor = (c: "verde" | "ambar" | "rojo" | null) =>
+    c ? "#F9FAFB" : isDark ? "#CBD5F5" : "#4B5563";
 
   const monthName = refDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
   const weekdayLabels = ["L", "M", "X", "J", "V", "S", "D"];
@@ -357,26 +347,26 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
       <View style={styles.grid}>
         {cells.map((cell) => {
           if (cell.dayNumber == null) {
-            return <View key={cell.key} style={{ width: `${100 / 7}%`, height: cellSize, marginBottom: 4 }} />;
+            return (
+              <View
+                key={cell.key}
+                style={{ width: `${100 / 7}%`, height: cellSize, marginBottom: 4 }}
+              />
+            );
           }
-
           const bg = getBg(cell.color);
-          const tColor = getTextColor(cell.color);
+          const tColor = getTColor(cell.color);
           const borderWidth = cell.color ? 0 : 1;
-          const borderColor = isDark ? tokens.color.calendarBorderDark : tokens.color.calendarBorderLight;
+          const borderColor = isDark
+            ? tokens.color.calendarBorderDark
+            : tokens.color.calendarBorderLight;
 
           return (
             <View key={cell.key} style={styles.gridCellWrap}>
               <View
                 style={[
                   styles.gridCell,
-                  {
-                    width: cellSize,
-                    height: cellSize,
-                    backgroundColor: bg,
-                    borderWidth,
-                    borderColor,
-                  },
+                  { width: cellSize, height: cellSize, backgroundColor: bg, borderWidth, borderColor },
                 ]}
               >
                 <Text style={[styles.gridDay, { color: tColor }]}>{cell.dayNumber}</Text>
@@ -389,16 +379,23 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
   );
 }
 
+// ── EmptyState ────────────────────────────────────────────────────────────────
 function EmptyState({ isDark }: { isDark: boolean }) {
   return (
     <View style={styles.emptyState}>
       <View
         style={[
           styles.emptyIcon,
-          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+          {
+            backgroundColor: isDark
+              ? tokens.color.emptyIconBgDark
+              : tokens.color.emptyIconBgLight,
+          },
         ]}
       >
-        <Text style={{ color: isDark ? tokens.color.emptyTitleDark : tokens.color.emptySubtitleLight }}>🌡️</Text>
+        <Text style={{ color: isDark ? tokens.color.emptyTitleDark : tokens.color.emptySubtitleLight }}>
+          🌡️
+        </Text>
       </View>
       <Text
         style={[
@@ -421,25 +418,32 @@ function EmptyState({ isDark }: { isDark: boolean }) {
   );
 }
 
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { width: "100%", maxWidth: 520 },
 
+  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
+  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
-  cardBody: {
-    borderRadius: tokens.radius.lg - 1,
-  },
+  cardBody: { borderRadius: tokens.radius.lg - 1 },
 
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -462,29 +466,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  headerRight: {
-    alignItems: "flex-end",
-  },
+  headerSubtitle: { fontSize: 11, marginTop: 2 },
+  headerRight: { alignItems: "flex-end" },
   headerKpiLabel: {
     fontSize: 10,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  headerKpiValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 24,
-  },
+  headerKpiValue: { fontSize: 20, fontWeight: "800", lineHeight: 24 },
 
+  // Barra apilada
   summary: {
     paddingHorizontal: tokens.spacing.lg,
     marginTop: tokens.spacing.xs,
@@ -502,28 +498,13 @@ const styles = StyleSheet.create({
     marginTop: tokens.spacing.sm,
     gap: tokens.spacing.sm,
   },
-  legendItem: {
-    flex: 1,
-  },
-  legendTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-  },
-  legendLabel: {
-    fontSize: 11,
-  },
-  legendValue: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 2,
-  },
+  legendItem: { flex: 1 },
+  legendTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 999 },
+  legendLabel: { fontSize: 11 },
+  legendValue: { fontSize: 13, fontWeight: "700", marginTop: 2 },
 
+  // Calendario
   calendarWrap: {
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
@@ -534,53 +515,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: tokens.spacing.sm,
   },
-  calTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  calMonth: {
-    fontSize: 11,
-  },
-  weekdays: {
-    flexDirection: "row",
-    marginBottom: tokens.spacing.xs,
-  },
-  weekdayCell: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 2,
-  },
-  weekdayText: {
-    fontSize: 11,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  gridCellWrap: {
-    width: `${100 / 7}%`,
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  gridCell: {
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  gridDay: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  calTitle: { fontSize: 12, fontWeight: "600" },
+  calMonth: { fontSize: 11 },
+  weekdays: { flexDirection: "row", marginBottom: tokens.spacing.xs },
+  weekdayCell: { flex: 1, alignItems: "center", paddingVertical: 2 },
+  weekdayText: { fontSize: 11 },
+  grid: { flexDirection: "row", flexWrap: "wrap" },
+  gridCellWrap: { width: `${100 / 7}%`, alignItems: "center", marginBottom: 4 },
+  gridCell: { borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  gridDay: { fontSize: 12, fontWeight: "700" },
 
+  // Nota inferior
   note: {
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
     paddingHorizontal: tokens.spacing.lg,
     paddingTop: tokens.spacing.md,
     paddingBottom: tokens.spacing.lg,
   },
   noteText: { fontSize: 11 },
 
+  // Empty state
   emptyState: {
     borderRadius: tokens.radius.lg - 1,
     alignItems: "center",
@@ -596,14 +550,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: tokens.spacing.lg,
   },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    marginTop: tokens.spacing.xs,
-    textAlign: "center",
-  },
+  emptyTitle: { fontSize: 14, fontWeight: "600", textAlign: "center" },
+  emptySubtitle: { fontSize: 12, marginTop: tokens.spacing.xs, textAlign: "center" },
 });

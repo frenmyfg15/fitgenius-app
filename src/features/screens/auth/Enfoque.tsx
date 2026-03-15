@@ -39,17 +39,17 @@ const TODOS_SIN_COMPLETO: Enfoque[] = [
  * Images generated previously (PNG with transparent background)
  */
 const MUSCLE_IMAGES: Record<Exclude<Enfoque, "COMPLETO">, any> = {
-  ESPALDA: require("../../../../assets/register/enfoque/espalda.png"),
-  HOMBROS: require("../../../../assets/register/enfoque/hombro.png"),
-  PECHOS: require("../../../../assets/register/enfoque/pecho.png"),
-  BRAZOS: require("../../../../assets/register/enfoque/brazos.png"),
-  ABS: require("../../../../assets/register/enfoque/abs.png"),
-  GLUTEOS: require("../../../../assets/register/enfoque/gluteos.png"),
-  PIERNAS: require("../../../../assets/register/enfoque/piernas.png"),
+  ESPALDA: require("../../../../assets/register/enfoque/espalda.webp"),
+  HOMBROS: require("../../../../assets/register/enfoque/hombro.webp"),
+  PECHOS: require("../../../../assets/register/enfoque/pecho.webp"),
+  BRAZOS: require("../../../../assets/register/enfoque/brazos.webp"),
+  ABS: require("../../../../assets/register/enfoque/abs.webp"),
+  GLUTEOS: require("../../../../assets/register/enfoque/gluteos.webp"),
+  PIERNAS: require("../../../../assets/register/enfoque/piernas.webp"),
 };
 
 // ✅ add an image for COMPLETO (use your preferred asset)
-const COMPLETO_IMAGE = require("../../../../assets/register/enfoque/completo.png");
+const COMPLETO_IMAGE = require("../../../../assets/register/enfoque/completo.webp");
 
 type CardItem = {
   id: Enfoque;
@@ -135,17 +135,15 @@ export default function EnfoqueScreen() {
       >
         <View className="items-center mb-4">
           <Text
-            className={`text-center text-lg font-semibold p-2 ${
-              isDark ? "text-white" : "text-neutral-900"
-            }`}
+            className={`text-center text-lg font-semibold p-2 ${isDark ? "text-white" : "text-neutral-900"
+              }`}
           >
             ¿Tienes algún enfoque?
           </Text>
 
           <Text
-            className={`text-center text-sm ${
-              isDark ? "text-neutral-300" : "text-neutral-600"
-            }`}
+            className={`text-center text-sm ${isDark ? "text-neutral-300" : "text-neutral-600"
+              }`}
           >
             Selecciona uno o varios músculos que quieras priorizar.
           </Text>

@@ -32,14 +32,13 @@ type Message = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  ejercicioId?: number; // ejercicio simple
-  ejercicioCompuestoId?: number; // ejercicio compuesto
+  ejercicioId?: number;
+  ejercicioCompuestoId?: number;
   esCompuesto?: boolean;
 };
 
 const MAX_USER_QUESTIONS = 10;
 
-// Cambia esta ruta por la de tu logo real
 const LOGO_SOURCE: ImageSourcePropType = require("../../../../assets/logo.png");
 
 const ExerciseQuestionModal: React.FC<Props> = ({
@@ -56,8 +55,9 @@ const ExerciseQuestionModal: React.FC<Props> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Animación de zoom del logo (zoom + / zoom -)
   const logoScale = useRef(new Animated.Value(1)).current;
+  // 🔹 Ref para el ScrollView
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const loopAnimation = Animated.loop(
@@ -74,28 +74,32 @@ const ExerciseQuestionModal: React.FC<Props> = ({
         }),
       ])
     );
-
     loopAnimation.start();
-
-    return () => {
-      loopAnimation.stop();
-    };
+    return () => loopAnimation.stop();
   }, [logoScale]);
 
-  // 🎛️ Paleta glass en línea con IMCVisual
+  // 🔹 Scroll al último mensaje cada vez que cambian los mensajes o el estado de carga
+  useEffect(() => {
+    if (messages.length > 0 || loading) {
+      // Pequeño timeout para que el layout se complete antes de hacer scroll
+      const timer = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, loading]);
+
   const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
   const cardBgDark = "rgba(20, 28, 44, 0.9)";
   const cardBorderDark = "rgba(255,255,255,0.08)";
   const textPrimaryDark = "#e5e7eb";
   const textSecondaryDark = "#94a3b8";
 
-  // Burbujas pastel
-  const pastelUserLight = "#bfdbfe"; // azul pastel
-  const pastelUserDark = "#38bdf8"; // algo más vivo en dark
-  const pastelAssistantLight = "#e5e7eb"; // gris suave
+  const pastelUserLight = "#bfdbfe";
+  const pastelUserDark = "#38bdf8";
+  const pastelAssistantLight = "#e5e7eb";
   const pastelAssistantDark = "rgba(39,39,42,0.9)";
 
-  // Reset cuando se cierra el modal
   useEffect(() => {
     if (!visible) {
       setMessages([]);
@@ -159,9 +163,7 @@ const ExerciseQuestionModal: React.FC<Props> = ({
         ? await preguntarEjercicioCompuestoIA(targetId, q, historial)
         : await preguntarEjercicioIA(targetId, q, historial);
 
-      if (!respuesta) {
-        return;
-      }
+      if (!respuesta) return;
 
       const assistantMessage: Message = {
         id: `${Date.now()}-assistant`,
@@ -175,8 +177,7 @@ const ExerciseQuestionModal: React.FC<Props> = ({
       Toast.show({
         type: "error",
         text1: "Error",
-        text2:
-          "No he podido responder ahora mismo. Inténtalo de nuevo en unos minutos.",
+        text2: "No he podido responder ahora mismo. Inténtalo de nuevo en unos minutos.",
       });
     } finally {
       setLoading(false);
@@ -190,13 +191,11 @@ const ExerciseQuestionModal: React.FC<Props> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      {/* KeyboardAvoidingView para evitar que el teclado tape el input */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
-        {/* Fondo oscuro, cierra al tocar fuera */}
         <Pressable
           onPress={onClose}
           style={{
@@ -207,22 +206,19 @@ const ExerciseQuestionModal: React.FC<Props> = ({
             paddingHorizontal: 24,
           }}
         >
-          {/* Card del chat (no cierra al tocar dentro) */}
           <Pressable
-            onPress={() => {}}
+            onPress={() => { }}
             style={{
               width: "100%",
               maxWidth: 480,
               height: "70%",
             }}
           >
-            {/* Marco degradado tipo IMCVisual */}
             <LinearGradient
               colors={marcoGradient as any}
               className="rounded-2xl p-[1px]"
               style={{ borderRadius: 18, overflow: "hidden", flex: 1 }}
             >
-              {/* Card glassy */}
               <View
                 className="rounded-2xl shadow p-5"
                 style={{
@@ -243,13 +239,9 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                         borderRadius: 999,
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: isDark
-                          ? "rgba(15,23,42,0.9)"
-                          : "#f3f4f6",
+                        backgroundColor: isDark ? "rgba(15,23,42,0.9)" : "#f3f4f6",
                         borderWidth: 1,
-                        borderColor: isDark
-                          ? "rgba(148,163,184,0.5)"
-                          : "#e5e7eb",
+                        borderColor: isDark ? "rgba(148,163,184,0.5)" : "#e5e7eb",
                       }}
                     >
                       <MessageCircle
@@ -260,22 +252,14 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                     <View className="flex-1">
                       <Text
                         className="text-sm font-semibold"
-                        style={{
-                          color: isDark ? textPrimaryDark : "#0f172a",
-                        }}
+                        style={{ color: isDark ? textPrimaryDark : "#0f172a" }}
                         numberOfLines={1}
                       >
-                        {esCompuesto
-                          ? "Coach IA · Ejercicio compuesto"
-                          : "Coach IA · Ejercicio"}
+                        {esCompuesto ? "Coach IA · Ejercicio compuesto" : "Coach IA · Ejercicio"}
                       </Text>
-
-                      {/* 🔹 Subtítulo más corto y seguro en 1–2 líneas */}
                       <Text
                         className="text-[11px] mt-[2px]"
-                        style={{
-                          color: isDark ? textSecondaryDark : "#6b7280",
-                        }}
+                        style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
                         numberOfLines={2}
                       >
                         {esCompuesto
@@ -286,28 +270,25 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                   </View>
                 </View>
 
-                {/* Chat */}
+                {/* 🔹 ScrollView con ref y onContentSizeChange para scroll automático */}
                 <ScrollView
+                  ref={scrollViewRef}
                   style={{ flex: 1 }}
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 4 }}
+                  contentContainerStyle={{ paddingVertical: 4, flexGrow: 1 }}
                   keyboardShouldPersistTaps="handled"
+                  onContentSizeChange={() =>
+                    scrollViewRef.current?.scrollToEnd({ animated: true })
+                  }
                 >
                   {messages.map((m) => {
                     const isUser = m.from === "user";
                     const bubbleBg = isUser
-                      ? isDark
-                        ? pastelUserDark
-                        : pastelUserLight
-                      : isDark
-                      ? pastelAssistantDark
-                      : pastelAssistantLight;
-
+                      ? isDark ? pastelUserDark : pastelUserLight
+                      : isDark ? pastelAssistantDark : pastelAssistantLight;
                     const textColor = isUser
                       ? "#0f172a"
-                      : isDark
-                      ? textPrimaryDark
-                      : "#111827";
+                      : isDark ? textPrimaryDark : "#111827";
 
                     return (
                       <View
@@ -320,34 +301,22 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                           backgroundColor: bubbleBg,
                           borderWidth: 1,
                           borderColor: isUser
-                            ? isDark
-                              ? "rgba(125,211,252,0.6)"
-                              : "rgba(147,197,253,0.8)"
-                            : isDark
-                            ? "rgba(148,163,184,0.25)"
-                            : "rgba(209,213,219,0.8)",
+                            ? isDark ? "rgba(125,211,252,0.6)" : "rgba(147,197,253,0.8)"
+                            : isDark ? "rgba(148,163,184,0.25)" : "rgba(209,213,219,0.8)",
                         }}
                       >
-                        <Text
-                          className="text-sm"
-                          style={{
-                            color: textColor,
-                          }}
-                        >
+                        <Text className="text-sm" style={{ color: textColor }}>
                           {m.text}
                         </Text>
                       </View>
                     );
                   })}
 
-                  {/* Mensaje de ejemplo inicial (si aún no hay chat) */}
                   {messages.length === 0 && !loading && (
                     <View className="mt-1">
                       <Text
                         className="text-[11px] leading-4"
-                        style={{
-                          color: isDark ? textSecondaryDark : "#6b7280",
-                        }}
+                        style={{ color: isDark ? textSecondaryDark : "#6b7280" }}
                       >
                         Ejemplos:
                         {"\n"}• ¿Es buena combinación para mi objetivo?
@@ -357,14 +326,11 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                     </View>
                   )}
 
-                  {/* Indicador de carga */}
                   {loading && (
                     <View
                       className="mt-2 max-w-[70%] rounded-2xl px-3 py-2 self-start flex-row items-center"
                       style={{
-                        backgroundColor: isDark
-                          ? pastelAssistantDark
-                          : pastelAssistantLight,
+                        backgroundColor: isDark ? pastelAssistantDark : pastelAssistantLight,
                         borderWidth: 1,
                         borderColor: isDark
                           ? "rgba(148,163,184,0.25)"
@@ -383,9 +349,7 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                       />
                       <Text
                         className="text-[11px] ml-2"
-                        style={{
-                          color: isDark ? textSecondaryDark : "#4b5563",
-                        }}
+                        style={{ color: isDark ? textSecondaryDark : "#4b5563" }}
                       >
                         Pensando la mejor respuesta...
                       </Text>
@@ -398,13 +362,9 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                   <View
                     className="flex-1 rounded-full px-3 py-[2px] flex-row items-center"
                     style={{
-                      backgroundColor: isDark
-                        ? "rgba(15,23,42,0.9)"
-                        : "#f3f4f6",
+                      backgroundColor: isDark ? "rgba(15,23,42,0.9)" : "#f3f4f6",
                       borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(148,163,184,0.5)"
-                        : "#e5e7eb",
+                      borderColor: isDark ? "rgba(148,163,184,0.5)" : "#e5e7eb",
                     }}
                   >
                     <TextInput
@@ -451,21 +411,16 @@ const ExerciseQuestionModal: React.FC<Props> = ({
                 <View className="mt-2">
                   <Text
                     className="text-[10px] text-right"
-                    style={{
-                      color: isDark ? textSecondaryDark : "#9ca3af",
-                    }}
+                    style={{ color: isDark ? textSecondaryDark : "#9ca3af" }}
                   >
                     Máx. {MAX_USER_QUESTIONS} preguntas por sesión.
                   </Text>
-
-                  {/* 🔹 Aviso de que el chat no se guarda */}
                   <Text
                     className="text-[10px] mt-1 text-right"
-                    style={{
-                      color: isDark ? textSecondaryDark : "#9ca3af",
-                    }}
+                    style={{ color: isDark ? textSecondaryDark : "#9ca3af" }}
                   >
-                    Este chat <Text style={{ fontWeight: "700" }}>no se guarda</Text>: al cerrar se borra el historial.
+                    Este chat{" "}
+                    <Text style={{ fontWeight: "700" }}>no se guarda</Text>: al cerrar se borra el historial.
                   </Text>
                 </View>
               </View>

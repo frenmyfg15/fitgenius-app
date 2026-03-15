@@ -1,23 +1,42 @@
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
-/**
- * EstadisticasRendimientoCompuestos
- * Calcula métricas de una sesión compuesta a partir de registros planos:
- *   - total de sets (series únicas)
- *   - total de repeticiones
- *   - volumen total (peso * reps)
- *   - peso promedio por rep
- *   - reps promedio por set
- *   - peso máximo y reps máximas
- *   - número de ejercicios en la sesión
- *
- * Espera la misma forma de datos que ya normalizaste en el panel:
- * [{ serieNumero, ejercicioId, nombre, pesoKg, repeticiones, duracionSegundos }]
- */
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
+const tokens = {
+  color: {
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
+
+    cardBgDark: "rgba(15,24,41,1)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    kpiBgDark: "rgba(255,255,255,0.05)",
+    kpiBgLight: "rgba(255,255,255,0.80)",
+    kpiBorderDark: "rgba(255,255,255,0.10)",
+    kpiBorderLight: "rgba(255,255,255,0.60)",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#94A3B8",
+    textSecondaryLight: "#6B7280",
+  },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type RegistroPlanoCompuesto = {
   serieNumero: number;
   ejercicioId: number;
@@ -30,10 +49,9 @@ type RegistroPlanoCompuesto = {
   musculoPrincipal?: string;
 };
 
-type Props = {
-  registros: RegistroPlanoCompuesto[];
-};
+type Props = { registros: RegistroPlanoCompuesto[] };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function EstadisticasRendimientoCompuestos({ registros }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -45,7 +63,7 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
     const ejerciciosUnicos = new Set<number>();
 
     let totalReps = 0;
-    let volumenTotal = 0; // peso * reps
+    let volumenTotal = 0;
     let maxPeso = 0;
     let maxReps = 0;
 
@@ -58,7 +76,6 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
 
       totalReps += reps;
       volumenTotal += peso * reps;
-
       if (peso > maxPeso) maxPeso = peso;
       if (reps > maxReps) maxReps = reps;
     }
@@ -66,7 +83,6 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
     const totalSeries = setsUnicos.size;
     const pesoPromedioPorRep = totalReps ? volumenTotal / totalReps : 0;
     const repsPromedioPorSet = totalSeries ? totalReps / totalSeries : 0;
-    const ejerciciosSesion = ejerciciosUnicos.size;
 
     return {
       totalSeries,
@@ -76,7 +92,7 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
       repsPromedioPorSet,
       maxPeso,
       maxReps,
-      ejerciciosSesion,
+      ejerciciosSesion: ejerciciosUnicos.size,
     };
   }, [registros]);
 
@@ -91,79 +107,66 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
     { label: "Ejercicios en sesión", value: stats.ejerciciosSesion, suffix: "" },
   ];
 
-  const hasData =
-    stats.totalSeries > 0 && (stats.totalReps > 0 || stats.volumenTotal > 0);
+  const hasData = stats.totalSeries > 0 && (stats.totalReps > 0 || stats.volumenTotal > 0);
 
-  const marcoColors = isDark
-    ? ["#111a2b", "#0b1220", "#111a2b"]
-    : ["#39ff14", "#14ff80", "#22c55e"];
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
 
   return (
-    <View accessibilityLabel="Estadísticas de rendimiento (compuestos)" className="w-full">
-      {/* Marco degradado */}
+    <View
+      accessibilityLabel="Estadísticas de rendimiento (compuestos)"
+      style={styles.root}
+    >
       <LinearGradient
-        colors={marcoColors as any}
-        className="rounded-2xl p-[2px]"
-        style={{ borderRadius: 15, overflow: "hidden" }}
+        colors={GRADIENT as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.frame}
       >
-        {/* Panel */}
         <View
-          className={
-            "rounded-2xl shadow-md " +
-            (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white/90 border border-white/60")
-          }
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
         >
-          {/* Header */}
-          <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-            <Text className={isDark ? "text-white font-semibold" : "text-slate-900 font-semibold"}>
+          {/* Header — misma tipografía que IMCVisual */}
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: textPrimary }]}>
               Resumen del rendimiento (compuestos)
             </Text>
-            <Text className={isDark ? "text-[#94a3b8] text-[11px]" : "text-neutral-500 text-[11px]"}>
+            <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
               Unidad:{" "}
-              <Text className={isDark ? "text-white font-medium" : "text-slate-700 font-medium"}>
+              <Text style={[styles.headerSubtitleBold, { color: textPrimary }]}>
                 {unit}
               </Text>
             </Text>
           </View>
 
           {/* Contenido */}
-          <View className="px-4 pb-5">
+          <View style={styles.body}>
             {hasData ? (
-              <View className="flex-row flex-wrap gap-3">
+              <View style={styles.grid}>
                 {items.map((it) => (
                   <View
                     key={it.label}
-                    className={
-                      "rounded-xl px-4 py-3 " +
-                      (isDark ? "bg-white/5 border border-white/10" : "bg-white/80 border border-white/60")
-                    }
-                    style={{ width: "48%" }} // 2 columnas responsivas
+                    style={[
+                      styles.kpi,
+                      {
+                        backgroundColor: isDark ? tokens.color.kpiBgDark : tokens.color.kpiBgLight,
+                        borderColor: isDark ? tokens.color.kpiBorderDark : tokens.color.kpiBorderLight,
+                      },
+                    ]}
                     accessibilityLabel={`${it.label}: ${it.value}${it.suffix}`}
                   >
-                    <Text
-                      className={
-                        isDark
-                          ? "text-[#94a3b8] text-[11px] font-semibold"
-                          : "text-neutral-500 text-[11px] font-semibold"
-                      }
-                    >
+                    <Text style={[styles.kpiLabel, { color: textSecondary }]}>
                       {it.label}
                     </Text>
-                    <Text
-                      className={
-                        isDark
-                          ? "text-white text-xl font-extrabold mt-1"
-                          : "text-slate-900 text-xl font-extrabold mt-1"
-                      }
-                    >
+                    <Text style={[styles.kpiValue, { color: textPrimary }]}>
                       {it.value}
-                      <Text
-                        className={
-                          isDark
-                            ? "text-[#94a3b8] text-xs font-semibold ml-1"
-                            : "text-neutral-500 text-xs font-semibold ml-1"
-                        }
-                      >
+                      <Text style={[styles.kpiSuffix, { color: textSecondary }]}>
                         {it.suffix}
                       </Text>
                     </Text>
@@ -171,8 +174,8 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
                 ))}
               </View>
             ) : (
-              <View className="h-24 items-center justify-center">
-                <Text className={isDark ? "text-[#94a3b8] text-sm" : "text-neutral-500 text-sm"}>
+              <View style={styles.empty}>
+                <Text style={[styles.emptyText, { color: textSecondary }]}>
                   Aún no hay datos suficientes para calcular estadísticas.
                 </Text>
               </View>
@@ -183,3 +186,85 @@ export default function EstadisticasRendimientoCompuestos({ registros }: Props) 
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: { width: "100%" },
+
+  // Frame — valores exactos de IMCVisual
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  // Card interior — sombra añadida igual que IMCVisual
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: tokens.spacing.xl,
+    paddingTop: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  headerSubtitle: { fontSize: 11 },
+  headerSubtitleBold: { fontWeight: "600" },
+
+  // Body
+  body: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.xl,
+  },
+
+  // Grid de KPIs
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.md,
+  },
+  kpi: {
+    width: "48%",
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
+    borderWidth: 1,
+  },
+  kpiLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  kpiValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: tokens.spacing.xs,
+  },
+  kpiSuffix: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  // Empty
+  empty: {
+    height: 96,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: { fontSize: 14 },
+});

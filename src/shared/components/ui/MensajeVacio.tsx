@@ -36,16 +36,16 @@ interface MensajeVacioProps {
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 const images = {
-  pesa: require("../../../../assets/mensajeVacio/pesa.png"),
-  feed: require("../../../../assets/mensajeVacio/feed.png"),
-  analisis: require("../../../../assets/mensajeVacio/analisis.png"),
-  campana: require("../../../../assets/mensajeVacio/campana.png"),
-  amigos: require("../../../../assets/mensajeVacio/amigos.png"),
-  descanso: require("../../../../assets/mensajeVacio/descanso.png"),
-  estadistica: require("../../../../assets/mensajeVacio/estadistica.png"),
-  crear: require("../../../../assets/mensajeVacio/crear.png"),
-  nopost: require("../../../../assets/mensajeVacio/nopost.png"),
-  rutinas: require("../../../../assets/mensajeVacio/rutinas.png"),
+  pesa: require("../../../../assets/mensajeVacio/pesa.webp"),
+  feed: require("../../../../assets/mensajeVacio/feed.webp"),
+  analisis: require("../../../../assets/mensajeVacio/analisis.webp"),
+  campana: require("../../../../assets/mensajeVacio/campana.webp"),
+  amigos: require("../../../../assets/mensajeVacio/amigos.webp"),
+  descanso: require("../../../../assets/mensajeVacio/descanso.webp"),
+  estadistica: require("../../../../assets/mensajeVacio/estadistica.webp"),
+  crear: require("../../../../assets/mensajeVacio/crear.webp"),
+  nopost: require("../../../../assets/mensajeVacio/nopost.webp"),
+  rutinas: require("../../../../assets/mensajeVacio/rutinas.webp"),
 } as const;
 
 const getImage = (name: string) => (images as any)[name] ?? images.pesa;

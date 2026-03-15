@@ -5,26 +5,33 @@ import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-chart-kit";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
   color: {
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    // Frame gradient — 3 colores igual que IMCVisual
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
 
-    cardBgDark: "rgba(15,24,41,0.75)",
+    // Card interior
+    cardBgDark: "rgba(15,24,41,1)",   // opaco, igual que IMCVisual
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
 
+    // Empty state
     emptyIconBgDark: "rgba(255,255,255,0.08)",
     emptyIconBgLight: "#F1F5F9",
     emptyBorderDark: "rgba(255,255,255,0.10)",
     emptyBorderLight: "rgba(0,0,0,0.06)",
 
+    // KPI cards
     kpiBgDark: "rgba(255,255,255,0.05)",
     kpiBgLight: "rgba(255,255,255,0.80)",
     kpiBorderDark: "rgba(255,255,255,0.09)",
     kpiBorderLight: "#E2E8F0",
 
+    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
@@ -32,6 +39,7 @@ const tokens = {
     textMutedDark: "#94A3B8",
     textMutedLight: "#475569",
 
+    // Chart
     chartLineDark: "rgba(34,197,94,1)",
     chartLineLight: "rgba(22,163,74,1)",
     chartFillDark: "#22C55E",
@@ -41,17 +49,24 @@ const tokens = {
     chartGridDark: "#1F2937",
     chartGridLight: "#E5E7EB",
   },
-  radius: { lg: 16, md: 12, sm: 8 },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
 } as const;
 
-// -------------------------------- Types --------------------------------
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type Props = {
   total: number;
   promedio: number;
   detalle: { fecha: string; calorias: number }[];
 };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -98,7 +113,7 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
   return (
     <View style={styles.root} onLayout={onLayout}>
       <LinearGradient
-        colors={tokens.color.frameGradient as any}
+        colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}
@@ -130,14 +145,7 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
 
 // ── CardBody ──────────────────────────────────────────────────────────────────
 function CardBody({
-  isDark,
-  labels,
-  values,
-  total,
-  promedio,
-  chartWidth,
-  chartConfig,
-  hasData,
+  isDark, labels, values, total, promedio, chartWidth, chartConfig, hasData,
 }: {
   isDark: boolean;
   labels: string[];
@@ -153,20 +161,23 @@ function CardBody({
 
   return (
     <View style={styles.cardBody}>
+      {/* Header — misma tipografía que IMCVisual */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>Calorías quemadas</Text>
-          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>Resumen reciente</Text>
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>
+            Calorías quemadas
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
+            Resumen reciente
+          </Text>
         </View>
       </View>
 
+      {/* Chart / Empty */}
       <View style={styles.chartWrapper}>
         {hasData ? (
           <LineChart
-            data={{
-              labels,
-              datasets: [{ data: values, strokeWidth: 3 }],
-            }}
+            data={{ labels, datasets: [{ data: values, strokeWidth: 3 }] }}
             width={chartWidth}
             height={220}
             yAxisInterval={1}
@@ -185,6 +196,7 @@ function CardBody({
         )}
       </View>
 
+      {/* Footer KPIs */}
       <View style={styles.footer}>
         <Kpi label="Total" value={total} suffix="kcal" isDark={isDark} />
         <Kpi label="Promedio" value={promedio} suffix="kcal" isDark={isDark} />
@@ -193,38 +205,9 @@ function CardBody({
   );
 }
 
-// ── KpiMini ───────────────────────────────────────────────────────────────────
-function KpiMini({
-  label,
-  value,
-  suffix,
-  isDark,
-}: {
-  label: string;
-  value: number;
-  suffix?: string;
-  isDark: boolean;
-}) {
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-
-  return (
-    <View style={styles.kpiMini}>
-      <Text style={[styles.kpiMiniLabel, { color: textMuted }]}>{label}</Text>
-      <Text style={[styles.kpiMiniValue, { color: textPrimary }]}>
-        {value}
-        {suffix ? <Text style={{ color: textMuted }}> {suffix}</Text> : null}
-      </Text>
-    </View>
-  );
-}
-
 // ── Kpi ───────────────────────────────────────────────────────────────────────
 function Kpi({
-  label,
-  value,
-  suffix,
-  isDark,
+  label, value, suffix, isDark,
 }: {
   label: string;
   value: number;
@@ -262,13 +245,21 @@ function EmptyState({ isDark }: { isDark: boolean }) {
     <View
       style={[
         styles.emptyState,
-        { borderTopColor: isDark ? tokens.color.emptyBorderDark : tokens.color.emptyBorderLight },
+        {
+          borderTopColor: isDark
+            ? tokens.color.emptyBorderDark
+            : tokens.color.emptyBorderLight,
+        },
       ]}
     >
       <View
         style={[
           styles.emptyIcon,
-          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+          {
+            backgroundColor: isDark
+              ? tokens.color.emptyIconBgDark
+              : tokens.color.emptyIconBgLight,
+          },
         ]}
       >
         <Text style={styles.emptyIconText}>📊</Text>
@@ -287,22 +278,30 @@ function EmptyState({ isDark }: { isDark: boolean }) {
 const styles = StyleSheet.create({
   root: { width: "100%", maxWidth: 520 },
 
+  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
+  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   cardBody: {
     borderRadius: tokens.radius.lg - 1,
   },
 
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -312,39 +311,22 @@ const styles = StyleSheet.create({
     paddingBottom: tokens.spacing.md,
   },
   headerTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
   headerSubtitle: {
     fontSize: 11,
     marginTop: 2,
   },
 
-  kpiMiniRow: {
-    flexDirection: "row",
-    gap: tokens.spacing.lg + tokens.spacing.xs,
-  },
-  kpiMini: {
-    alignItems: "flex-end",
-  },
-  kpiMiniLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  kpiMiniValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 24,
-  },
-
+  // Chart
   chartWrapper: {
     paddingHorizontal: tokens.spacing.md,
     paddingBottom: tokens.spacing.lg + tokens.spacing.xs,
   },
 
+  // Footer KPIs
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -373,6 +355,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  // Empty state
   emptyState: {
     borderRadius: tokens.radius.lg - 1,
     alignItems: "center",
@@ -389,9 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: tokens.spacing.lg,
   },
-  emptyIconText: {
-    fontSize: 28,
-  },
+  emptyIconText: { fontSize: 28 },
   emptyTitle: {
     fontSize: 14,
     fontWeight: "600",

@@ -16,18 +16,15 @@ const tokens = {
     dividerDark: "rgba(30,41,59,1)",
     dividerLight: "rgba(226,232,240,1)",
 
-    // Icono Lightbulb
     iconBgDark: "rgba(34,197,94,0.10)",
     iconBgLight: "rgba(22,163,74,0.07)",
     iconColor: "#22C55E",
 
-    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
     textSecondaryLight: "#6B7280",
 
-    // Nota (itálica)
     notaDark: "#CBD5E1",
     notaLight: "#1E293B",
   },
@@ -45,16 +42,26 @@ type Props = {
 };
 
 // ── Componente ────────────────────────────────────────────────────────────────
-export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }: Props) {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
+export default function NotaIA({
+  notaIA,
+  series,
+  repeticiones,
+  peso,
+  esCardio,
+}: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso) || "kg";
 
   const safeNota = (notaIA ?? "").trim();
-  const safeSeries = typeof series === "number" && Number.isFinite(series) ? series : 0;
-  const safeReps = typeof repeticiones === "number" && Number.isFinite(repeticiones) ? repeticiones : 0;
-  const safePeso = typeof peso === "number" && Number.isFinite(peso) ? peso : 0;
+  const safeSeries =
+    typeof series === "number" && Number.isFinite(series) ? series : 0;
+  const safeReps =
+    typeof repeticiones === "number" && Number.isFinite(repeticiones)
+      ? repeticiones
+      : 0;
+  const safePeso =
+    typeof peso === "number" && Number.isFinite(peso) ? peso : 0;
   const isCardio = Boolean(esCardio);
 
   const shouldRender = useMemo(
@@ -63,69 +70,64 @@ export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }:
   );
 
   if (!shouldRender) return null;
-  // ── Fin lógica original ───────────────────────────────────────────────────
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
 
   return (
     <View
       style={styles.root}
-      // FIX: "summary" no es rol válido en RN — corregido a "none"
       accessibilityRole="none"
-      accessibilityLabel="Nota de la IA con sugerencias"
+      accessibilityLabel="Nota de entrenamiento con sugerencias"
     >
       <View
         style={[
           styles.card,
           {
-            backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            backgroundColor: isDark
+              ? tokens.color.cardBgDark
+              : tokens.color.cardBgLight,
+            borderColor: isDark
+              ? tokens.color.cardBorderDark
+              : tokens.color.cardBorderLight,
           },
         ]}
       >
-        {/* ── Header ──────────────────────────────────────────────────────── */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            {/* Icono */}
             <View
               style={[
                 styles.iconWrap,
-                { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+                {
+                  backgroundColor: isDark
+                    ? tokens.color.iconBgDark
+                    : tokens.color.iconBgLight,
+                },
               ]}
             >
               <Lightbulb size={16} color={tokens.color.iconColor} strokeWidth={2} />
             </View>
 
             <Text style={[styles.title, { color: textPrimary }]}>
-              Nota de la IA
-            </Text>
-          </View>
-
-          {/* Pill "Sugerencia" */}
-          <View
-            style={[
-              styles.pill,
-              {
-                backgroundColor: isDark ? "rgba(34,197,94,0.08)" : "rgba(22,163,74,0.06)",
-                borderColor: isDark ? "rgba(34,197,94,0.20)" : "rgba(22,163,74,0.15)",
-              },
-            ]}
-          >
-            <Text style={[styles.pillText, { color: tokens.color.iconColor }]}>
-              Sugerencia
+              Nota de entrenamiento
             </Text>
           </View>
         </View>
 
-        {/* ── Texto de la nota ─────────────────────────────────────────────── */}
         <Text
           style={[
             styles.nota,
             {
-              color: safeNota.length > 0
-                ? isDark ? tokens.color.notaDark : tokens.color.notaLight
-                : textSecondary,
+              color:
+                safeNota.length > 0
+                  ? isDark
+                    ? tokens.color.notaDark
+                    : tokens.color.notaLight
+                  : textSecondary,
               fontStyle: safeNota.length > 0 ? "italic" : "normal",
             },
           ]}
@@ -133,11 +135,14 @@ export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }:
           {safeNota.length > 0 ? safeNota : "Sin nota por ahora."}
         </Text>
 
-        {/* ── Métricas ─────────────────────────────────────────────────────── */}
         <View
           style={[
             styles.metricsRow,
-            { borderTopColor: isDark ? tokens.color.dividerDark : tokens.color.dividerLight },
+            {
+              borderTopColor: isDark
+                ? tokens.color.dividerDark
+                : tokens.color.dividerLight,
+            },
           ]}
         >
           <MetaItem label="Series" value={String(safeSeries)} isDark={isDark} />
@@ -153,7 +158,11 @@ export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }:
           )}
 
           {safePeso > 0 && (
-            <MetaItem label="Peso" value={`${safePeso} ${medidaPeso}`} isDark={isDark} />
+            <MetaItem
+              label="Peso"
+              value={`${safePeso} ${medidaPeso}`}
+              isDark={isDark}
+            />
           )}
         </View>
       </View>
@@ -162,13 +171,39 @@ export default function NotaIA({ notaIA, series, repeticiones, peso, esCardio }:
 }
 
 // ── MetaItem ──────────────────────────────────────────────────────────────────
-function MetaItem({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+function MetaItem({
+  label,
+  value,
+  isDark,
+}: {
+  label: string;
+  value: string;
+  isDark: boolean;
+}) {
   return (
     <View style={styles.metaItem}>
-      <Text style={[styles.metaLabel, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+      <Text
+        style={[
+          styles.metaLabel,
+          {
+            color: isDark
+              ? tokens.color.textSecondaryDark
+              : tokens.color.textSecondaryLight,
+          },
+        ]}
+      >
         {label}
       </Text>
-      <Text style={[styles.metaValue, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+      <Text
+        style={[
+          styles.metaValue,
+          {
+            color: isDark
+              ? tokens.color.textPrimaryDark
+              : tokens.color.textPrimaryLight,
+          },
+        ]}
+      >
         {value ?? "—"}
       </Text>
     </View>
@@ -188,7 +223,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.md,
-    // Sombra sutil
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -196,7 +230,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -221,7 +254,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 
-  // Pill "Sugerencia" — reemplaza el Text plano del original
   pill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -234,14 +266,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // Texto nota
   nota: {
     fontSize: 13,
     lineHeight: 20,
     marginBottom: tokens.spacing.sm,
   },
 
-  // Fila de métricas
   metricsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -251,7 +281,6 @@ const styles = StyleSheet.create({
     marginTop: tokens.spacing.xs,
   },
 
-  // MetaItem
   metaItem: {
     flexDirection: "row",
     alignItems: "baseline",

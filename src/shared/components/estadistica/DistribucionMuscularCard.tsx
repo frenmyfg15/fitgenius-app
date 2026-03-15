@@ -13,14 +13,16 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
   color: {
-    // Frame gradient (FIX: 2 colores)
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    // Frame gradient — 3 colores igual que IMCVisual
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
 
     // Card interior
-    cardBgDark: "rgba(15,24,41,0.75)",
+    cardBgDark: "rgba(15,24,41,1)",   // opaco, igual que IMCVisual
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
@@ -50,11 +52,17 @@ const tokens = {
     textMutedDark: "#94A3B8",
     textMutedLight: "#475569",
   },
-  radius: { lg: 16, md: 12, sm: 8 },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
 } as const;
 
-// ── Paleta pastel para grupos musculares ──────────────────────────────────────
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Paleta pastel ─────────────────────────────────────────────────────────────
 const PASTEL_COLORS = [
   "#A5B4FC", "#F9A8D4", "#6EE7B7", "#FDE68A", "#BFDBFE",
   "#FCA5A5", "#FED7AA", "#7DD3FC", "#C4B5FD", "#BBF7D0",
@@ -63,25 +71,17 @@ const PASTEL_COLORS = [
 function getColorForGroup(grupoMuscular: string, index: number): string {
   const base = grupoMuscular || "";
   let hash = 0;
-  for (let i = 0; i < base.length; i++) {
-    hash = (hash + base.charCodeAt(i) * 17) | 0;
-  }
+  for (let i = 0; i < base.length; i++) hash = (hash + base.charCodeAt(i) * 17) | 0;
   const idx = Math.abs(hash) % PASTEL_COLORS.length;
   const finalIdx = (idx + index) % PASTEL_COLORS.length;
   return PASTEL_COLORS[finalIdx];
 }
 
-// ── Tipos — API pública sin cambios ───────────────────────────────────────────
-type DistribucionItem = {
-  grupoMuscular: string;
-  porcentaje: number;
-};
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+type DistribucionItem = { grupoMuscular: string; porcentaje: number };
+type Props = { distribucion: DistribucionItem[] };
 
-type Props = {
-  distribucion: DistribucionItem[];
-};
-
-// ── Utils — sin cambios ───────────────────────────────────────────────────────
+// ── Utils ─────────────────────────────────────────────────────────────────────
 function normalizeDistribucion(src: DistribucionItem[]) {
   const clean = (src ?? [])
     .filter((d) => d && typeof d.grupoMuscular === "string")
@@ -95,29 +95,27 @@ function normalizeDistribucion(src: DistribucionItem[]) {
   for (const d of clean)
     map.set(d.grupoMuscular, (map.get(d.grupoMuscular) ?? 0) + d.porcentaje);
 
-  const arr = Array.from(map, ([grupoMuscular, p]) => ({
+  return Array.from(map, ([grupoMuscular, p]) => ({
     grupoMuscular,
     porcentaje: Math.min(100, p),
-  }));
-
-  return arr.sort((a, b) => b.porcentaje - a.porcentaje).slice(0, 10);
+  }))
+    .sort((a, b) => b.porcentaje - a.porcentaje)
+    .slice(0, 10);
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function DistribucionMuscularCard({ distribucion }: Props) {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const data = useMemo(() => normalizeDistribucion(distribucion), [distribucion]);
   const hasData = data.length > 0;
   const top = hasData ? data[0] : null;
-  // ── Fin lógica original ───────────────────────────────────────────────────
 
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={tokens.color.frameGradient as any}
+        colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}
@@ -152,17 +150,13 @@ function CardBody({
   const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
 
   const coloredData = useMemo(
-    () =>
-      data.map((item, index) => ({
-        ...item,
-        color: getColorForGroup(item.grupoMuscular, index),
-      })),
+    () => data.map((item, index) => ({ ...item, color: getColorForGroup(item.grupoMuscular, index) })),
     [data]
   );
 
   return (
     <View style={styles.cardBody}>
-      {/* Header */}
+      {/* Header — misma tipografía que IMCVisual */}
       <View style={styles.header}>
         <View>
           <Text style={[styles.headerTitle, { color: textPrimary }]}>
@@ -199,11 +193,7 @@ function CardBody({
 }
 
 // ── RadarChart ────────────────────────────────────────────────────────────────
-type RadarDataItem = {
-  grupoMuscular: string;
-  porcentaje: number;
-  color: string;
-};
+type RadarDataItem = { grupoMuscular: string; porcentaje: number; color: string };
 
 function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }) {
   const size = 260;
@@ -211,7 +201,6 @@ function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }
   const cy = size / 2;
   const padding = 20;
   const R = (size - padding * 2) / 2;
-
   const n = Math.max(3, data.length);
   const rings = 5;
 
@@ -227,22 +216,17 @@ function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   };
 
-  const ringPolygons: string[] = [];
-  for (let k = 1; k <= rings; k++) {
-    const norm = k / rings;
-    const pts: string[] = [];
-    for (let i = 0; i < n; i++) {
-      const p = point(norm, i);
-      pts.push(`${p.x},${p.y}`);
-    }
-    ringPolygons.push(pts.join(" "));
-  }
+  const ringPolygons = Array.from({ length: rings }, (_, k) => {
+    const norm = (k + 1) / rings;
+    return Array.from({ length: n }, (_, i) => point(norm, i))
+      .map((p) => `${p.x},${p.y}`)
+      .join(" ");
+  });
 
-  const axes: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  for (let i = 0; i < n; i++) {
+  const axes = Array.from({ length: n }, (_, i) => {
     const p = point(1, i);
-    axes.push({ x1: cx, y1: cy, x2: p.x, y2: p.y });
-  }
+    return { x1: cx, y1: cy, x2: p.x, y2: p.y };
+  });
 
   const dataPoints = data.map((d, i) =>
     point(Math.max(0, Math.min(1, d.porcentaje / 100)), i)
@@ -270,45 +254,17 @@ function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }
         </Defs>
 
         <G>
-          {/* Anillos */}
           {ringPolygons.map((pts, idx) => (
-            <Polygon
-              key={`ring-${idx}`}
-              points={pts}
-              fill="none"
-              stroke={gridStroke}
-              strokeWidth={1}
-            />
+            <Polygon key={`ring-${idx}`} points={pts} fill="none" stroke={gridStroke} strokeWidth={1} />
           ))}
-
-          {/* Ejes */}
           {axes.map((a, idx) => (
-            <Line
-              key={`axis-${idx}`}
-              x1={a.x1}
-              y1={a.y1}
-              x2={a.x2}
-              y2={a.y2}
-              stroke={axisStroke}
-              strokeWidth={1}
-            />
+            <Line key={`axis-${idx}`} x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} stroke={axisStroke} strokeWidth={1} />
           ))}
-
-          {/* Polígono de datos */}
-          <Polygon
-            points={dataPolygon}
-            fill="url(#radarFill)"
-            stroke="url(#radarStroke)"
-            strokeWidth={2.5}
-          />
-
-          {/* Puntos por grupo */}
+          <Polygon points={dataPolygon} fill="url(#radarFill)" stroke="url(#radarStroke)" strokeWidth={2.5} />
           {dataPoints.map((p, idx) => (
             <SvgCircle
               key={`dp-${idx}`}
-              cx={p.x}
-              cy={p.y}
-              r={4}
+              cx={p.x} cy={p.y} r={4}
               fill={data[idx]?.color}
               stroke={dotStroke}
               strokeWidth={1.2}
@@ -323,7 +279,7 @@ function RadarChart({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }
 // ── Legend ────────────────────────────────────────────────────────────────────
 function Legend({ data, isDark }: { data: RadarDataItem[]; isDark: boolean }) {
   const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textMuted = isDark ? tokens.color.textMutedLight : tokens.color.textMutedLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
 
   return (
     <View style={styles.legend}>
@@ -353,13 +309,21 @@ function EmptyState({ isDark }: { isDark: boolean }) {
     <View
       style={[
         styles.emptyState,
-        { borderTopColor: isDark ? tokens.color.emptyBorderDark : tokens.color.emptyBorderLight },
+        {
+          borderTopColor: isDark
+            ? tokens.color.emptyBorderDark
+            : tokens.color.emptyBorderLight,
+        },
       ]}
     >
       <View
         style={[
           styles.emptyIcon,
-          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+          {
+            backgroundColor: isDark
+              ? tokens.color.emptyIconBgDark
+              : tokens.color.emptyIconBgLight,
+          },
         ]}
       >
         <Text style={styles.emptyIconText}>⭐️</Text>
@@ -378,16 +342,23 @@ function EmptyState({ isDark }: { isDark: boolean }) {
 const styles = StyleSheet.create({
   root: { width: "100%", maxWidth: 520 },
 
+  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
+  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   cardBody: {
@@ -395,7 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg - 1,
   },
 
-  // Header
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     paddingHorizontal: tokens.spacing.xl,
     paddingTop: tokens.spacing.xl,
@@ -405,17 +376,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   headerTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  headerTop: {
-    fontSize: 11,
-  },
+  headerSubtitle: { fontSize: 11, marginTop: 2 },
+  headerTop: { fontSize: 11 },
 
   // Content
   content: {
@@ -424,14 +390,10 @@ const styles = StyleSheet.create({
   },
 
   // Radar
-  radarWrapper: {
-    alignItems: "center",
-  },
+  radarWrapper: { alignItems: "center" },
 
   // Legend
-  legend: {
-    marginTop: tokens.spacing.md,
-  },
+  legend: { marginTop: tokens.spacing.md },
   legendGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -449,15 +411,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: tokens.spacing.sm,
   },
-  legendLabel: {
-    flex: 1,
-    fontSize: 12,
-  },
-  legendValue: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: tokens.spacing.sm,
-  },
+  legendLabel: { flex: 1, fontSize: 12 },
+  legendValue: { fontSize: 12, fontWeight: "700", marginLeft: tokens.spacing.sm },
 
   // Empty state
   emptyState: {
@@ -474,15 +429,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: tokens.spacing.md,
   },
-  emptyIconText: {
-    fontSize: 24,
-  },
-  emptyTitle: {
-    fontSize: 13,
-  },
-  emptySubtitle: {
-    fontSize: 11,
-    marginTop: tokens.spacing.xs,
-    textAlign: "center",
-  },
+  emptyIconText: { fontSize: 24 },
+  emptyTitle: { fontSize: 13 },
+  emptySubtitle: { fontSize: 11, marginTop: tokens.spacing.xs, textAlign: "center" },
 });

@@ -109,15 +109,15 @@ interface Rutina {
 type Props = { rutina?: Rutina | null; dia?: string; selectedYMD?: string };
 
 // ── Assets ───────────────────────────────────────────────────────────────────
-const brazos = require("../../../../assets/fit/rutina/brazos.png");
-const cardio = require("../../../../assets/fit/rutina/cardio.png");
-const core = require("../../../../assets/fit/rutina/core.png");
-const espalda = require("../../../../assets/fit/rutina/espalda.png");
-const gluteo = require("../../../../assets/fit/rutina/gluteo.png");
-const hombros = require("../../../../assets/fit/rutina/hombros.png");
-const pechos = require("../../../../assets/fit/rutina/pechos.png");
-const piernas = require("../../../../assets/fit/rutina/piernas.png");
-const circuito = require("../../../../assets/fit/rutina/circuito.png");
+const brazos = require("../../../../assets/fit/rutina/brazos.webp");
+const cardio = require("../../../../assets/fit/rutina/cardio.webp");
+const core = require("../../../../assets/fit/rutina/core.webp");
+const espalda = require("../../../../assets/fit/rutina/espalda.webp");
+const gluteo = require("../../../../assets/fit/rutina/gluteo.webp");
+const hombros = require("../../../../assets/fit/rutina/hombros.webp");
+const pechos = require("../../../../assets/fit/rutina/pechos.webp");
+const piernas = require("../../../../assets/fit/rutina/piernas.webp");
+const circuito = require("../../../../assets/fit/rutina/circuito.webp");
 
 const IMAGENES_GRUPO: Record<GrupoMuscular, any> = {
   BRAZOS: brazos, CARDIO: cardio, CORE: core, ESPALDA: espalda,

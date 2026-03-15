@@ -31,3 +31,4 @@ upload-key.jks
 *.jks
 ./upload-key.jks
 ./*.jks
+.env.local

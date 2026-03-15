@@ -5,24 +5,31 @@ import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { TrendingUp } from "lucide-react-native";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
   color: {
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    // Frame gradient — 3 colores igual que IMCVisual
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
 
-    cardBgDark: "rgba(15,24,41,0.75)",
+    // Card interior
+    cardBgDark: "rgba(15,24,41,1)",   // opaco, igual que IMCVisual
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
 
+    // Icono
     iconBgDark: "rgba(56,189,248,0.12)",
     iconBgLight: "rgba(59,130,246,0.08)",
     iconBlueDark: "#38BDF8",
     iconBlueLight: "#0284C7",
 
+    // Track
     trackDark: "rgba(15,23,42,0.9)",
     trackLight: "#E5E7EB",
 
+    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
@@ -30,11 +37,13 @@ const tokens = {
     textMutedDark: "#94A3B8",
     textMutedLight: "#6B7280",
 
+    // Tendencia texto
     trendUpTextDark: "#FB7185",
     trendUpTextLight: "#B91C1C",
     trendDownTextDark: "#4ADE80",
     trendDownTextLight: "#15803D",
 
+    // Tendencia badge bg
     trendUpBgDark: "rgba(248,113,113,0.14)",
     trendUpBgLight: "rgba(254,202,202,0.7)",
     trendDownBgDark: "rgba(74,222,128,0.12)",
@@ -42,6 +51,7 @@ const tokens = {
     trendStableBgDark: "rgba(148,163,184,0.14)",
     trendStableBgLight: "rgba(226,232,240,0.7)",
 
+    // Tendencia badge border
     trendUpBorderDark: "rgba(248,113,113,0.35)",
     trendUpBorderLight: "rgba(248,113,113,0.8)",
     trendDownBorderDark: "rgba(74,222,128,0.35)",
@@ -49,13 +59,16 @@ const tokens = {
     trendStableBorderDark: "rgba(148,163,184,0.4)",
     trendStableBorderLight: "rgba(148,163,184,0.6)",
 
+    // Barras
     barLow: "#38BDF8",
     barMid: "#0EA5E9",
     barHigh: "#0369A1",
 
+    // Nota
     noteBorderDark: "rgba(255,255,255,0.08)",
     noteBorderLight: "rgba(0,0,0,0.06)",
 
+    // Empty state
     emptyIconBgDark: "rgba(56,189,248,0.12)",
     emptyIconBgLight: "#E0F2FE",
     emptyTitleDark: "#E5E7EB",
@@ -63,10 +76,17 @@ const tokens = {
     emptySubtitleDark: "#94A3B8",
     emptySubtitleLight: "#64748B",
   },
-  radius: { lg: 16, md: 12, sm: 8 },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
 } as const;
 
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type EjercicioSubjetivo = {
   nombre?: string;
   sesiones?: number;
@@ -79,6 +99,7 @@ type Props = {
   ejercicios?: EjercicioSubjetivo[];
 };
 
+// ── Componente ────────────────────────────────────────────────────────────────
 const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({ diasAnalizados, ejercicios }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -89,7 +110,7 @@ const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({ diasAnalizados, ejer
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={tokens.color.frameGradient as any}
+        colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}
@@ -116,10 +137,9 @@ const ProgresoSubjetivoEjerciciosCard: React.FC<Props> = ({ diasAnalizados, ejer
 
 export default ProgresoSubjetivoEjerciciosCard;
 
+// ── CardBody ──────────────────────────────────────────────────────────────────
 function CardBody({
-  isDark,
-  diasAnalizados,
-  ejercicios,
+  isDark, diasAnalizados, ejercicios,
 }: {
   isDark: boolean;
   diasAnalizados?: number;
@@ -161,12 +181,17 @@ function CardBody({
 
   return (
     <View style={styles.cardBody}>
+      {/* Header — misma tipografía que IMCVisual */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View
             style={[
               styles.iconWrap,
-              { backgroundColor: isDark ? tokens.color.iconBgDark : tokens.color.iconBgLight },
+              {
+                backgroundColor: isDark
+                  ? tokens.color.iconBgDark
+                  : tokens.color.iconBgLight,
+              },
             ]}
           >
             <TrendingUp
@@ -193,6 +218,7 @@ function CardBody({
         </View>
       </View>
 
+      {/* Lista de ejercicios */}
       <View style={styles.list}>
         {ejercicios.map((ej, idx) => {
           const carga = ej.estresMedio ?? 0;
@@ -231,7 +257,11 @@ function CardBody({
                   <View
                     style={[
                       styles.track,
-                      { backgroundColor: isDark ? tokens.color.trackDark : tokens.color.trackLight },
+                      {
+                        backgroundColor: isDark
+                          ? tokens.color.trackDark
+                          : tokens.color.trackLight,
+                      },
                     ]}
                   >
                     <View style={[styles.fill, { width: `${pct}%`, backgroundColor: barColor }]} />
@@ -250,10 +280,15 @@ function CardBody({
         })}
       </View>
 
+      {/* Nota */}
       <View
         style={[
           styles.note,
-          { borderTopColor: isDark ? tokens.color.noteBorderDark : tokens.color.noteBorderLight },
+          {
+            borderTopColor: isDark
+              ? tokens.color.noteBorderDark
+              : tokens.color.noteBorderLight,
+          },
         ]}
       >
         <Text style={[styles.noteText, { color: textSecondary }]}>
@@ -265,13 +300,18 @@ function CardBody({
   );
 }
 
+// ── EmptyState ────────────────────────────────────────────────────────────────
 function EmptyState({ isDark }: { isDark: boolean }) {
   return (
     <View style={styles.emptyState}>
       <View
         style={[
           styles.emptyIcon,
-          { backgroundColor: isDark ? tokens.color.emptyIconBgDark : tokens.color.emptyIconBgLight },
+          {
+            backgroundColor: isDark
+              ? tokens.color.emptyIconBgDark
+              : tokens.color.emptyIconBgLight,
+          },
         ]}
       >
         <Text style={{ color: isDark ? tokens.color.emptyTitleDark : "#0EA5E9" }}>📈</Text>
@@ -297,25 +337,32 @@ function EmptyState({ isDark }: { isDark: boolean }) {
   );
 }
 
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { width: "100%", maxWidth: 520 },
 
+  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
+  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
-  cardBody: {
-    borderRadius: tokens.radius.lg - 1,
-  },
+  cardBody: { borderRadius: tokens.radius.lg - 1 },
 
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -338,29 +385,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  headerRight: {
-    alignItems: "flex-end",
-  },
+  headerSubtitle: { fontSize: 11, marginTop: 2 },
+  headerRight: { alignItems: "flex-end" },
   headerKpiLabel: {
     fontSize: 10,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  headerKpiValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 24,
-  },
+  headerKpiValue: { fontSize: 20, fontWeight: "800", lineHeight: 24 },
 
+  // Lista
   list: {
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
@@ -373,18 +412,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  itemLeft: {
-    flex: 1,
-    paddingRight: tokens.spacing.sm,
-  },
-  itemTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  itemSub: {
-    fontSize: 11,
-    marginTop: 1,
-  },
+  itemLeft: { flex: 1, paddingRight: tokens.spacing.sm },
+  itemTitle: { fontSize: 13, fontWeight: "600" },
+  itemSub: { fontSize: 11, marginTop: 1 },
 
   badge: {
     paddingHorizontal: 8,
@@ -392,27 +422,17 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  badgeText: { fontSize: 11, fontWeight: "600" },
 
-  barRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
+  barRow: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
   barCol: { flex: 1 },
   valueCol: { width: 56, alignItems: "flex-end" },
-  track: {
-    height: 10,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
+  track: { height: 10, borderRadius: 999, overflow: "hidden" },
   fill: { height: "100%" },
   valueText: { fontSize: 12, fontWeight: "700" },
   valueUnit: { fontSize: 10 },
 
+  // Nota
   note: {
     borderTopWidth: 1,
     paddingHorizontal: tokens.spacing.lg,
@@ -421,6 +441,7 @@ const styles = StyleSheet.create({
   },
   noteText: { fontSize: 11 },
 
+  // Empty state
   emptyState: {
     borderRadius: tokens.radius.lg - 1,
     alignItems: "center",
@@ -436,14 +457,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: tokens.spacing.lg,
   },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    marginTop: tokens.spacing.xs,
-    textAlign: "center",
-  },
+  emptyTitle: { fontSize: 14, fontWeight: "600", textAlign: "center" },
+  emptySubtitle: { fontSize: 12, marginTop: tokens.spacing.xs, textAlign: "center" },
 });

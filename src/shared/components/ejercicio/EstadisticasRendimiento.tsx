@@ -1,12 +1,47 @@
 import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
+// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
+const tokens = {
+  color: {
+    gradientStart: "rgb(0,255,64)",
+    gradientMid: "rgb(94,230,157)",
+    gradientEnd: "rgb(178,0,255)",
+
+    cardBgDark: "rgba(15,24,41,1)",
+    cardBgLight: "#FFFFFF",
+    cardBorderDark: "rgba(255,255,255,0.08)",
+    cardBorderLight: "rgba(0,0,0,0.06)",
+
+    kpiBgDark: "rgba(255,255,255,0.05)",
+    kpiBgLight: "#F8FAFC",
+    kpiBorderDark: "rgba(255,255,255,0.08)",
+    kpiBorderLight: "rgba(203,213,225,0.5)",
+
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "#64748B",
+    textSecondaryLight: "#64748B",
+    textMutedDark: "#64748B",
+    textMutedLight: "#94A3B8",
+  },
+  radius: { lg: 16, md: 12, sm: 8, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+} as const;
+
+const GRADIENT = [
+  tokens.color.gradientStart,
+  tokens.color.gradientMid,
+  tokens.color.gradientEnd,
+] as const;
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type SerieDetalle = {
   pesoKg: number | null;
-  repeticiones: number | null; // en cardio = segundos
+  repeticiones: number | null;
 };
 
 type Props = {
@@ -14,36 +49,27 @@ type Props = {
   esCardio?: boolean;
 };
 
-export default function EstadisticasRendimiento({
-  detallesSeries,
-  esCardio,
-}: Props) {
+// ── Componente ────────────────────────────────────────────────────────────────
+export default function EstadisticasRendimiento({ detallesSeries, esCardio }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const unit =
-    (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
-
+  const unit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
   const isCardio = Boolean(esCardio);
 
-  // ────────────────────────────
-  //       CÁLCULO MÉTRICAS
-  // ────────────────────────────
   const stats = useMemo(() => {
     const sets = detallesSeries ?? [];
     const totalSeries = sets.length;
 
-    let totalReps = 0;   // en fuerza = reps, en cardio = segundos totales
-    let totalPeso = 0;   // tonelaje (peso * reps)
+    let totalReps = 0;
+    let totalPeso = 0;
     let maxPeso = 0;
-    let maxReps = 0;     // en cardio = máximo tiempo de una serie
+    let maxReps = 0;
 
     for (const s of sets) {
       const reps = Number(s.repeticiones ?? 0);
       const peso = Number(s.pesoKg ?? 0);
-
       totalReps += reps;
       totalPeso += peso * reps;
-
       if (peso > maxPeso) maxPeso = peso;
       if (reps > maxReps) maxReps = reps;
     }
@@ -53,151 +79,88 @@ export default function EstadisticasRendimiento({
 
     return {
       totalSeries,
-      totalReps,           // fuerza: reps totales, cardio: segundos totales
-      totalPeso,           // tonelaje
+      totalReps,
+      totalPeso,
       pesoPromedio,
-      repsPromedio,        // fuerza: reps/serie, cardio: seg/serie
+      repsPromedio,
       maxPeso,
-      maxReps,             // fuerza: reps máx, cardio: seg máx
-      tiempoTotal: totalReps,                // alias cardio
-      tiempoMedioSerie: repsPromedio,        // alias cardio
-      tiempoMaxSerie: maxReps,               // alias cardio
+      maxReps,
+      tiempoTotal: totalReps,
+      tiempoMedioSerie: repsPromedio,
+      tiempoMaxSerie: maxReps,
     };
   }, [detallesSeries]);
 
-  // ────────────────────────────
-  //       ITEMS A MOSTRAR
-  // ────────────────────────────
   const items = isCardio
     ? [
-        { label: "Series", value: stats.totalSeries, suffix: "" },
-        {
-          label: "Tiempo total",
-          value: stats.tiempoTotal.toFixed(0),
-          suffix: " s",
-        },
-        {
-          label: "Tiempo / serie",
-          value: stats.tiempoMedioSerie.toFixed(1),
-          suffix: " s",
-        },
-        {
-          label: "Tiempo máx. serie",
-          value: stats.tiempoMaxSerie.toFixed(0),
-          suffix: " s",
-        },
-        // Solo mostramos peso si realmente hay carga
-        ...(stats.maxPeso > 0
-          ? [
-              {
-                label: "Máximo peso",
-                value: stats.maxPeso.toFixed(1),
-                suffix: ` ${unit}`,
-              },
-            ]
-          : []),
-      ]
+      { label: "Series", value: stats.totalSeries, suffix: "" },
+      { label: "Tiempo total", value: stats.tiempoTotal.toFixed(0), suffix: " s" },
+      { label: "Tiempo / serie", value: stats.tiempoMedioSerie.toFixed(1), suffix: " s" },
+      { label: "Tiempo máx. serie", value: stats.tiempoMaxSerie.toFixed(0), suffix: " s" },
+      ...(stats.maxPeso > 0
+        ? [{ label: "Máximo peso", value: stats.maxPeso.toFixed(1), suffix: ` ${unit}` }]
+        : []),
+    ]
     : [
-        { label: "Series", value: stats.totalSeries, suffix: "" },
-        { label: "Reps totales", value: stats.totalReps, suffix: "" },
-        {
-          label: "Volumen",
-          value: stats.totalPeso.toFixed(1),
-          suffix: ` ${unit}`,
-        },
-        {
-          label: "Peso / rep",
-          value: stats.pesoPromedio.toFixed(1),
-          suffix: ` ${unit}`,
-        },
-        {
-          label: "Reps / serie",
-          value: stats.repsPromedio.toFixed(1),
-          suffix: "",
-        },
-        {
-          label: "Máximo peso",
-          value: stats.maxPeso.toFixed(1),
-          suffix: ` ${unit}`,
-        },
-        { label: "Máximas reps", value: stats.maxReps, suffix: "" },
-      ];
-
-  const marcoBorder = [
-    "rgba(0,255,64,0.5)",
-    "rgba(94,230,157,0.45)",
-    "rgba(178,0,255,0.4)",
-  ];
+      { label: "Series", value: stats.totalSeries, suffix: "" },
+      { label: "Reps totales", value: stats.totalReps, suffix: "" },
+      { label: "Volumen", value: stats.totalPeso.toFixed(1), suffix: ` ${unit}` },
+      { label: "Peso / rep", value: stats.pesoPromedio.toFixed(1), suffix: ` ${unit}` },
+      { label: "Reps / serie", value: stats.repsPromedio.toFixed(1), suffix: "" },
+      { label: "Máximo peso", value: stats.maxPeso.toFixed(1), suffix: ` ${unit}` },
+      { label: "Máximas reps", value: stats.maxReps, suffix: "" },
+    ];
 
   const hasData = isCardio
     ? stats.totalSeries > 0 && stats.tiempoTotal > 0
-    : stats.totalSeries > 0 &&
-      (stats.totalReps > 0 || stats.totalPeso > 0);
+    : stats.totalSeries > 0 && (stats.totalReps > 0 || stats.totalPeso > 0);
+
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
 
   return (
-    <View className="w-full mt-6">
+    <View style={styles.root}>
       <LinearGradient
-        colors={marcoBorder as any}
+        colors={GRADIENT as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="rounded-2xl p-[1.5px]"
-        style={{ borderRadius: 18, overflow: "hidden" }}
+        style={styles.frame}
       >
-        {/* Tarjeta interna */}
         <View
-          className={
-            "rounded-2xl px-5 py-5 " +
-            (isDark
-              ? "bg-[#0d1320]/70 border border-white/5 backdrop-blur-md"
-              : "bg-white/90 border border-slate-200/60")
-          }
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            },
+          ]}
         >
-          {/* Header */}
-          <Text
-            className={
-              (isDark ? "text-slate-200" : "text-slate-900") +
-              " text-[15px] font-medium mb-4"
-            }
-          >
+          {/* Header — misma tipografía que IMCVisual */}
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>
             Rendimiento general
           </Text>
 
           {/* Contenido */}
           {hasData ? (
-            <View className="flex-row flex-wrap justify-between gap-3">
+            <View style={styles.grid}>
               {items.map((it) => (
                 <View
                   key={it.label}
-                  className={
-                    "rounded-xl px-4 py-3 " +
-                    (isDark
-                      ? "bg-white/5 border border-white/5"
-                      : "bg-slate-50 border border-slate-200/50")
-                  }
-                  style={{ width: "47%" }}
+                  style={[
+                    styles.kpi,
+                    {
+                      backgroundColor: isDark ? tokens.color.kpiBgDark : tokens.color.kpiBgLight,
+                      borderColor: isDark ? tokens.color.kpiBorderDark : tokens.color.kpiBorderLight,
+                    },
+                  ]}
                 >
-                  <Text
-                    className={
-                      (isDark ? "text-slate-400" : "text-slate-500") +
-                      " text-xs"
-                    }
-                  >
+                  <Text style={[styles.kpiLabel, { color: textSecondary }]}>
                     {it.label}
                   </Text>
-
-                  <Text
-                    className={
-                      (isDark ? "text-white" : "text-slate-900") +
-                      " text-lg font-semibold mt-0.5"
-                    }
-                  >
+                  <Text style={[styles.kpiValue, { color: textPrimary }]}>
                     {it.value}
-                    <Text
-                      className={
-                        (isDark ? "text-slate-500" : "text-slate-400") +
-                        " text-[11px] ml-1"
-                      }
-                    >
+                    <Text style={[styles.kpiSuffix, { color: textMuted }]}>
                       {it.suffix}
                     </Text>
                   </Text>
@@ -205,13 +168,8 @@ export default function EstadisticasRendimiento({
               ))}
             </View>
           ) : (
-            <View className="py-10 items-center">
-              <Text
-                className={
-                  (isDark ? "text-slate-400" : "text-slate-500") +
-                  " text-sm"
-                }
-              >
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: textSecondary }]}>
                 No hay datos suficientes aún.
               </Text>
             </View>
@@ -221,3 +179,72 @@ export default function EstadisticasRendimiento({
     </View>
   );
 }
+
+// ── Estilos estáticos ─────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  root: {
+    width: "100%",
+    marginTop: tokens.spacing.xl + tokens.spacing.sm,
+  },
+
+  // Frame — valores exactos de IMCVisual
+  frame: {
+    borderRadius: tokens.radius.lg,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+
+  // Card interior — sombra añadida igual que IMCVisual
+  card: {
+    borderRadius: tokens.radius.lg - 1,
+    borderWidth: 1,
+    overflow: "hidden",
+    paddingHorizontal: tokens.spacing.xl,
+    paddingVertical: tokens.spacing.xl,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    marginBottom: tokens.spacing.lg,
+  },
+
+  // Grid de KPIs
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.md,
+  },
+  kpi: {
+    width: "47%",
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
+    borderWidth: 1,
+  },
+  kpiLabel: {
+    fontSize: 12,
+  },
+  kpiValue: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  kpiSuffix: {
+    fontSize: 11,
+  },
+
+  // Empty
+  empty: {
+    paddingVertical: tokens.spacing.xl + tokens.spacing.lg,
+    alignItems: "center",
+  },
+  emptyText: { fontSize: 14 },
+});

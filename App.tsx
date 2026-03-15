@@ -34,7 +34,7 @@ import { getMe } from "@/features/api/usuario.api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 Sentry.init({
-  dsn: "https://4c6aa91122ad7f362c9aa79df79e428b@o4510526940577792.ingest.de.sentry.io/4510526942609488",
+  dsn: "https://3760723ec34bd1fc51f566b9c0a633ea@o4510526940577792.ingest.de.sentry.io/4511048512962640",
   sendDefaultPii: false,
   enableLogs: true,
   replaysSessionSampleRate: 0.1,

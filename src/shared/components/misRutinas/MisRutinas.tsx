@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import Svg, { Path, Circle } from "react-native-svg";
 
-import pesa from "../../../../assets/mensajeVacio/pesa.png";
+import pesa from "../../../../assets/mensajeVacio/pesa.webp";
 
 import { Rutina } from "@/features/type/rutinas";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";

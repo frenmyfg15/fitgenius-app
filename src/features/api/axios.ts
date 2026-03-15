@@ -2,7 +2,7 @@
 import { getDeviceId } from "@/shared/lib/deviceId";
 import axios from "axios";
 
-const local = true;
+const local = false;
 
 const URL = local
   ? "http://192.168.1.146:3000"
