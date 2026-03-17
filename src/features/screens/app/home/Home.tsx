@@ -13,6 +13,7 @@ import TarjetaHome from "@/shared/components/home/TarjetaHome";
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import Extra from "@/shared/components/home/Extra";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
+import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -59,7 +60,6 @@ type RutinaDia = {
 type RutinaResp = {
   id?: number;
   dias?: RutinaDia[];
-
   fechasCompletadas?: string[];
   completadosPorFecha?: Record<string, number[]>;
   completadosPorAsignacion?: Record<string, string[]>;
@@ -68,13 +68,8 @@ type RutinaResp = {
 // ── Utils ───────────────────────────────────────────────────────────────────
 const getDiaActualEnum = (): DiaNombre => {
   const dias: DiaNombre[] = [
-    "DOMINGO",
-    "LUNES",
-    "MARTES",
-    "MIERCOLES",
-    "JUEVES",
-    "VIERNES",
-    "SABADO",
+    "DOMINGO", "LUNES", "MARTES", "MIERCOLES",
+    "JUEVES", "VIERNES", "SABADO",
   ];
   return dias[new Date().getDay()] as DiaNombre;
 };
@@ -92,16 +87,15 @@ const toMadridYMD = (() => {
   return (d: Date) => fmt.format(d);
 })();
 
-// semana (lunes→domingo) basada en una fecha (LOCAL JS date)
-// nota: esto es solo para diagnosticar qué semana “podría” estar mostrando Calendar
 const getWeekMonday = (d: Date) => {
-  const day = d.getDay(); // 0=domingo
-  const mondayOffset = (day + 6) % 7; // lunes=0
+  const day = d.getDay();
+  const mondayOffset = (day + 6) % 7;
   const monday = new Date(d);
   monday.setDate(d.getDate() - mondayOffset);
   monday.setHours(12, 0, 0, 0);
   return monday;
 };
+
 const addDays = (d: Date, n: number) => {
   const x = new Date(d);
   x.setDate(d.getDate() + n);
@@ -124,13 +118,24 @@ export default function Home() {
   const [dia, setDia] = useState<DiaNombre>(getDiaActualEnum());
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState(false);
-
   const [selectedYMD, setSelectedYMD] = useState<string>(() => toMadridYMD(new Date()));
+
+  // ── Auto-generación primera vez ──────────────────────────────────────────
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const autoGenTriggered = useRef(false);
+
+  useEffect(() => {
+    if (autoGenTriggered.current) return;
+    if (!usuario) return;
+    if ((usuario.rutinasIACreadas ?? 0) > 0) return;
+
+    autoGenTriggered.current = true;
+    setAutoGenerating(true);
+  }, [usuario]);
 
   const lastKeyRef = useRef<string | null>(null);
   const inflightRef = useRef<Promise<any> | null>(null);
 
-  // ── LOG: render y valores clave ─────────────────────────────────────────────
   useEffect(() => {
     console.log("[Home][render]", {
       rutinaActivaId: usuario?.rutinaActivaId,
@@ -148,66 +153,23 @@ export default function Home() {
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
-
-      console.log("[Home] fetchRutina()", { force, id, routineRev, workoutRev });
-
-      if (!id) {
-        console.log("[Home] no rutinaActivaId -> setRutina(null)");
-        setRutina(null);
-        return;
-      }
+      if (!id) { setRutina(null); return; }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
-      console.log("[Home] computed key", { key, lastKey: lastKeyRef.current });
-
-      if (!force && lastKeyRef.current === key) {
-        console.log("[Home] skip fetch (key igual, force=false)");
-        return;
-      }
+      if (!force && lastKeyRef.current === key) return;
       lastKeyRef.current = key;
 
       const cached = rutinaCache.get(id);
-      console.log("[Home] cache get", {
-        tieneCache: !!cached,
-        cache_fechasCompletadas: cached?.fechasCompletadas?.slice?.(0, 10),
-        cache_completadosPorFecha_keys: Object.keys(cached?.completadosPorFecha ?? {}).slice(0, 10),
-      });
-
-      if (cached && !force) {
-        console.log("[Home] setRutina(cached)");
-        setRutina(cached);
-      }
+      if (cached && !force) setRutina(cached);
 
       try {
         if (!force) setLoading(true);
 
-        if (inflightRef.current) {
-          console.log("[Home] inflight existente (no se cancela)");
-        }
-
         const p = obtenerRutina(id)
           .then((data) => {
-            console.log("[Home] obtenerRutina RAW (resumen)", {
-              tieneData: !!data,
-              fechasCompletadas: (data as any)?.fechasCompletadas,
-              completadosPorFecha_keys: Object.keys((data as any)?.completadosPorFecha ?? {}),
-              completadosPorFecha_sample: Object.entries((data as any)?.completadosPorFecha ?? {}).slice(0, 3),
-            });
-
             const rutinaResp = (data ?? null) as RutinaResp | null;
-
-            console.log("[Home] rutina normalizada", {
-              tieneRutina: !!rutinaResp,
-              fechasCompletadasCount: rutinaResp?.fechasCompletadas?.length ?? 0,
-              fechasCompletadasSample: rutinaResp?.fechasCompletadas?.slice?.(0, 10),
-              completadosPorFechaKeysCount: Object.keys(rutinaResp?.completadosPorFecha ?? {}).length,
-            });
-
             setRutina(rutinaResp);
-            if (rutinaResp) {
-              rutinaCache.set(id, rutinaResp);
-              console.log("[Home] cache set OK", { id });
-            }
+            if (rutinaResp) rutinaCache.set(id, rutinaResp);
           })
           .catch((err) => console.error("[Home] obtenerRutina error", err))
           .finally(() => {
@@ -229,86 +191,29 @@ export default function Home() {
   }, [fetchRutina]);
 
   const onRefresh = useCallback(async () => {
-    console.log("[Home] onRefresh()");
     setRefreshing(true);
-    try {
-      await fetchRutina(true);
-    } finally {
-      setRefreshing(false);
-      console.log("[Home] onRefresh() end");
-    }
+    try { await fetchRutina(true); }
+    finally { setRefreshing(false); }
   }, [fetchRutina]);
 
-  // devolverDato del Calendar: d = "YYYY-MM-DD"
   const devolver = useCallback((ymd: string, diaEnum: string) => {
-    const normalized = normalizeEnum(diaEnum);
-    setDia(normalized);
-
-    const ok = typeof ymd === "string" && isYMD(ymd);
-    const next = ok ? ymd : toMadridYMD(new Date());
-    setSelectedYMD(next);
-
-    console.log("[Home] Calendar devolverDato()", {
-      raw: { ymd, diaEnum },
-      normalizedDia: normalized,
-      okYMD: ok,
-      selectedYMD_next: next,
-      hoyMadrid: toMadridYMD(new Date()),
-    });
+    setDia(normalizeEnum(diaEnum));
+    setSelectedYMD(typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date()));
   }, []);
 
   const totalEjercicios = useMemo(() => {
-    const total = rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
-    console.log("[Home] totalEjercicios", { dia, total });
-    return total;
+    return rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
   }, [rutina, dia]);
 
-  // ✅ completadasMap (día marcado) + diagnósticos
   const completadasMap = useMemo(() => {
     const map: Record<string, boolean> = {};
-
-    const full = rutina?.fechasCompletadas ?? [];
-    for (const ymd of full) map[ymd] = true;
-
-    const porFecha = rutina?.completadosPorFecha ?? {};
-    for (const [ymd, ids] of Object.entries(porFecha)) {
+    for (const ymd of rutina?.fechasCompletadas ?? []) map[ymd] = true;
+    for (const [ymd, ids] of Object.entries(rutina?.completadosPorFecha ?? {})) {
       if (Array.isArray(ids) && ids.length > 0) map[ymd] = true;
     }
-
-    // ── LOG: claves y chequeo de “lunes” ────────────────────────────────────
-    const keys = Object.keys(map).sort();
-    const mondayThisWeek = (() => {
-      const monday = getWeekMonday(new Date());
-      return toMadridYMD(monday);
-    })();
-
-    const weekRange = (() => {
-      const monday = getWeekMonday(new Date());
-      const arr = Array.from({ length: 7 }, (_, i) => toMadridYMD(addDays(monday, i)));
-      return { monday: arr[0], sunday: arr[6], days: arr };
-    })();
-
-    console.log("[Home] completadasMap build", {
-      fechasCompletadasCount: full.length,
-      completadosPorFechaKeysCount: Object.keys(porFecha).length,
-      mapKeysCount: keys.length,
-      mapKeysSample: keys.slice(0, 12),
-      mondayThisWeek,
-      mondayThisWeekMarked: !!map[mondayThisWeek],
-      weekVisible_guess: weekRange, // 👈 esto te dirá si “ese lunes” está fuera
-    });
-
-    // si el usuario selecciona una fecha, comprobamos si está marcada
-    console.log("[Home] selectedYMD in completadasMap?", {
-      selectedYMD,
-      marked: !!map[selectedYMD],
-      completadosPorFecha_selected: rutina?.completadosPorFecha?.[selectedYMD] ?? [],
-    });
-
     return map;
-  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha, selectedYMD]);
+  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha]);
 
-  // Hidratación ejercicios
   const rutinaHidratada = useMemo(() => {
     if (!rutina?.dias) return rutina;
 
@@ -319,38 +224,18 @@ export default function Home() {
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => {
         let completado = false;
-
         if (idsCompletadosEnFecha.size > 0) {
           completado = idsCompletadosEnFecha.has(e.id);
         } else if (usarAsignacionFallback) {
-          const fechas = rutina.completadosPorAsignacion?.[String(e.id)] ?? [];
-          completado = fechas.includes(selectedYMD);
+          completado = (rutina.completadosPorAsignacion?.[String(e.id)] ?? []).includes(selectedYMD);
         } else {
           completado = !!e.completadoHoy;
         }
-
         return { ...e, completadoHoy: completado };
       });
 
-      const diaCompleto = ejerciciosH.length > 0 ? ejerciciosH.every((e) => !!e.completadoHoy) : false;
+      const diaCompleto = ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
       return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
-    });
-
-    // ── LOG: diagnóstico id mismatch ─────────────────────────────────────────
-    const diaSel = diasH.find((x) => x.diaSemana === dia);
-    const idsEjerciciosDia = (diaSel?.ejercicios ?? []).map((e) => e.id);
-    const idsCompletadosArr = Array.from(idsCompletadosEnFecha);
-
-    console.log("[Home] rutinaHidratada diag", {
-      selectedYMD,
-      dia,
-      idsCompletadosEnFecha: idsCompletadosArr,
-      idsEjerciciosDia_sample: idsEjerciciosDia.slice(0, 15),
-      hayInterseccion:
-        idsCompletadosArr.length > 0
-          ? idsCompletadosArr.some((x) => idsEjerciciosDia.includes(x))
-          : null,
-      usandoFallbackAsignacion: usarAsignacionFallback,
     });
 
     return { ...rutina, dias: diasH };
@@ -361,46 +246,56 @@ export default function Home() {
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
 
   return (
-    <ScrollView
-      style={[styles.scroll, { backgroundColor: bg }]}
-      contentContainerStyle={[styles.content, { backgroundColor: bg }]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={isDark ? tokens.color.tintDark : tokens.color.tintLight}
-          colors={[isDark ? tokens.color.spinnerDark : tokens.color.spinnerLight]}
-          progressBackgroundColor={bg}
+    <>
+      {/* ── Auto-generación primera vez ──────────────────────────────────── */}
+      {autoGenerating && (
+        <IaGenerateAuto
+          onDone={() => setAutoGenerating(false)}
+          onError={() => setAutoGenerating(false)}
         />
-      }
-    >
-      <View style={styles.calendarWrapper}>
-        <Calendar devolverDato={devolver} completadas={completadasMap} />
-      </View>
-
-      {rutinaHidratada && <Extra ejercicios={totalEjercicios} />}
-
-      <View style={styles.cardWrapper}>
-        <TarjetaHome rutina={rutinaHidratada as any} dia={dia} selectedYMD={selectedYMD} />
-      </View>
-
-      {!usuario?.rutinaActivaId && (
-        <View style={styles.emptyWrapper}>
-          <MensajeVacio
-            titulo="Aún no tienes una rutina"
-            descripcion="No hemos encontrado una rutina activa. Puedes generar una personalizada con IA."
-            textoBoton="Crear mi rutina"
-            rutaDestino="/crear-rutina"
-            nombreImagen="rutinas"
-            mostrarBoton={false}
-          />
-          <View style={styles.iaWrapper}>
-            <IaGenerate />
-          </View>
-        </View>
       )}
-    </ScrollView>
+
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: bg }]}
+        contentContainerStyle={[styles.content, { backgroundColor: bg }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? tokens.color.tintDark : tokens.color.tintLight}
+            colors={[isDark ? tokens.color.spinnerDark : tokens.color.spinnerLight]}
+            progressBackgroundColor={bg}
+          />
+        }
+      >
+        <View style={styles.calendarWrapper}>
+          <Calendar devolverDato={devolver} completadas={completadasMap} />
+        </View>
+
+        {rutinaHidratada && <Extra ejercicios={totalEjercicios} />}
+
+        <View style={styles.cardWrapper}>
+          <TarjetaHome rutina={rutinaHidratada as any} dia={dia} selectedYMD={selectedYMD} />
+        </View>
+
+        {!usuario?.rutinaActivaId && !autoGenerating && (
+          <View style={styles.emptyWrapper}>
+            <MensajeVacio
+              titulo="Aún no tienes una rutina"
+              descripcion="No hemos encontrado una rutina activa. Puedes generar una personalizada con IA."
+              textoBoton="Crear mi rutina"
+              rutaDestino="/crear-rutina"
+              nombreImagen="rutinas"
+              mostrarBoton={false}
+            />
+            <View style={styles.iaWrapper}>
+              <IaGenerate />
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </>
   );
 }
 
@@ -413,19 +308,8 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.lg,
     minHeight: "100%",
   },
-  calendarWrapper: {
-    width: "100%",
-    alignItems: "center",
-  },
-  cardWrapper: {
-    width: "100%",
-    alignItems: "center",
-  },
-  emptyWrapper: {
-    alignItems: "center",
-    gap: tokens.spacing.xl,
-  },
-  iaWrapper: {
-    alignItems: "center",
-  },
+  calendarWrapper: { width: "100%", alignItems: "center" },
+  cardWrapper: { width: "100%", alignItems: "center" },
+  emptyWrapper: { alignItems: "center", gap: tokens.spacing.xl },
+  iaWrapper: { alignItems: "center" },
 });

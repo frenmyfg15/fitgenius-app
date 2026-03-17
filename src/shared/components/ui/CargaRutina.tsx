@@ -7,7 +7,6 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import LottieView from "lottie-react-native";
 
@@ -35,24 +34,17 @@ const frases = [
   "¡Listo! Tu plan de entrenamiento está tomando forma...",
 ];
 
-/* ================= TOKENS ================= */
+/* ================= TOKENS (MUY MINIMAL) ================= */
 
-const accentA = "#22c55e";
-const accentB = "#60a5fa";
-const accentC = "#a855f7";
+const accent = "#3b82f6";
 
-const darkBg = "#050816";
-const darkCardA = "rgba(15,23,42,0.94)";
-const darkCardB = "rgba(9,14,24,0.98)";
-const darkBorder = "rgba(255,255,255,0.08)";
+const darkBg = "#020617";
 const darkTextPrimary = "#e5e7eb";
 const darkTextSecondary = "#94a3b8";
 
-const lightBg = "#f8fafc";
-const lightCard = "#ffffff";
-const lightBorder = "rgba(15,23,42,0.08)";
+const lightBg = "#f9fafb";
 const lightTextPrimary = "#0f172a";
-const lightTextSecondary = "#64748b";
+const lightTextSecondary = "#6b7280";
 
 /* ================= COMPONENT ================= */
 
@@ -136,11 +128,8 @@ export default function CargaRutina() {
   const palette = useMemo(
     () => ({
       bg: isDark ? darkBg : lightBg,
-      cardBorder: isDark ? darkBorder : lightBorder,
-      title: isDark ? darkTextPrimary : lightTextPrimary,
-      body: isDark ? darkTextSecondary : lightTextSecondary,
-      pillBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)",
-      glow: isDark ? "rgba(96,165,250,0.10)" : "rgba(59,130,246,0.08)",
+      textPrimary: isDark ? darkTextPrimary : lightTextPrimary,
+      textSecondary: isDark ? darkTextSecondary : lightTextSecondary,
     }),
     [isDark]
   );
@@ -160,63 +149,18 @@ export default function CargaRutina() {
       <View
         style={{
           width: cardWidth,
-          borderRadius: 28,
-          shadowColor: "#000",
-          shadowOpacity: isDark ? 0.35 : 0.08,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 12 },
-          elevation: 10,
+          padding: 24,
+          alignItems: "center",
         }}
       >
-        <LinearGradient
-          colors={[accentA, accentB, accentC]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 28,
-            padding: 1.2,
-          }}
-        >
-          {isDark ? (
-            <LinearGradient
-              colors={[darkCardA, darkCardB]}
-              style={{
-                borderRadius: 27,
-                borderWidth: 1,
-                borderColor: palette.cardBorder,
-                overflow: "hidden",
-              }}
-            >
-              <Contenido
-                isDark
-                frase={fraseActual}
-                translateY={translateY}
-                opacity={opacity}
-                scale={scale}
-                progressWidth={progressWidth}
-              />
-            </LinearGradient>
-          ) : (
-            <View
-              style={{
-                backgroundColor: lightCard,
-                borderRadius: 27,
-                borderWidth: 1,
-                borderColor: palette.cardBorder,
-                overflow: "hidden",
-              }}
-            >
-              <Contenido
-                isDark={false}
-                frase={fraseActual}
-                translateY={translateY}
-                opacity={opacity}
-                scale={scale}
-                progressWidth={progressWidth}
-              />
-            </View>
-          )}
-        </LinearGradient>
+        <Contenido
+          isDark={isDark}
+          frase={fraseActual}
+          translateY={translateY}
+          opacity={opacity}
+          scale={scale}
+          progressWidth={progressWidth}
+        />
       </View>
     </View>
   );
@@ -241,39 +185,32 @@ function Contenido({
 }) {
   const titleColor = isDark ? darkTextPrimary : lightTextPrimary;
   const bodyColor = isDark ? darkTextSecondary : lightTextSecondary;
-  const pillBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)";
-  const surface = isDark ? "rgba(255,255,255,0.04)" : "#f8fafc";
+  const pillBg = isDark ? "rgba(148,163,184,0.14)" : "rgba(15,23,42,0.04)";
   const progressTrack = isDark
-    ? "rgba(255,255,255,0.08)"
-    : "rgba(15,23,42,0.08)";
+    ? "rgba(148,163,184,0.25)"
+    : "rgba(15,23,42,0.06)";
 
   return (
-    <View
-      style={{
-        paddingHorizontal: 24,
-        paddingTop: 22,
-        paddingBottom: 24,
-        alignItems: "center",
-      }}
-    >
+    <View style={{ alignItems: "center" }}>
+      {/* Pill discreto */}
       <View
         style={{
-          paddingHorizontal: 12,
-          paddingVertical: 6,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
           borderRadius: 999,
           backgroundColor: pillBg,
-          marginBottom: 14,
+          marginBottom: 12,
         }}
       >
         <Text
           style={{
             color: bodyColor,
-            fontSize: 12,
-            fontWeight: "600",
-            letterSpacing: 0.6,
+            fontSize: 11,
+            fontWeight: "500",
+            letterSpacing: 1,
           }}
         >
-          GENERANDO PLAN PERSONALIZADO
+          GENERANDO TU PLAN
         </Text>
       </View>
 
@@ -286,21 +223,21 @@ function Contenido({
           source={cargaAnim}
           autoPlay
           loop
-          style={{ width: 210, height: 210 }}
+          style={{ width: 160, height: 160 }}
         />
       </Animated.View>
 
       <Text
         style={{
           color: titleColor,
-          fontSize: 24,
-          fontWeight: "800",
-          marginTop: 2,
+          fontSize: 22,
+          fontWeight: "700",
+          marginTop: 4,
           textAlign: "center",
-          letterSpacing: 0.2,
+          letterSpacing: 0.3,
         }}
       >
-        FitGenius IA
+        FitGenius
       </Text>
 
       <Text
@@ -312,62 +249,47 @@ function Contenido({
           lineHeight: 20,
         }}
       >
-        Estamos afinando tu rutina para que encaje con tu objetivo,
-        disponibilidad y nivel actual.
+        Ajustando tu rutina para alinearla con tu objetivo y ritmo de vida.
       </Text>
 
+      {/* Texto de la frase sin contenedor */}
+      <Animated.Text
+        style={{
+          color: bodyColor,
+          fontSize: 14,
+          textAlign: "center",
+          minHeight: 42,
+          lineHeight: 20,
+          marginTop: 18,
+          opacity,
+          transform: [{ translateY }],
+        }}
+        accessibilityLiveRegion={
+          Platform.OS === "android" ? "polite" : undefined
+        }
+      >
+        {frase}
+      </Animated.Text>
+
+      {/* Barra de progreso minimalista */}
       <View
         style={{
           width: "100%",
-          marginTop: 18,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
-          borderRadius: 18,
-          backgroundColor: surface,
+          height: 4,
+          borderRadius: 999,
+          overflow: "hidden",
+          marginTop: 12,
+          backgroundColor: progressTrack,
         }}
       >
-        <Animated.Text
+        <Animated.View
           style={{
-            color: bodyColor,
-            fontSize: 14,
-            textAlign: "center",
-            minHeight: 46,
-            lineHeight: 21,
-            opacity,
-            transform: [{ translateY }],
-          }}
-          accessibilityLiveRegion={
-            Platform.OS === "android" ? "polite" : undefined
-          }
-        >
-          {frase}
-        </Animated.Text>
-
-        <View
-          style={{
-            width: "100%",
-            height: 6,
+            width: progressWidth,
+            height: "100%",
             borderRadius: 999,
-            overflow: "hidden",
-            marginTop: 14,
-            backgroundColor: progressTrack,
+            backgroundColor: accent,
           }}
-        >
-          <Animated.View
-            style={{
-              width: progressWidth,
-              height: "100%",
-              borderRadius: 999,
-            }}
-          >
-            <LinearGradient
-              colors={[accentA, accentB, accentC]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </Animated.View>
-        </View>
+        />
       </View>
     </View>
   );

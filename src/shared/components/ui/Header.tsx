@@ -15,7 +15,7 @@ type PlanState = "PREMIUM_ACTIVE" | "PREMIUM_UNPAID" | "FREE";
 
 const tokens = {
   color: {
-    headerBgDark: "rgba(15,24,41,1)",
+    headerBgDark: "#080D17",
     headerBgLight: "#FFFFFF",
     headerBorderDark: "rgba(255,255,255,0.06)",
     headerBorderLight: "rgba(15,23,42,0.08)",
