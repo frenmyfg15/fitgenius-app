@@ -42,7 +42,11 @@ export default function RegistrarScreen() {
     goLogin,
   } = useRegistrar();
 
-  const { register, handleSubmit, formState: { errors } } = methods;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = methods;
 
   const openPrivacidad = () => {
     // @ts-ignore
@@ -51,14 +55,6 @@ export default function RegistrarScreen() {
 
   return (
     <>
-      {/*
-        KeyboardAvoidingView es el wrapper exterior.
-        - iOS: behavior="padding" sube el contenido el alto exacto del teclado.
-        - Android: behavior="height" recorta la altura disponible; el ScrollView
-          absorbe el resto. En Android también es útil tener
-          android:windowSoftInputMode="adjustResize" en AndroidManifest.xml
-          (Expo lo gestiona con softwareKeyboardLayoutMode en app.json).
-      */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -74,7 +70,6 @@ export default function RegistrarScreen() {
             justifyContent: "space-between",
           }}
           keyboardShouldPersistTaps="handled"
-          // showsVerticalScrollIndicator evita el flash visual en iOS
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 items-center justify-center">
@@ -95,8 +90,8 @@ export default function RegistrarScreen() {
             >
               <View
                 className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
-                  ? "border-slate-700 bg-slate-900/70"
-                  : "border-slate-200/80 bg-white"
+                    ? "border-slate-700 bg-slate-900/70"
+                    : "border-slate-200/80 bg-white"
                   } backdrop-blur`}
               >
                 <View className="items-center mb-3">
@@ -121,12 +116,16 @@ export default function RegistrarScreen() {
                       id="nombre"
                       register={register}
                       error={errors.nombre?.message}
+                      minLength={2}
+                      maxLength={40}
                     />
                     <Input
                       label="Apellido"
                       id="apellido"
                       register={register}
                       error={errors.apellido?.message}
+                      minLength={2}
+                      maxLength={60}
                     />
                     <Input
                       label="Correo electrónico"
@@ -134,6 +133,8 @@ export default function RegistrarScreen() {
                       type="email"
                       register={register}
                       error={errors.correo?.message}
+                      minLength={6}
+                      maxLength={120}
                     />
                     <Input
                       label="Contraseña"
@@ -141,6 +142,8 @@ export default function RegistrarScreen() {
                       type="password"
                       register={register}
                       error={errors.contrasena?.message}
+                      minLength={8}
+                      maxLength={64}
                     />
 
                     <View className="flex-row items-start gap-2 mt-1">
@@ -181,7 +184,6 @@ export default function RegistrarScreen() {
                       </Text>
                     )}
 
-                    {/* Botón REGISTRARSE */}
                     <Pressable
                       disabled={loading}
                       onPress={handleSubmit(onSubmit, onError)}
@@ -214,7 +216,6 @@ export default function RegistrarScreen() {
                   </View>
                 </FormProvider>
 
-                {/* separador */}
                 <View className="relative my-6">
                   <View className="absolute inset-0 items-center justify-center">
                     <View
@@ -267,7 +268,6 @@ export default function RegistrarScreen() {
             </LinearGradient>
           </View>
 
-          {/* Footer */}
           <View className="mt-8 items-center">
             <Text className={isDark ? "text-slate-400 text-xs" : "text-slate-500 text-xs"}>
               © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
@@ -288,7 +288,6 @@ export default function RegistrarScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Overlay de verificación de código */}
       {componentCode && (
         <View className="absolute inset-0 z-30 items-center justify-center bg-black/80">
           <EnterCodeVerify
@@ -309,12 +308,16 @@ function Input({
   register,
   error,
   type = "text",
+  minLength,
+  maxLength,
 }: {
   label: string;
   id: Exclude<keyof FormUsuario, "acepta">;
   register: UseFormRegister<FormUsuario>;
   error?: string;
   type?: "text" | "number" | "email" | "password";
+  minLength?: number;
+  maxLength?: number;
 }) {
   const { control } = useFormContext<FormUsuario>();
   const isDark = false;
@@ -324,6 +327,7 @@ function Input({
       <Text className="mb-1 font-medium text-slate-700 dark:text-slate-200">
         {label}
       </Text>
+
       <Controller
         control={control}
         name={id}
@@ -334,16 +338,32 @@ function Input({
             onChangeText={onChange}
             onBlur={onBlur}
             secureTextEntry={type === "password"}
+            maxLength={maxLength}
+            keyboardType={
+              type === "email"
+                ? "email-address"
+                : type === "number"
+                  ? "numeric"
+                  : "default"
+            }
+            autoCapitalize={type === "email" || type === "password" ? "none" : "words"}
+            autoCorrect={false}
             className={`w-full p-3 rounded-xl border text-sm
               bg-white dark:bg-[#0b1220]
               text-slate-900 dark:text-slate-50
               backdrop-blur focus:border-green-400
-              ${error ? "border-red-400" : "border-slate-300 dark:border-slate-700"
-              }`}
+              ${error ? "border-red-400" : "border-slate-300 dark:border-slate-700"}`}
             placeholderTextColor={isDark ? "#94A3B8" : "#64748B"}
           />
         )}
       />
+
+      {!!minLength && (
+        <Text className="text-slate-500 text-[11px] mt-1">
+          Mínimo: {minLength} caracteres
+        </Text>
+      )}
+
       {error && <Text className="text-red-500 text-xs mt-1">{error}</Text>}
     </View>
   );

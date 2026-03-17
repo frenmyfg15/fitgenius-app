@@ -1,4 +1,3 @@
-// app/features/registro/AlturaScreen.local.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -8,10 +7,9 @@ import BtnAprobe from "@/shared/components/ui/BtnAprobe";
 import { useRegistroStore } from "@/features/store/useRegistroStore";
 import HeightRulerPicker, { UnidadAltura } from "@/shared/components/ui/HeightRulerPicker";
 
-// ✅ AUX: valida y normaliza altura
 function normalizeAlturaCm(input: number, min = 100, max = 220) {
   if (typeof input !== "number" || !Number.isFinite(input)) return 170;
-  const rounded = Math.round(input); // step=1
+  const rounded = Math.round(input);
   return Math.max(min, Math.min(max, rounded));
 }
 
@@ -19,29 +17,38 @@ export default function AlturaLocalScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const usuario = useRegistroStore((s) => s.usuario);
+  const storeAltura = useRegistroStore((s) =>
+    typeof s.usuario?.altura === "number" && s.usuario.altura >= 100
+      ? s.usuario.altura
+      : 170
+  );
+  const unidad: UnidadAltura = useRegistroStore(
+    (s) => (s.usuario?.medidaAltura as UnidadAltura) || "CM"
+  );
   const setField = useRegistroStore((s) => s.setField);
 
-  const unidad: UnidadAltura = (usuario?.medidaAltura as UnidadAltura) || "CM";
+  const [localCm, setLocalCm] = useState<number>(() => normalizeAlturaCm(storeAltura));
 
-  // valor inicial desde store (pero no lo mutamos en cada tick)
-  const storeCm =
-    typeof usuario?.altura === "number" && usuario.altura >= 100 ? usuario.altura : 170;
-
-  // ✅ estado local para el picker (fluido)
-  const [localCm, setLocalCm] = useState<number>(() => normalizeAlturaCm(storeCm));
-
-  // guardamos en ref para tener siempre el último valor al salir
+  // ✅ Refs para el cleanup — sin deps reactivas
   const lastLocalCmRef = useRef(localCm);
-  useEffect(() => {
-    lastLocalCmRef.current = localCm;
-  }, [localCm]);
+  const unidadRef = useRef(unidad);
+  const storeAlturaRef = useRef(storeAltura);
+  const setFieldRef = useRef(setField);
 
-  // si viene un cambio “externo real” (ej: cargar perfil), sincronizamos local
+  // Mantener refs siempre actualizadas sin causar re-renders
+  useEffect(() => { lastLocalCmRef.current = localCm; }, [localCm]);
+  useEffect(() => { unidadRef.current = unidad; }, [unidad]);
+  useEffect(() => { storeAlturaRef.current = storeAltura; }, [storeAltura]);
+  useEffect(() => { setFieldRef.current = setField; }, [setField]);
+
+  // ✅ Sin deps problemáticas — solo sincroniza si cambia altura externamente
+  const prevStoreAlturaRef = useRef(storeAltura);
   useEffect(() => {
-    const next = normalizeAlturaCm(storeCm);
-    setLocalCm(next);
-  }, [storeCm]);
+    if (prevStoreAlturaRef.current === storeAltura) return;
+    prevStoreAlturaRef.current = storeAltura;
+    const next = normalizeAlturaCm(storeAltura);
+    setLocalCm((prev) => (prev !== next ? next : prev));
+  }, [storeAltura]);
 
   const onPressUnidad = useCallback(
     (u: UnidadAltura) => {
@@ -50,40 +57,32 @@ export default function AlturaLocalScreen() {
     [setField]
   );
 
-  // ✅ Live mientras arrastras (solo UI local)
   const handleChangeAltura = useCallback((cm: number) => {
     setLocalCm(normalizeAlturaCm(cm));
   }, []);
 
-  // ✅ Final al soltar (también actualiza local; NO store)
   const handleChangeAlturaEnd = useCallback((cm: number) => {
     setLocalCm(normalizeAlturaCm(cm));
   }, []);
 
+  // ✅ Deps vacías — usa solo refs, nunca causa re-registro
   useFocusEffect(
     useCallback(() => {
       return () => {
         const finalCm = normalizeAlturaCm(lastLocalCmRef.current);
-        const currentStore = typeof usuario?.altura === "number" ? usuario.altura : 0;
-
-        if (currentStore !== finalCm) {
-          setField("altura", finalCm);
+        if (storeAlturaRef.current !== finalCm) {
+          setFieldRef.current("altura", finalCm);
         }
-
-        // ✅ siempre persiste la unidad actual
-        setField("medidaAltura", unidad);
+        setFieldRef.current("medidaAltura", unidadRef.current);
       };
-    }, [setField, unidad])
+    }, []) // ✅ deps vacías — todo viene de refs
   );
 
   const alturaValida = localCm >= 100;
-
   const bgColor = isDark ? "#0b1220" : "#f6f7fb";
   const bg = { backgroundColor: bgColor };
-
   const textMain = { color: isDark ? "#ffffff" : "#111827" };
   const textSub = { color: isDark ? "#d1d5db" : "#4b5563" };
-
   const selectedBg = "#22c55e";
   const unselectedBg = isDark ? "#1f2937" : "#e5e7eb";
   const selectedText = "#ffffff";
@@ -107,7 +106,6 @@ export default function AlturaLocalScreen() {
           <Text style={[styles.sub, textSub]}>Desliza la regla para seleccionar tu altura.</Text>
         </View>
 
-        {/* Selector CM / FT */}
         <View style={{ flexDirection: "row", justifyContent: "center", paddingBottom: 12 }}>
           <Pressable onPress={() => onPressUnidad("CM")}>
             <View
@@ -116,12 +114,7 @@ export default function AlturaLocalScreen() {
                 { backgroundColor: unidad === "CM" ? selectedBg : unselectedBg },
               ]}
             >
-              <Text
-                style={{
-                  color: unidad === "CM" ? selectedText : unselectedText,
-                  fontWeight: "600",
-                }}
-              >
+              <Text style={{ color: unidad === "CM" ? selectedText : unselectedText, fontWeight: "600" }}>
                 CM
               </Text>
             </View>
@@ -134,19 +127,13 @@ export default function AlturaLocalScreen() {
                 { backgroundColor: unidad === "FT" ? selectedBg : unselectedBg },
               ]}
             >
-              <Text
-                style={{
-                  color: unidad === "FT" ? selectedText : unselectedText,
-                  fontWeight: "600",
-                }}
-              >
+              <Text style={{ color: unidad === "FT" ? selectedText : unselectedText, fontWeight: "600" }}>
                 FT
               </Text>
             </View>
           </Pressable>
         </View>
 
-        {/* Picker a todo el ancho */}
         <View style={styles.pickerSection}>
           <View style={[styles.rulerCard, { backgroundColor: bgColor }]}>
             <Text
@@ -189,7 +176,6 @@ export default function AlturaLocalScreen() {
 const styles = StyleSheet.create({
   h1: { textAlign: "center", fontSize: 18, fontWeight: "700", padding: 12 },
   sub: { textAlign: "center", fontSize: 13, paddingHorizontal: 8, paddingBottom: 16 },
-
   toggleBtnLeft: {
     paddingHorizontal: 20,
     paddingVertical: 8,
@@ -202,17 +188,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     borderBottomRightRadius: 16,
   },
-
-  pickerSection: {
-    paddingTop: 18,
-  },
-
+  pickerSection: { paddingTop: 18 },
   rulerCard: {
     width: "100%",
     borderRadius: 18,
     paddingBottom: 8,
   },
-
   pickerWrap: {
     width: "100%",
     paddingBottom: 10,
