@@ -414,7 +414,7 @@ export default function BuscadorEjercicio({
                 >
                   <Image
                     source={{
-                      uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${item.idGif}.gif`,
+                      uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${item.idGif}.gif`,
                     }}
                     style={{ width: "100%", height: "100%" }}
                   />

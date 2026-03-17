@@ -17,7 +17,7 @@ type Props = { dias: Rutina["dias"]; day: string };
 
 const cloudinaryGif = (idGif?: string | null) =>
   idGif
-    ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${idGif}.gif`
+    ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${idGif}.gif`
     : "https://dummyimage.com/256x256/e5e7eb/9ca3af.png&text=GIF";
 
 function isSimple(e: EjercicioAsignado | any): e is EjercicioAsignadoSimple {
