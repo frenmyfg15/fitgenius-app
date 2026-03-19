@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { View, ScrollView, RefreshControl, StyleSheet, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
+import { useNavigation } from "@react-navigation/native";
 
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useSyncStore } from "@/features/store/useSyncStore";
@@ -17,6 +18,14 @@ import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
+
+import {
+  checkSeguimiento,
+  analizarSeguimiento,
+  aplicarSeguimiento,
+  type AnalisisSeguimientoData,
+} from "@/features/api/progreso.api";
+import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
@@ -47,7 +56,11 @@ type DiaNombre =
   | "SABADO"
   | "DOMINGO";
 
-type Ejercicio = { id: number; completadoHoy?: boolean };
+type Ejercicio = {
+  id: number;
+  completadoHoy?: boolean;
+  fechasCompletadasAsignacion?: string[];
+};
 
 type RutinaDia = {
   id?: number;
@@ -90,10 +103,27 @@ export default function Home() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  // ── Navegación ──────────────────────────────────────────────────────────
+  const navigation = useNavigation<any>();
+
   const { usuario } = useUsuarioStore();
   const routineRev = useSyncStore((s) => s.routineRev);
   const workoutRev = useSyncStore((s) => s.workoutRev);
   const rutinaCache = useRutinaCache();
+
+  // ── Plan premium ─────────────────────────────────────────────────────────
+  // Se considera premium cuando el plan es BASICO o PREMIUM y el stripe
+  // está activo (active o trialing). Ajusta la condición a tu lógica real.
+  const esPremium =
+    (usuario?.planActual === "BASICO" || usuario?.planActual === "PREMIUM") &&
+    (usuario?.stripeStatus === "active" || usuario?.stripeStatus === "trialing");
+
+  const [seguimientoVisible, setSeguimientoVisible] = useState(false);
+  const [seguimientoLoading, setSeguimientoLoading] = useState(false);
+  const [seguimientoApplying, setSeguimientoApplying] = useState(false);
+  const [seguimientoData, setSeguimientoData] =
+    useState<AnalisisSeguimientoData | null>(null);
+  const seguimientoTriggered = useRef(false);
 
   // ── Onboarding ──────────────────────────────────────────────────────────
   const onboardingCompletado = useOnboardingStore((s) => s.completado);
@@ -128,6 +158,7 @@ export default function Home() {
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
+
       if (!id) {
         setRutina(null);
         return;
@@ -168,6 +199,54 @@ export default function Home() {
     fetchRutina(false);
   }, [fetchRutina]);
 
+  useEffect(() => {
+    if (seguimientoTriggered.current) return;
+    if (!usuario?.id) return;
+    if (autoGenerating) return;
+
+    seguimientoTriggered.current = true;
+
+    const runSeguimiento = async () => {
+      try {
+        setSeguimientoLoading(true);
+
+        const check = await checkSeguimiento();
+
+        if (!check?.mostrar) return;
+
+        const analisis = await analizarSeguimiento();
+
+        if (!analisis) return;
+
+        setSeguimientoData(analisis);
+        setSeguimientoVisible(true);
+      } catch (error) {
+        console.log("[Home] seguimiento error", error);
+      } finally {
+        setSeguimientoLoading(false);
+      }
+    };
+
+    runSeguimiento();
+  }, [usuario?.id, autoGenerating]);
+
+  const handleAplicarSeguimiento = useCallback(async () => {
+    try {
+      setSeguimientoApplying(true);
+
+      const result = await aplicarSeguimiento();
+
+      if (!result) return;
+
+      setSeguimientoVisible(false);
+      await fetchRutina(true);
+    } catch (error) {
+      console.log("[Home] aplicarSeguimiento error", error);
+    } finally {
+      setSeguimientoApplying(false);
+    }
+  }, [fetchRutina]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -198,22 +277,9 @@ export default function Home() {
   const rutinaHidratada = useMemo(() => {
     if (!rutina?.dias) return rutina;
 
-    const idsCompletadosEnFecha = new Set<number>(rutina.completadosPorFecha?.[selectedYMD] ?? []);
-    const usarAsignacionFallback =
-      idsCompletadosEnFecha.size === 0 && !!rutina.completadosPorAsignacion;
-
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => {
-        let completado = false;
-
-        if (idsCompletadosEnFecha.size > 0) {
-          completado = idsCompletadosEnFecha.has(e.id);
-        } else if (usarAsignacionFallback) {
-          completado = (rutina.completadosPorAsignacion?.[String(e.id)] ?? []).includes(selectedYMD);
-        } else {
-          completado = !!e.completadoHoy;
-        }
-
+        const completado = e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false;
         return { ...e, completadoHoy: completado };
       });
 
@@ -243,6 +309,16 @@ export default function Home() {
       <OnboardingModal
         visible={hydrated && pendienteMostrar && !onboardingCompletado}
         onClose={limpiarPendiente}
+      />
+
+      <SeguimientoInteligenteModal
+        visible={seguimientoVisible}
+        loading={seguimientoApplying}
+        analisis={seguimientoData}
+        lockedByPlan={(usuario?.rutinasIACreadas ?? 0) >= 1 && !esPremium}
+        onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })}
+        onClose={() => setSeguimientoVisible(false)}
+        onApply={handleAplicarSeguimiento}
       />
 
       <ScrollView

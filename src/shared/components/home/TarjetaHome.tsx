@@ -165,12 +165,12 @@ const toMadridYMD = (() => {
 })();
 
 const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
-  if (!selectedYMD) return Boolean(ej.completadoHoy);
   const fechas = ej.fechasCompletadasAsignacion ?? [];
-  if (Array.isArray(fechas) && fechas.includes(selectedYMD)) return true;
-  const hoy = toMadridYMD(new Date());
-  if (selectedYMD === hoy) return Boolean(ej.completadoHoy);
-  return false;
+  if (!selectedYMD) {
+    const hoy = toMadridYMD(new Date());
+    return fechas.includes(hoy);
+  }
+  return fechas.includes(selectedYMD);
 };
 
 const routeForEjercicio = (e: EjercicioDia) => {

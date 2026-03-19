@@ -15,19 +15,11 @@ import {
 import { CardField, useStripe } from "@stripe/stripe-react-native";
 import Toast from "react-native-toast-message";
 
-import {
-  createPremiumSubscription,
-  CreatePremiumSubscriptionResponse,
-} from "@/features/api/stripe.api";
-
+import { createPremiumSubscription, CreatePremiumSubscriptionResponse } from "@/features/api/stripe.api";
 import { useNavigation } from "@react-navigation/native";
 import { X, XCircle, Check, Sparkles, Zap, TrendingUp } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  useUsuarioStore,
-  UsuarioLogin,
-} from "@/features/store/useUsuarioStore";
-
+import { useUsuarioStore, UsuarioLogin } from "@/features/store/useUsuarioStore";
 import { LinearGradient } from "expo-linear-gradient";
 
 const PRICE = "4,99 €";
@@ -89,9 +81,7 @@ export default function PremiumPaymentScreen() {
     setErrorMsg(null);
 
     try {
-      const data: CreatePremiumSubscriptionResponse =
-        await createPremiumSubscription();
-
+      const data: CreatePremiumSubscriptionResponse = await createPremiumSubscription();
       const { clientSecret } = data;
 
       if (!clientSecret) {
@@ -207,7 +197,7 @@ export default function PremiumPaymentScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Desbloquea todo el potencial
+                Tu entrenamiento, en otra dimensión
               </Text>
             </View>
           </View>
@@ -291,31 +281,31 @@ export default function PremiumPaymentScreen() {
               { color: theme.textPrimary },
             ]}
           >
-            Lo que obtienes con Premium
+            ¿Qué cambia con Premium?
           </Text>
 
           <BenefitItem
             icon={<Sparkles size={18} color={theme.iconPremium} />}
             title="Rutinas IA ilimitadas"
-            description="Genera todas las rutinas personalizadas que necesites"
+            description="Entrena siempre con un plan fresco, diseñado para tu día y nivel."
           />
 
           <BenefitItem
             icon={<Zap size={18} color={theme.iconPremium} />}
             title="Coach inteligente"
-            description="Análisis y feedback personalizado de cada sesión"
+            description="Feedback en tiempo real para mejorar tu técnica y progresión."
           />
 
           <BenefitItem
             icon={<TrendingUp size={18} color={theme.iconPremium} />}
             title="Informes avanzados"
-            description="Todos los informes de progreso sin límites"
+            description="Mide tu progreso como si fueras un atleta profesional, no solo un usuario."
           />
 
           <BenefitItem
             icon={<Check size={18} color={theme.iconPremium} />}
             title="Preguntas con IA"
-            description="Consulta ejercicios y técnicas ilimitadamente"
+            description="Consulta ejercicios, planificación y técnica las veces que quieras."
           />
         </View>
 
@@ -335,7 +325,7 @@ export default function PremiumPaymentScreen() {
                 { color: theme.textPrimary, flex: 1 },
               ]}
             >
-              Características
+              ¿Qué estás dejando fuera?
             </Text>
             <Text
               style={[
@@ -355,55 +345,17 @@ export default function PremiumPaymentScreen() {
             </Text>
           </View>
 
-          <CompareRow
-            label="Registrar sesiones"
-            free="unlimited"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Crear rutinas manuales"
-            free="unlimited"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Buscar ejercicios"
-            free="unlimited"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Estadísticas básicas"
-            free="unlimited"
-            premium="unlimited"
-          />
+          <CompareRow label="Registrar sesiones" free="unlimited" premium="unlimited" />
+          <CompareRow label="Crear rutinas manuales" free="unlimited" premium="unlimited" />
+          <CompareRow label="Buscar ejercicios" free="unlimited" premium="unlimited" />
+          <CompareRow label="Estadísticas básicas" free="unlimited" premium="unlimited" />
 
           <View style={styles.divider} />
 
-          <CompareRow
-            label="Rutinas con IA"
-            free="limited"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Coach inteligente"
-            free="none"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Preguntas sobre ejercicios"
-            free="none"
-            premium="unlimited"
-          />
-
-          <CompareRow
-            label="Informes de progreso"
-            free="limited"
-            premium="unlimited"
-          />
+          <CompareRow label="Rutinas con IA" free="limited" premium="unlimited" />
+          <CompareRow label="Coach inteligente" free="none" premium="unlimited" />
+          <CompareRow label="Preguntas sobre ejercicios" free="none" premium="unlimited" />
+          <CompareRow label="Informes de progreso" free="limited" premium="unlimited" />
         </View>
 
         <View style={{ marginTop: 24 }}>
@@ -419,7 +371,7 @@ export default function PremiumPaymentScreen() {
               end={{ x: 1, y: 1 }}
             >
               <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                Activar Premium
+                Quiero Premium
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -624,24 +576,51 @@ function CompareRow({
   const isDark = useColorScheme() === "dark";
   const theme = getPremiumTheme(isDark);
 
-  const renderBadge = (type: "unlimited" | "limited" | "none", isPremium: boolean) => {
+  const renderBadge = (
+    type: "unlimited" | "limited" | "none",
+    isPremium: boolean,
+  ) => {
     if (type === "unlimited") {
       return (
         <View style={styles.checkIcon}>
-          <Check size={14} color={isPremium ? theme.badgePremiumText : theme.badgeFreeText} strokeWidth={3} />
+          <Check
+            size={14}
+            color={
+              isPremium
+                ? theme.badgePremiumText
+                : theme.badgeFreeText
+            }
+            strokeWidth={3}
+          />
         </View>
       );
     }
     if (type === "limited") {
       return (
-        <View style={[styles.limitedBadge, { backgroundColor: theme.badgeMutedBg }]}>
-          <Text style={[styles.limitedText, { color: theme.badgeMutedText }]}>1</Text>
+        <View
+          style={[
+            styles.limitedBadge,
+            { backgroundColor: theme.badgeMutedBg },
+          ]}
+        >
+          <Text
+            style={[
+              styles.limitedText,
+              { color: theme.badgeMutedText },
+            ]}
+          >
+            1
+          </Text>
         </View>
       );
     }
     return (
       <View style={styles.checkIcon}>
-        <X size={14} color={theme.iconMuted} strokeWidth={2} />
+        <X
+          size={14}
+          color={theme.iconMuted}
+          strokeWidth={2}
+        />
       </View>
     );
   };

@@ -39,7 +39,7 @@ export type UsuarioLogin = {
   experiencia: number;
 
   rutinaActivaId?: number;
-  planActual: "GRATUITO" | "PREMIUM";
+  planActual: "GRATUITO" | "BASICO" | "PREMIUM";
   haPagado: boolean;
 
   caloriasMes: number;
