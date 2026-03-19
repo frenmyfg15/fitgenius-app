@@ -27,7 +27,6 @@ type PesoIdealProps = {
 };
 
 const KG_TO_LB = 2.2046226218;
-const LB_TO_KG = 1 / KG_TO_LB;
 
 const tokens = {
   color: {
@@ -41,7 +40,7 @@ const tokens = {
     cardBorderLight: "rgba(0,0,0,0.06)",
 
     chipBgDark: "rgba(148,163,184,0.12)",
-    chipBgLight: "#F1F5F9",
+    chipBgLight: "#F1F5F9)",
     chipBorderDark: "rgba(255,255,255,0.06)",
     chipBorderLight: "rgba(0,0,0,0.06)",
 
@@ -138,16 +137,11 @@ export default function PesoIdeal({
   const pesoNumOriginal = Number(peso ?? 0);
   const alturaNumOriginal = Number(altura ?? 0);
 
-  const pesoKg = medidaPeso === "LB" ? pesoNumOriginal * LB_TO_KG : pesoNumOriginal;
-
-  const alturaM =
-    alturaNumOriginal <= 0
-      ? 0
-      : medidaAltura === "CM"
-        ? alturaNumOriginal / 100
-        : alturaNumOriginal <= 10
-          ? alturaNumOriginal * 0.3048
-          : alturaNumOriginal / 100;
+  // ✅ Datos internos canónicos:
+  // - peso siempre en KG
+  // - altura siempre en CM
+  const pesoKg = pesoNumOriginal;
+  const alturaM = alturaNumOriginal > 0 ? alturaNumOriginal / 100 : 0;
 
   const hasData = pesoKg > 0 && alturaM > 0;
 
@@ -175,8 +169,9 @@ export default function PesoIdeal({
   const angleDeg = pCurr * 360 - 90;
   const angleRad = (angleDeg * Math.PI) / 180;
 
+  // ✅ Solo conversión de visualización
   const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
-  const pesoDisplay = pesoNumOriginal;
+  const pesoDisplay = medidaPeso === "LB" ? pesoKg * KG_TO_LB : pesoKg;
   const minIdealDisplay = medidaPeso === "LB" ? minIdealKg * KG_TO_LB : minIdealKg;
   const maxIdealDisplay = medidaPeso === "LB" ? maxIdealKg * KG_TO_LB : maxIdealKg;
 

@@ -30,9 +30,18 @@ interface LimitacionOpcion {
   nombre: string;
 }
 
-type OptionsConfigKey = "sexo" | "nivel" | "actividad" | "objetivo" | "duracion" | "lugar";
+type OptionsConfigKey =
+  | "sexo"
+  | "nivel"
+  | "actividad"
+  | "objetivo"
+  | "duracion"
+  | "lugar";
 
-const optionsConfig: Record<OptionsConfigKey, { label: string; values: string[] }> = {
+const optionsConfig: Record<
+  OptionsConfigKey,
+  { label: string; values: string[] }
+> = {
   sexo: { label: "Sexo", values: ["MASCULINO", "FEMENINO"] },
   nivel: {
     label: "Nivel de experiencia",
@@ -40,11 +49,21 @@ const optionsConfig: Record<OptionsConfigKey, { label: string; values: string[] 
   },
   actividad: {
     label: "Actividad diaria",
-    values: ["SEDENTARIO", "LIGERAMENTE_ACTIVO", "MODERADAMENTE_ACTIVO", "MUY_ACTIVO"],
+    values: [
+      "SEDENTARIO",
+      "LIGERAMENTE_ACTIVO",
+      "MODERADAMENTE_ACTIVO",
+      "MUY_ACTIVO",
+    ],
   },
   objetivo: {
     label: "Objetivo principal",
-    values: ["PERDIDA_GRASA", "GANANCIA_MUSCULAR", "TONIFICAR_FORMA", "MATENER_FORMA"],
+    values: [
+      "PERDIDA_GRASA",
+      "GANANCIA_MUSCULAR",
+      "TONIFICAR_FORMA",
+      "MATENER_FORMA",
+    ],
   },
   duracion: {
     label: "Duración de sesión",
@@ -79,58 +98,52 @@ const muscleFocusOptions = [
   { id: "BRAZOS", name: "Brazos" },
 ];
 
-/* ---------- Tokens UI ---------- */
+/* ---------- Tokens UI minimalistas ---------- */
 const tokens = {
   color: {
     pageBgDark: "#020617",
-    pageBgLight: "#F9FAFB",
+    pageBgLight: "#f9fafb",
 
-    sectionBgDark: "#020617",
-    sectionBgLight: "#FFFFFF",
-    sectionBorderDark: "rgba(148,163,184,0.35)",
-    sectionBorderLight: "#E5E7EB",
+    textPrimaryDark: "#e5e7eb",
+    textPrimaryLight: "#0f172a",
+    textSecondaryDark: "#9ca3af",
+    textSecondaryLight: "#6b7280",
+    placeholderDark: "#64748b",
+    placeholderLight: "#94a3b8",
 
-    inputBgDark: "#020617",
-    inputBgLight: "#FFFFFF",
-    inputBorderDark: "rgba(148,163,184,0.35)",
-    inputBorderLight: "#E5E7EB",
+    inputBorderDark: "rgba(148,163,184,0.16)",
+    inputBorderLight: "rgba(15,23,42,0.10)",
 
-    textPrimaryDark: "#E5E7EB",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#9CA3AF",
-    textSecondaryLight: "#6B7280",
-    placeholderDark: "#64748B",
-    placeholderLight: "#94A3B8",
+    chipBorderDark: "rgba(148,163,184,0.12)",
+    chipBorderLight: "rgba(15,23,42,0.08)",
 
-    chipBorderDark: "rgba(148,163,184,0.35)",
-    chipBorderLight: "#E5E7EB",
-    chipBgDark: "#020617",
-    chipBgLight: "#FFFFFF",
+    chipBgDark: "#0f172a12",
+    chipBgLight: "#f3f4f6",
 
-    green: "#22C55E",
-    greenSoftDark: "rgba(34,197,94,0.15)",
-    greenSoftLight: "#DCFCE7",
-    greenTextDark: "#BBF7D0",
-    greenTextLight: "#166534",
+    activeBg: "#22c55e",
+    activeBgTrans: "#22c55e12",
+    activeBorderTrans: "#22c55e40",
+    activeText: "#15803d",
 
-    purple: "#A855F7",
+    purple: "#a855f7",
+    purpleTrans: "#a855f712",
+    purpleBorder: "#a855f740",
 
-    daysActiveBgDark: "#22C55E33",
-    daysActiveBgLight: "#16A34A",
+    cta: "#00ff66",
+    ctaDisabled: "rgba(15,23,42,0.3)",
+    ctaText: "#ffffff",
 
-    ctaDisabled: "#6B7280",
-    ctaText: "#FFFFFF",
-
-    equipCardBgDark: "#020617",
-    equipCardBgLight: "#FFFFFF",
-    equipIconBgDark: "#020617",
-    equipIconBgLight: "#F9FAFB",
-
-    equipIconBorderDark: "rgba(148,163,184,0.35)",
-    equipIconBorderLight: "#E5E7EB",
+    equipIconBorderDark: "rgba(148,163,184,0.12)",
+    equipIconBorderLight: "rgba(15,23,42,0.08)",
   },
-  radius: { lg: 16, md: 12, sm: 10 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
+  radius: { lg: 16, md: 12, sm: 8, xs: 6 } as const,
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+  } as const,
 } as const;
 
 /* ---------- Helpers UI ---------- */
@@ -156,22 +169,33 @@ function Section({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
 
   return (
     <View
       style={[
         styles.section,
         {
-          backgroundColor: isDark ? tokens.color.sectionBgDark : tokens.color.sectionBgLight,
-          borderColor: isDark ? tokens.color.sectionBorderDark : tokens.color.sectionBorderLight,
+          borderColor: isDark
+            ? tokens.color.inputBorderDark
+            : tokens.color.inputBorderLight,
         },
       ]}
     >
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: textPrimary }]}>{title}</Text>
-        {!!description && <Text style={[styles.sectionDesc, { color: textSecondary }]}>{description}</Text>}
+        <Text style={[styles.sectionTitle, { color: textPrimary }]}>
+          {title}
+        </Text>
+        {!!description && (
+          <Text style={[styles.sectionDesc, { color: textSecondary }]}>
+            {description}
+          </Text>
+        )}
       </View>
       {children}
     </View>
@@ -193,45 +217,48 @@ function Chip({
   variant?: "green" | "days" | "purple";
   activeTextColor?: string;
 }) {
-  const borderColor = active
-    ? variant === "purple"
-      ? tokens.color.purple
-      : tokens.color.green
-    : isDark
-      ? tokens.color.chipBorderDark
-      : tokens.color.chipBorderLight;
+  let bgColor: string;
+  let borderColor: string;
+  let textColor: string;
 
-  const backgroundColor = active
-    ? variant === "days"
-      ? isDark
-        ? tokens.color.daysActiveBgDark
-        : tokens.color.daysActiveBgLight
-      : isDark
-        ? tokens.color.greenSoftDark
-        : tokens.color.greenSoftLight
-    : isDark
+  if (active) {
+    bgColor =
+      variant === "purple"
+        ? tokens.color.purpleTrans
+        : variant === "days"
+          ? tokens.color.activeBgTrans
+          : tokens.color.activeBgTrans;
+    borderColor =
+      variant === "purple"
+        ? tokens.color.purpleBorder
+        : tokens.color.activeBorderTrans;
+    textColor =
+      activeTextColor ?? (variant === "days" ? tokens.color.activeText : "#15803d");
+  } else {
+    bgColor = isDark
       ? tokens.color.chipBgDark
       : tokens.color.chipBgLight;
-
-  const textColor = active
-    ? activeTextColor ?? (variant === "days" ? tokens.color.ctaText : isDark ? tokens.color.greenTextDark : tokens.color.greenTextLight)
-    : isDark
+    borderColor = isDark
+      ? tokens.color.chipBorderDark
+      : tokens.color.chipBorderLight;
+    textColor = isDark
       ? tokens.color.textPrimaryDark
       : tokens.color.textPrimaryLight;
+  }
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      style={[styles.chip, { borderColor, backgroundColor }]}
+      style={[styles.chip, { borderColor, backgroundColor: bgColor }]}
     >
       <Text style={[styles.chipText, { color: textColor }]}>{label}</Text>
     </Pressable>
   );
 }
 
-/* ---------- Pantalla ---------- */
+/* ---------- Pantalla edit-minimalista ---------- */
 export default function EditarPerfil() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -245,21 +272,34 @@ export default function EditarPerfil() {
     handleSubmit,
   } = useEditarPerfil();
 
-  const pageBg = isDark ? tokens.color.pageBgDark : tokens.color.pageBgLight;
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const placeholder = isDark ? tokens.color.placeholderDark : tokens.color.placeholderLight;
+  const pageBg = isDark
+    ? tokens.color.pageBgDark
+    : tokens.color.pageBgLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
+  const placeholder = isDark
+    ? tokens.color.placeholderDark
+    : tokens.color.placeholderLight;
 
   return (
     <ScrollView
       style={[styles.page, { backgroundColor: pageBg }]}
       contentContainerStyle={[
         styles.pageContent,
-        { paddingBottom: Platform.OS === "ios" ? 140 : 130 },
+        {
+          paddingBottom:
+            Platform.OS === "ios" ? 140 : 130,
+        },
       ]}
     >
       <View style={styles.header}>
-        <Text style={[styles.pageTitle, { color: textPrimary }]}>Editar perfil</Text>
+        <Text style={[styles.pageTitle, { color: textPrimary }]}>
+          Editar perfil
+        </Text>
         <Text style={[styles.pageSubtitle, { color: textSecondary }]}>
           Ajusta tus preferencias para que tus planes se adapten mejor a ti.
         </Text>
@@ -269,19 +309,24 @@ export default function EditarPerfil() {
         <Section title="Información general">
           <View style={styles.innerStack}>
             <View>
-              <Text style={[styles.fieldLabel, { color: textPrimary }]}>Peso objetivo (kg)</Text>
+              <Text style={[styles.fieldLabel, { color: textPrimary }]}>
+                Peso objetivo (kg)
+              </Text>
               <TextInput
                 keyboardType="numeric"
                 value={String(formData.pesoObjetivo ?? "")}
-                onChangeText={(t) => handleText("pesoObjetivo", t.replace(",", "."))}
+                onChangeText={(t) =>
+                  handleText("pesoObjetivo", t.replace(",", "."))
+                }
                 placeholder="Ej: 70"
                 placeholderTextColor={placeholder}
                 style={[
                   styles.input,
                   {
-                    backgroundColor: isDark ? tokens.color.inputBgDark : tokens.color.inputBgLight,
                     color: textPrimary,
-                    borderColor: isDark ? tokens.color.inputBorderDark : tokens.color.inputBorderLight,
+                    borderColor: isDark
+                      ? tokens.color.inputBorderDark
+                      : tokens.color.inputBorderLight,
                   },
                 ]}
               />
@@ -294,7 +339,9 @@ export default function EditarPerfil() {
 
                 return (
                   <View key={k} style={styles.selectorBlock}>
-                    <Text style={[styles.fieldLabel, { color: textPrimary }]}>{cfg.label}</Text>
+                    <Text style={[styles.fieldLabel, { color: textPrimary }]}>
+                      {cfg.label}
+                    </Text>
                     <View style={styles.chipsRow}>
                       {cfg.values.map((v) => {
                         const active = value === v;
@@ -327,7 +374,10 @@ export default function EditarPerfil() {
           </View>
         </Section>
 
-        <Section title="Enfoques musculares" description="Elige las zonas que quieres priorizar.">
+        <Section
+          title="Enfoques musculares"
+          description="Elige las zonas que quieres priorizar."
+        >
           <View style={styles.chipsRow}>
             {muscleFocusOptions.map((opt) => {
               const active = (formData.enfoque || []).includes(opt.id);
@@ -344,7 +394,10 @@ export default function EditarPerfil() {
           </View>
         </Section>
 
-        <Section title="Días disponibles" description="Selecciona los días en los que puedes entrenar.">
+        <Section
+          title="Días disponibles"
+          description="Selecciona los días en los que puedes entrenar."
+        >
           <View style={styles.chipsRow}>
             {daysOptions.map((d) => {
               const active = (formData.dias || []).includes(d.id);
@@ -363,7 +416,10 @@ export default function EditarPerfil() {
         </Section>
 
         {formData.lugar === "CASA" && (
-          <Section title="Equipamiento en casa" description="Indica qué material tienes disponible.">
+          <Section
+            title="Equipamiento en casa"
+            description="Indica qué material tienes disponible."
+          >
             <View style={styles.equipGrid}>
               {opcionesEquipamiento.map((item: EquipamientoOpcion) => {
                 const active = (formData.equipamiento || []).includes(item.id);
@@ -377,11 +433,13 @@ export default function EditarPerfil() {
                       styles.equipCard,
                       {
                         borderColor: active
-                          ? tokens.color.purple
+                          ? tokens.color.purpleBorder
                           : isDark
-                            ? tokens.color.sectionBorderDark
-                            : tokens.color.sectionBorderLight,
-                        backgroundColor: isDark ? tokens.color.equipCardBgDark : tokens.color.equipCardBgLight,
+                            ? tokens.color.equipIconBorderDark
+                            : tokens.color.equipIconBorderLight,
+                        backgroundColor: isDark
+                          ? tokens.color.chipBgDark
+                          : tokens.color.chipBgLight,
                       },
                     ]}
                   >
@@ -389,15 +447,21 @@ export default function EditarPerfil() {
                       style={[
                         styles.equipIconBox,
                         {
-                          borderColor: isDark ? tokens.color.equipIconBorderDark : tokens.color.equipIconBorderLight,
-                          backgroundColor: isDark ? tokens.color.equipIconBgDark : tokens.color.equipIconBgLight,
+                          borderColor: isDark
+                            ? tokens.color.equipIconBorderDark
+                            : tokens.color.equipIconBorderLight,
                         },
                       ]}
                     >
-                      <Image source={item.imagen} resizeMode="contain" style={styles.equipImage} />
+                      <Image
+                        source={item.imagen}
+                        resizeMode="contain"
+                        style={styles.equipImage}
+                      />
                     </View>
-
-                    <Text style={[styles.equipLabel, { color: textPrimary }]}>{item.nombre}</Text>
+                    <Text style={[styles.equipLabel, { color: textPrimary }]}>
+                      {item.nombre}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -405,7 +469,10 @@ export default function EditarPerfil() {
           </Section>
         )}
 
-        <Section title="Limitaciones físicas" description="Marca cualquier limitación relevante.">
+        <Section
+          title="Limitaciones físicas"
+          description="Marca cualquier limitación relevante."
+        >
           <View style={styles.chipsRow}>
             {opcionesLimitaciones.map((item: LimitacionOpcion) => {
               const active = (formData.limitaciones || []).includes(item.id);
@@ -431,7 +498,11 @@ export default function EditarPerfil() {
           accessibilityState={{ disabled: !hayCambios || saving }}
           style={[
             styles.cta,
-            { backgroundColor: !hayCambios || saving ? tokens.color.ctaDisabled : tokens.color.green },
+            {
+              backgroundColor: !hayCambios || saving
+                ? tokens.color.ctaDisabled
+                : tokens.color.cta,
+            },
           ]}
         >
           {saving ? (
@@ -442,7 +513,9 @@ export default function EditarPerfil() {
         </Pressable>
 
         {hayCambios && (
-          <Text style={[styles.ctaHint, { color: textSecondary }]}>Tienes cambios sin guardar.</Text>
+          <Text style={[styles.ctaHint, { color: textSecondary }]}>
+            Tienes cambios sin guardar.
+          </Text>
         )}
       </View>
     </ScrollView>
@@ -464,10 +537,11 @@ const styles = StyleSheet.create({
 
   section: {
     borderRadius: tokens.radius.lg,
-    padding: tokens.spacing.xl,
+    padding: tokens.spacing.lg,
+    marginBottom: tokens.spacing.lg,
     borderWidth: 1,
   },
-  sectionHeader: { marginBottom: tokens.spacing.md },
+  sectionHeader: { marginBottom: tokens.spacing.sm },
   sectionTitle: { fontSize: 15, fontWeight: "700" },
   sectionDesc: { marginTop: 4, fontSize: 12 },
 
@@ -475,11 +549,15 @@ const styles = StyleSheet.create({
   selectorsStack: { gap: tokens.spacing.lg },
   selectorBlock: { gap: tokens.spacing.sm },
 
-  fieldLabel: { fontSize: 12, fontWeight: "600", marginBottom: 6 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
 
   input: {
     borderRadius: tokens.radius.md,
-    paddingHorizontal: tokens.spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     borderWidth: 1,
@@ -521,7 +599,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   equipImage: { width: 50, height: 50 },
-  equipLabel: { fontSize: 11, fontWeight: "600", textAlign: "center" },
+  equipLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 
   ctaWrap: { marginTop: tokens.spacing.xl, alignItems: "center" },
   cta: {
@@ -532,6 +614,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minWidth: 220,
   },
-  ctaText: { fontSize: 14, fontWeight: "700", color: tokens.color.ctaText },
+  ctaText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: tokens.color.ctaText,
+  },
   ctaHint: { marginTop: 8, fontSize: 12 },
 });

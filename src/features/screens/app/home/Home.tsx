@@ -7,6 +7,7 @@ import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useSyncStore } from "@/features/store/useSyncStore";
 import { obtenerRutina } from "@/features/api/rutinas.api";
 import { useRutinaCache } from "@/features/store/useRutinaCache";
+import { useOnboardingStore } from "@/features/store/useOnboardingStore";
 
 import Calendar from "@/shared/components/home/Calendar";
 import TarjetaHome from "@/shared/components/home/TarjetaHome";
@@ -14,6 +15,7 @@ import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import Extra from "@/shared/components/home/Extra";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
+import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -35,7 +37,7 @@ const tokens = {
   },
 } as const;
 
-// ── Tipos ───────────────────────────────────────────────────────────────────
+// ── Tipos ────────────────────────────────────────────────────────────────────
 type DiaNombre =
   | "LUNES"
   | "MARTES"
@@ -45,10 +47,7 @@ type DiaNombre =
   | "SABADO"
   | "DOMINGO";
 
-type Ejercicio = {
-  id: number;
-  completadoHoy?: boolean;
-};
+type Ejercicio = { id: number; completadoHoy?: boolean };
 
 type RutinaDia = {
   id?: number;
@@ -65,12 +64,9 @@ type RutinaResp = {
   completadosPorAsignacion?: Record<string, string[]>;
 };
 
-// ── Utils ───────────────────────────────────────────────────────────────────
+// ── Utils ────────────────────────────────────────────────────────────────────
 const getDiaActualEnum = (): DiaNombre => {
-  const dias: DiaNombre[] = [
-    "DOMINGO", "LUNES", "MARTES", "MIERCOLES",
-    "JUEVES", "VIERNES", "SABADO",
-  ];
+  const dias: DiaNombre[] = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
   return dias[new Date().getDay()] as DiaNombre;
 };
 
@@ -87,21 +83,6 @@ const toMadridYMD = (() => {
   return (d: Date) => fmt.format(d);
 })();
 
-const getWeekMonday = (d: Date) => {
-  const day = d.getDay();
-  const mondayOffset = (day + 6) % 7;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - mondayOffset);
-  monday.setHours(12, 0, 0, 0);
-  return monday;
-};
-
-const addDays = (d: Date, n: number) => {
-  const x = new Date(d);
-  x.setDate(d.getDate() + n);
-  return x;
-};
-
 const isYMD = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 // ── Screen ───────────────────────────────────────────────────────────────────
@@ -114,13 +95,21 @@ export default function Home() {
   const workoutRev = useSyncStore((s) => s.workoutRev);
   const rutinaCache = useRutinaCache();
 
+  // ── Onboarding ──────────────────────────────────────────────────────────
+  const onboardingCompletado = useOnboardingStore((s) => s.completado);
+  const pendienteMostrar = useOnboardingStore((s) => s.pendienteMostrar);
+  const hydrated = useOnboardingStore((s) => s.hydrated);
+  const marcarPendiente = useOnboardingStore((s) => s.marcarPendiente);
+  const limpiarPendiente = useOnboardingStore((s) => s.limpiarPendiente);
+
+  // ── Rutina ───────────────────────────────────────────────────────────────
   const [rutina, setRutina] = useState<RutinaResp | null>(null);
   const [dia, setDia] = useState<DiaNombre>(getDiaActualEnum());
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedYMD, setSelectedYMD] = useState<string>(() => toMadridYMD(new Date()));
 
-  // ── Auto-generación primera vez ──────────────────────────────────────────
+  // ── Auto-generación primera vez ─────────────────────────────────────────
   const [autoGenerating, setAutoGenerating] = useState(false);
   const autoGenTriggered = useRef(false);
 
@@ -136,24 +125,13 @@ export default function Home() {
   const lastKeyRef = useRef<string | null>(null);
   const inflightRef = useRef<Promise<any> | null>(null);
 
-  useEffect(() => {
-    console.log("[Home][render]", {
-      rutinaActivaId: usuario?.rutinaActivaId,
-      routineRev,
-      workoutRev,
-      dia,
-      selectedYMD,
-      hoyMadrid: toMadridYMD(new Date()),
-      tieneRutina: !!rutina,
-      fechasCompletadasCount: rutina?.fechasCompletadas?.length ?? 0,
-      completadosPorFechaKeys: Object.keys(rutina?.completadosPorFecha ?? {}).length,
-    });
-  }, [usuario?.rutinaActivaId, routineRev, workoutRev, dia, selectedYMD, rutina]);
-
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
-      if (!id) { setRutina(null); return; }
+      if (!id) {
+        setRutina(null);
+        return;
+      }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
       if (!force && lastKeyRef.current === key) return;
@@ -192,8 +170,11 @@ export default function Home() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { await fetchRutina(true); }
-    finally { setRefreshing(false); }
+    try {
+      await fetchRutina(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchRutina]);
 
   const devolver = useCallback((ymd: string, diaEnum: string) => {
@@ -224,6 +205,7 @@ export default function Home() {
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => {
         let completado = false;
+
         if (idsCompletadosEnFecha.size > 0) {
           completado = idsCompletadosEnFecha.has(e.id);
         } else if (usarAsignacionFallback) {
@@ -231,6 +213,7 @@ export default function Home() {
         } else {
           completado = !!e.completadoHoy;
         }
+
         return { ...e, completadoHoy: completado };
       });
 
@@ -239,7 +222,7 @@ export default function Home() {
     });
 
     return { ...rutina, dias: diasH };
-  }, [rutina, selectedYMD, dia]);
+  }, [rutina, selectedYMD]);
 
   if (loading && !rutina) return <HomeSkeleton />;
 
@@ -247,13 +230,20 @@ export default function Home() {
 
   return (
     <>
-      {/* ── Auto-generación primera vez ──────────────────────────────────── */}
       {autoGenerating && (
         <IaGenerateAuto
-          onDone={() => setAutoGenerating(false)}
+          onDone={() => {
+            setAutoGenerating(false);
+            if (!onboardingCompletado) marcarPendiente();
+          }}
           onError={() => setAutoGenerating(false)}
         />
       )}
+
+      <OnboardingModal
+        visible={hydrated && pendienteMostrar && !onboardingCompletado}
+        onClose={limpiarPendiente}
+      />
 
       <ScrollView
         style={[styles.scroll, { backgroundColor: bg }]}

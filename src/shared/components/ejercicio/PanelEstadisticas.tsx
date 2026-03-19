@@ -11,8 +11,8 @@ import {
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import GraficoPesoPorSerie from "./GraficoPesoPorSerie";
-import VisualizacionesSugeridas from "./VisualizacionesSugeridas";
 import EstadisticasRendimiento from "./EstadisticasRendimiento";
+import VisualizacionesSugeridas from "./VisualizacionesSugeridas";
 
 type DetalleSerie = {
   pesoKg: number;

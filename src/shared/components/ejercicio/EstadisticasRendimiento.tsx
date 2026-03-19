@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 // ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
@@ -40,7 +41,7 @@ const GRADIENT = [
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 type SerieDetalle = {
-  pesoKg: number | null;
+  pesoKg: number | null; // ✅ siempre en kg
   repeticiones: number | null;
 };
 
@@ -53,37 +54,47 @@ type Props = {
 export default function EstadisticasRendimiento({ detallesSeries, esCardio }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const unit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
+  const unit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "KG").toUpperCase();
   const isCardio = Boolean(esCardio);
+
+  const formatWeightValue = (kg: number) => {
+    if (unit === "LB") {
+      return kgToLb(kg).replace(/\s*lb$/i, "");
+    }
+    return kg.toFixed(1);
+  };
+
+  const unitLabel = unit.toLowerCase();
 
   const stats = useMemo(() => {
     const sets = detallesSeries ?? [];
     const totalSeries = sets.length;
 
     let totalReps = 0;
-    let totalPeso = 0;
-    let maxPeso = 0;
+    let totalPesoKg = 0;
+    let maxPesoKg = 0;
     let maxReps = 0;
 
     for (const s of sets) {
       const reps = Number(s.repeticiones ?? 0);
-      const peso = Number(s.pesoKg ?? 0);
+      const pesoKg = Number(s.pesoKg ?? 0);
+
       totalReps += reps;
-      totalPeso += peso * reps;
-      if (peso > maxPeso) maxPeso = peso;
+      totalPesoKg += pesoKg * reps;
+      if (pesoKg > maxPesoKg) maxPesoKg = pesoKg;
       if (reps > maxReps) maxReps = reps;
     }
 
-    const pesoPromedio = totalReps ? totalPeso / totalReps : 0;
+    const pesoPromedioKg = totalReps ? totalPesoKg / totalReps : 0;
     const repsPromedio = totalSeries ? totalReps / totalSeries : 0;
 
     return {
       totalSeries,
       totalReps,
-      totalPeso,
-      pesoPromedio,
+      totalPesoKg,
+      pesoPromedioKg,
       repsPromedio,
-      maxPeso,
+      maxPesoKg,
       maxReps,
       tiempoTotal: totalReps,
       tiempoMedioSerie: repsPromedio,
@@ -93,27 +104,27 @@ export default function EstadisticasRendimiento({ detallesSeries, esCardio }: Pr
 
   const items = isCardio
     ? [
-      { label: "Series", value: stats.totalSeries, suffix: "" },
+      { label: "Series", value: String(stats.totalSeries), suffix: "" },
       { label: "Tiempo total", value: stats.tiempoTotal.toFixed(0), suffix: " s" },
       { label: "Tiempo / serie", value: stats.tiempoMedioSerie.toFixed(1), suffix: " s" },
       { label: "Tiempo máx. serie", value: stats.tiempoMaxSerie.toFixed(0), suffix: " s" },
-      ...(stats.maxPeso > 0
-        ? [{ label: "Máximo peso", value: stats.maxPeso.toFixed(1), suffix: ` ${unit}` }]
+      ...(stats.maxPesoKg > 0
+        ? [{ label: "Máximo peso", value: formatWeightValue(stats.maxPesoKg), suffix: ` ${unitLabel}` }]
         : []),
     ]
     : [
-      { label: "Series", value: stats.totalSeries, suffix: "" },
-      { label: "Reps totales", value: stats.totalReps, suffix: "" },
-      { label: "Volumen", value: stats.totalPeso.toFixed(1), suffix: ` ${unit}` },
-      { label: "Peso / rep", value: stats.pesoPromedio.toFixed(1), suffix: ` ${unit}` },
+      { label: "Series", value: String(stats.totalSeries), suffix: "" },
+      { label: "Reps totales", value: String(stats.totalReps), suffix: "" },
+      { label: "Volumen", value: formatWeightValue(stats.totalPesoKg), suffix: ` ${unitLabel}` },
+      { label: "Peso / rep", value: formatWeightValue(stats.pesoPromedioKg), suffix: ` ${unitLabel}` },
       { label: "Reps / serie", value: stats.repsPromedio.toFixed(1), suffix: "" },
-      { label: "Máximo peso", value: stats.maxPeso.toFixed(1), suffix: ` ${unit}` },
-      { label: "Máximas reps", value: stats.maxReps, suffix: "" },
+      { label: "Máximo peso", value: formatWeightValue(stats.maxPesoKg), suffix: ` ${unitLabel}` },
+      { label: "Máximas reps", value: String(stats.maxReps), suffix: "" },
     ];
 
   const hasData = isCardio
     ? stats.totalSeries > 0 && stats.tiempoTotal > 0
-    : stats.totalSeries > 0 && (stats.totalReps > 0 || stats.totalPeso > 0);
+    : stats.totalSeries > 0 && (stats.totalReps > 0 || stats.totalPesoKg > 0);
 
   const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
   const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
@@ -136,12 +147,10 @@ export default function EstadisticasRendimiento({ detallesSeries, esCardio }: Pr
             },
           ]}
         >
-          {/* Header — misma tipografía que IMCVisual */}
           <Text style={[styles.headerTitle, { color: textPrimary }]}>
             Rendimiento general
           </Text>
 
-          {/* Contenido */}
           {hasData ? (
             <View style={styles.grid}>
               {items.map((it) => (
@@ -187,14 +196,12 @@ const styles = StyleSheet.create({
     marginTop: tokens.spacing.xl + tokens.spacing.sm,
   },
 
-  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
-  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
@@ -208,7 +215,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   headerTitle: {
     fontSize: 13,
     fontWeight: "700",
@@ -216,7 +222,6 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.lg,
   },
 
-  // Grid de KPIs
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -241,7 +246,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Empty
   empty: {
     paddingVertical: tokens.spacing.xl + tokens.spacing.lg,
     alignItems: "center",

@@ -12,6 +12,8 @@ import { useColorScheme } from "nativewind";
 import { Lock } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { cmToFt } from "@/shared/utils/cmToFt";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 const R = 64;
 const C = 2 * Math.PI * R;
@@ -30,10 +32,6 @@ type TasaMetabolicaBasalProps = {
   medidaAltura?: UnidadAltura;
   soloGrafica?: boolean;
 };
-
-const KG_TO_LB = 2.2046226218;
-const LB_TO_KG = 1 / KG_TO_LB;
-const CM_PER_FT = 30.48;
 
 const tokens = {
   color: {
@@ -205,21 +203,10 @@ export default function TasaMetabolicaBasal({
     navigation.navigate("Perfil", { screen: "PremiumPayment" });
   }, [navigation]);
 
-  const pesoNumOriginal = Number(peso ?? 0);
-  const alturaNumOriginal = Number(altura ?? 0);
+  const pesoKg = Number(peso ?? 0);
+  const alturaCm = Number(altura ?? 0);
   const edadNum = Number(edad ?? 0);
   const sexoRaw = String(sexo ?? "");
-
-  const pesoKg = medidaPeso === "LB" ? pesoNumOriginal * LB_TO_KG : pesoNumOriginal;
-
-  const alturaCm =
-    alturaNumOriginal <= 0
-      ? 0
-      : medidaAltura === "CM"
-        ? alturaNumOriginal
-        : alturaNumOriginal <= 10
-          ? alturaNumOriginal * CM_PER_FT
-          : alturaNumOriginal;
 
   const hasInputs = pesoKg > 0 && alturaCm > 0 && edadNum > 0 && !!sexoRaw.trim();
 
@@ -239,12 +226,12 @@ export default function TasaMetabolicaBasal({
     if (tmb < minTMB) return { estado: "por debajo", isGradient: false };
     if (tmb > maxTMB) return { estado: "por encima", isGradient: false };
     return { estado: "en rango estimado", isGradient: true };
-  }, [tmb, minTMB, maxTMB]);
+  }, [tmb]);
 
   const pct = useMemo(() => {
     if (tmb == null) return 0;
     return Math.max(0, Math.min(1, (tmb - minTMB) / (maxTMB - minTMB)));
-  }, [tmb, minTMB, maxTMB]);
+  }, [tmb]);
 
   const dash = C * (1 - pct);
 
@@ -254,8 +241,15 @@ export default function TasaMetabolicaBasal({
 
   const ringBase = isDark ? tokens.color.ringBaseDark : tokens.color.ringBaseLight;
 
-  const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
-  const unidadAlturaLabel = medidaAltura === "FT" ? "ft" : "cm";
+  const pesoDisplay =
+    medidaPeso?.toUpperCase() === "KG"
+      ? `${round1(pesoKg)} kg`
+      : kgToLb(Number(pesoKg) || 0);
+
+  const alturaDisplay =
+    medidaAltura?.toUpperCase() === "FT"
+      ? cmToFt(Number(alturaCm) || 0)
+      : `${round1(alturaCm)} cm`;
 
   if (locked) {
     return (
@@ -380,8 +374,8 @@ export default function TasaMetabolicaBasal({
 
           {!soloGrafica && (
             <View style={styles.chipsRow}>
-              <Chip label="Peso" value={`${round1(pesoNumOriginal)} ${unidadPesoLabel}`} isDark={isDark} />
-              <Chip label="Altura" value={`${round1(alturaNumOriginal)} ${unidadAlturaLabel}`} isDark={isDark} />
+              <Chip label="Peso" value={pesoDisplay} isDark={isDark} />
+              <Chip label="Altura" value={alturaDisplay} isDark={isDark} />
               <Chip label="Edad" value={`${edadNum} años`} isDark={isDark} />
             </View>
           )}

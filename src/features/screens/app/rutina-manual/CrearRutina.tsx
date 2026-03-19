@@ -342,29 +342,17 @@ export default function CrearRutinaScreen() {
             type: "COPY_DIA",
             payload: { diaSemana: h.diaSelect },
           });
-          h.Toast.show({
-            type: "success",
-            text1: `Copiado ${h.diaSelect}`,
-          });
         }}
         onPegarAppend={() => {
           h.dispatch({
             type: "PASTE_DIA",
             payload: { diaSemana: h.diaSelect, mode: "append" },
           });
-          h.Toast.show({
-            type: "success",
-            text1: `Pegado en ${h.diaSelect} (agregar)`,
-          });
         }}
         onPegarReplace={() => {
           h.dispatch({
             type: "PASTE_DIA",
             payload: { diaSemana: h.diaSelect, mode: "replace" },
-          });
-          h.Toast.show({
-            type: "success",
-            text1: `Pegado en ${h.diaSelect} (reemplazar)`,
           });
         }}
         puedePegar={h.puedePegar}
@@ -398,10 +386,6 @@ export default function CrearRutinaScreen() {
                 if (h.modoCompuesto) {
                   const ya = h.compuestoTemporal.find((e) => e.id === id);
                   if (ya) {
-                    h.Toast.show({
-                      type: "error",
-                      text1: "Este ejercicio ya está en el compuesto",
-                    });
                     return;
                   }
                   h.setEjercicioEnCompuestoActual({ id, info });
@@ -514,11 +498,6 @@ export default function CrearRutinaScreen() {
               });
 
             if (ejerciciosCompuestos.length === 0) {
-              h.Toast.show({
-                type: "error",
-                text1: "Compuesto vacío",
-                text2: "Añade al menos 1 ejercicio antes de confirmar.",
-              });
               return;
             }
 
@@ -537,12 +516,6 @@ export default function CrearRutinaScreen() {
             h.setCompuestoTemporal([]);
             h.setModoCompuesto(false);
             h.setMostrarFormularioCompuesto(false);
-
-            h.Toast.show({
-              type: "success",
-              text1: "Compuesto añadido",
-              text2: `${nombre} · ${tipo} · ${ejerciciosCompuestos.length} ejercicios`,
-            });
           }}
         />
       ) : null}

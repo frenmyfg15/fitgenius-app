@@ -12,6 +12,7 @@ import { Layers, Shuffle, Infinity as Circuit, X } from "lucide-react-native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import CandadoPremium from "@/shared/components/ui/CandadoPremium";
 import { formatDescripcion } from "@/shared/utils/formatDescripcion";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 type Props = { dias: Rutina["dias"]; day: string };
 
@@ -156,7 +157,12 @@ function CompuestoBranchItem({
             {nombre}
           </Text>
           {detalle ? (
-            <Text style={[styles.branchDetail, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+            <Text
+              style={[
+                styles.branchDetail,
+                { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight },
+              ]}
+            >
               {detalle}
             </Text>
           ) : null}
@@ -173,7 +179,12 @@ export default function Ejercicios({ dias, day }: Props) {
   const isFreePlan = usuario?.planActual === "GRATUITO";
   const [zoomGif, setZoomGif] = useState<string | null>(null);
 
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase();
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase();
+
+  const formatWeight = (weightKg?: number | null) => {
+    if (!weightKg) return null;
+    return weightUnit === "LB" ? kgToLb(Number(weightKg)) : `${weightKg} kg`;
+  };
 
   const dia = useMemo(() => (dias ?? []).find((d) => d.diaSemana === day), [dias, day]);
   if (!dia) return null;
@@ -218,7 +229,7 @@ export default function Ejercicios({ dias, day }: Props) {
               ? [
                 asignado.seriesSugeridas ? `${asignado.seriesSugeridas} series` : null,
                 asignado.repeticionesSugeridas ? `${asignado.repeticionesSugeridas} reps` : null,
-                asignado.pesoSugerido ? `${asignado.pesoSugerido} ${weightUnit}` : null,
+                asignado.pesoSugerido ? formatWeight(Number(asignado.pesoSugerido)) : null,
               ]
                 .filter(Boolean)
                 .join(" · ")
@@ -320,7 +331,12 @@ export default function Ejercicios({ dias, day }: Props) {
                     >
                       {comp.nombre}
                     </Text>
-                    <Text style={[styles.compSub, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+                    <Text
+                      style={[
+                        styles.compSub,
+                        { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight },
+                      ]}
+                    >
                       {comp.tipoCompuesto}
                       {asignado.descansoSeg ? ` · Descanso entre bloques: ${asignado.descansoSeg}s` : ""}
                     </Text>
@@ -347,7 +363,7 @@ export default function Ejercicios({ dias, day }: Props) {
                     const detalle = [
                       c.series ? `${c.series} series` : null,
                       c.repeticiones ? `${c.repeticiones} reps` : null,
-                      c.pesoSugerido ? `${c.pesoSugerido} ${weightUnit}` : null,
+                      c.pesoSugerido ? formatWeight(Number(c.pesoSugerido)) : null,
                       c.descansoSugeridoSeg ? `${c.descansoSugeridoSeg}s descanso` : null,
                     ]
                       .filter(Boolean)

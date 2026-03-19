@@ -10,6 +10,7 @@ import { RefreshCcw } from "lucide-react-native";
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import ReplaceEjercicioAsignadoFlow from "@/shared/components/rutina/ReplaceEjercicioAsignadoFlow";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 // ── Tokens (mismo sistema compartido) ────────────────────────────────────────
 const tokens = {
@@ -94,7 +95,7 @@ interface EjercicioDia {
   ejercicioCompuesto?: EjercicioCompuesto | null;
   seriesSugeridas?: number;
   repeticionesSugeridas?: number | string;
-  pesoSugerido?: number | string;
+  pesoSugerido?: number | string; // ✅ siempre llega en kg desde backend
   descansoSeg?: number;
 }
 interface DiaRutina {
@@ -134,12 +135,25 @@ const imagenPorGrupo = (grupo?: string) => {
 };
 
 // ── Utils ────────────────────────────────────────────────────────────────────
+const formatPesoDisplay = (pesoKg: number | string | undefined, medidaPeso: MedidaPeso = "kg") => {
+  const pesoNum = Number(pesoKg);
+  if (!Number.isFinite(pesoNum)) return `— ${medidaPeso}`;
+
+  if (String(medidaPeso).toLowerCase() === "lb") {
+    return kgToLb(pesoNum);
+  }
+
+  return `${pesoNum} kg`;
+};
+
 const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
   if (i.ejercicioCompuesto) return `${i.descansoSeg ?? 0} s descanso`;
+
   const sets = i.seriesSugeridas ?? "—";
   const reps = i.repeticionesSugeridas ?? "—";
-  const peso = i.pesoSugerido ?? "—";
-  return `${sets} series · ${reps} reps · ${peso} ${medidaPeso}`;
+  const peso = i.pesoSugerido != null ? formatPesoDisplay(i.pesoSugerido, medidaPeso) : `— ${medidaPeso}`;
+
+  return `${sets} series · ${reps} reps · ${peso}`;
 };
 
 const toMadridYMD = (() => {
@@ -373,7 +387,6 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
           );
 
           const asignadoId = item.id != null ? Number(item.id) : undefined;
-          // canReplace is only allowed for simple (non-compound) exercises
           const isCompuesto = Boolean(item.ejercicioCompuesto);
 
           const canReplace =
@@ -549,7 +562,6 @@ const styles = StyleSheet.create({
     color: tokens.color.checkColor,
   },
 
-  // ── Replace button ────────────────────────────────────────────────────────
   replaceWrapper: {
     flexDirection: "column",
     alignItems: "stretch",
@@ -559,7 +571,6 @@ const styles = StyleSheet.create({
   replaceButton: {
     width: 90,
     borderRadius: tokens.radius.lg,
-    // stretch to fill the full row height given by Swipeable
     alignSelf: "stretch",
     flexDirection: "column",
     alignItems: "center",

@@ -2,16 +2,17 @@ import React from "react";
 import { View, Text, TextInput } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
+import { lbToKg } from "@/shared/utils/lbToKg";
 
 type Serie = {
   reps: number;
-  peso: number;
+  peso: number; // ✅ siempre guardado en kg
 };
 
 type Props = {
   series: Serie[];
   onChange: (index: number, field: keyof Serie, value: number) => void;
-  // 👇 NUEVO
   esCardio?: boolean;
 };
 
@@ -20,9 +21,24 @@ export default function SeriesInput({ series, onChange, esCardio }: Props) {
   const isDark = colorScheme === "dark";
 
   const { usuario } = useUsuarioStore();
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase(); // "kg" | "lb"
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase(); // "KG" | "LB"
 
   const isCardio = Boolean(esCardio);
+  const isLbUnit = weightUnit === "LB";
+
+  const formatPesoDisplay = (pesoKg: number) => {
+    if (!pesoKg) return "";
+    if (!isLbUnit) return String(pesoKg);
+
+    return kgToLb(pesoKg).replace(/\s*lb$/i, "");
+  };
+
+  const parsePesoInput = (text: string) => {
+    const normalized = text.replace(",", ".");
+    const value = parseFloat(normalized || "0") || 0;
+
+    return isLbUnit ? lbToKg(value) : value;
+  };
 
   return (
     <>
@@ -78,21 +94,24 @@ export default function SeriesInput({ series, onChange, esCardio }: Props) {
                   }
                 >
                   <TextInput
-                    value={serie.peso === 0 ? "" : String(serie.peso)}
-                    onChangeText={(t) => onChange(index, "peso", parseFloat(t || "0") || 0)}
+                    value={formatPesoDisplay(serie.peso)}
+                    onChangeText={(t) => {
+                      const sanitized = t.replace(/[^\d.,]/g, "");
+                      onChange(index, "peso", parsePesoInput(sanitized));
+                    }}
                     placeholder="0"
                     placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                    keyboardType="numeric"
-                    inputMode="numeric"
+                    keyboardType="decimal-pad"
+                    inputMode="decimal"
                     className={(isDark ? "text-white" : "text-neutral-800") + " flex-1 text-sm"}
-                    accessibilityLabel={`Peso serie ${index + 1} (${weightUnit})`}
+                    accessibilityLabel={`Peso serie ${index + 1} (${weightUnit.toLowerCase()})`}
                   />
                   <Text
                     className={
                       isDark ? "text-[#94a3b8] text-xs font-semibold" : "text-neutral-500 text-xs font-semibold"
                     }
                   >
-                    {weightUnit}
+                    {weightUnit.toLowerCase()}
                   </Text>
                 </View>
               </View>

@@ -307,7 +307,7 @@ export default function VistaEjercicio() {
   return (
     <View
       className="flex-1 relative"
-      style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? "#080D17" : "#ffffff" }}
     >
       <KeyboardAwareScrollView
         enableOnAndroid={true}

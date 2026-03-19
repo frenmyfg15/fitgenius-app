@@ -35,7 +35,7 @@ function Shimmer({
     const isDark = colorScheme === "dark";
     const t = useShimmer();
 
-    const base = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.06)";
+    const base = isDark ? "#080D17" : "rgba(15,23,42,0.06)";
     const highlight = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.55)";
 
     return (

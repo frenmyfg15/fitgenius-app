@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { Lightbulb } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 // ── Tokens (mismo sistema compartido) ────────────────────────────────────────
 const tokens = {
@@ -37,7 +38,7 @@ type Props = {
   notaIA?: string | null;
   series?: number | null;
   repeticiones?: number | null;
-  peso?: number | null;
+  peso?: number | null; // ✅ se recibe en kg
   esCardio?: boolean;
 };
 
@@ -51,7 +52,7 @@ export default function NotaIA({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const medidaPeso = useUsuarioStore((s) => s.usuario?.medidaPeso) || "kg";
+  const medidaPeso = (useUsuarioStore((s) => s.usuario?.medidaPeso) || "KG").toUpperCase();
 
   const safeNota = (notaIA ?? "").trim();
   const safeSeries =
@@ -60,13 +61,18 @@ export default function NotaIA({
     typeof repeticiones === "number" && Number.isFinite(repeticiones)
       ? repeticiones
       : 0;
-  const safePeso =
+  const safePesoKg =
     typeof peso === "number" && Number.isFinite(peso) ? peso : 0;
   const isCardio = Boolean(esCardio);
 
+  const pesoDisplay = useMemo(() => {
+    if (safePesoKg <= 0) return null;
+    return medidaPeso === "LB" ? kgToLb(safePesoKg) : `${safePesoKg} kg`;
+  }, [safePesoKg, medidaPeso]);
+
   const shouldRender = useMemo(
-    () => safeNota.length > 0 || safeSeries > 0 || safeReps > 0 || safePeso > 0,
-    [safeNota, safeSeries, safeReps, safePeso]
+    () => safeNota.length > 0 || safeSeries > 0 || safeReps > 0 || safePesoKg > 0,
+    [safeNota, safeSeries, safeReps, safePesoKg]
   );
 
   if (!shouldRender) return null;
@@ -157,10 +163,10 @@ export default function NotaIA({
             <MetaItem label="Reps" value={String(safeReps)} isDark={isDark} />
           )}
 
-          {safePeso > 0 && (
+          {pesoDisplay && (
             <MetaItem
               label="Peso"
-              value={`${safePeso} ${medidaPeso}`}
+              value={pesoDisplay}
               isDark={isDark}
             />
           )}

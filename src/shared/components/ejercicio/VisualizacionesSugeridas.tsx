@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 import {
   computeMetrics,
@@ -92,7 +93,20 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
   const isCardio = Boolean(esCardio);
 
   const { usuario } = useUsuarioStore();
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase();
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase();
+
+  const formatWeight = (kg: number) => {
+    return weightUnit === "LB"
+      ? kgToLb(Number(kg) || 0)
+      : `${Number(kg || 0).toFixed(1)} kg`;
+  };
+
+  const formatWeightValueOnly = (kg: number) => {
+    if (weightUnit === "LB") {
+      return kgToLb(Number(kg) || 0).replace(/\s*lb$/i, "");
+    }
+    return Number(kg || 0).toFixed(1);
+  };
 
   const metrics = useMemo(() => computeMetrics(detallesSeries), [detallesSeries]);
   const sugs = useMemo(() => generateSuggestions(metrics, { esCardio }), [metrics, esCardio]);
@@ -106,7 +120,6 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
   const textBody = isDark ? tokens.color.textBodyDark : tokens.color.textBodyLight;
   const planLabel = isDark ? tokens.color.planLabelDark : tokens.color.planLabelLight;
 
-  // ── Sin datos ──────────────────────────────────────────────────────────────
   if (!hasData) {
     return (
       <View style={styles.root}>
@@ -138,7 +151,6 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
     );
   }
 
-  // ── Subtítulo del header ───────────────────────────────────────────────────
   const renderHeaderSubtitle = () => {
     if (isCardio) {
       return (
@@ -152,19 +164,20 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
             <>
               {" · "}Volumen:{" "}
               <Text style={[styles.headerSubtitleBold, { color: textPrimary }]}>
-                {metrics.totalVol.toFixed(1)} {weightUnit}
+                {formatWeight(metrics.totalVol)}
               </Text>
             </>
           )}
         </Text>
       );
     }
+
     return (
       <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
         Sets: <Text style={[styles.headerSubtitleBold, { color: textPrimary }]}>{metrics.n}</Text>
         {" · "}Volumen:{" "}
         <Text style={[styles.headerSubtitleBold, { color: textPrimary }]}>
-          {metrics.totalVol.toFixed(1)} {weightUnit}
+          {formatWeight(metrics.totalVol)}
         </Text>
       </Text>
     );
@@ -187,7 +200,6 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
             },
           ]}
         >
-          {/* Header — misma tipografía que IMCVisual */}
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: textPrimary }]}>
               Sugerencias personalizadas
@@ -195,9 +207,7 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
             {renderHeaderSubtitle()}
           </View>
 
-          {/* Cuerpo */}
           <View style={styles.body}>
-            {/* Grupos por categoría */}
             <View style={styles.groupStack}>
               {Object.entries(byCat).map(([cat, textos]) => (
                 <View
@@ -234,7 +244,6 @@ export default function VisualizacionesSugeridas({ detallesSeries, esCardio }: P
               ))}
             </View>
 
-            {/* Plan próximo entrenamiento */}
             <View
               style={[
                 styles.group,
@@ -276,14 +285,12 @@ const styles = StyleSheet.create({
     marginTop: tokens.spacing.xl + tokens.spacing.sm,
   },
 
-  // Frame — valores exactos de IMCVisual
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
 
-  // Card interior — sombra añadida igual que IMCVisual
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
@@ -295,7 +302,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -312,13 +318,11 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11 },
   headerSubtitleBold: { fontWeight: "600" },
 
-  // Cuerpo
   body: {
     paddingHorizontal: tokens.spacing.xl,
     paddingBottom: tokens.spacing.xl,
   },
 
-  // Grupos
   groupStack: { gap: tokens.spacing.lg },
   group: {
     borderRadius: tokens.radius.md,
@@ -328,7 +332,6 @@ const styles = StyleSheet.create({
   },
   groupBadgeWrap: { marginBottom: tokens.spacing.sm },
 
-  // Bullets
   bulletStack: { gap: tokens.spacing.sm },
   bulletRow: {
     flexDirection: "row",
@@ -343,7 +346,6 @@ const styles = StyleSheet.create({
   },
   bulletText: { flex: 1, fontSize: 14 },
 
-  // Plan
   planGroup: { marginTop: tokens.spacing.lg },
   planLabel: {
     fontSize: 11,
@@ -354,10 +356,8 @@ const styles = StyleSheet.create({
   planLines: { gap: 6 },
   planLine: { fontSize: 14 },
 
-  // Empty
   emptyText: { fontSize: 14, textAlign: "center" },
 
-  // Badge de categoría
   badge: {
     alignSelf: "flex-start",
     borderRadius: tokens.radius.full,

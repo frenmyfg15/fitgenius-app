@@ -6,6 +6,7 @@ import DraggableFlatList, {
   RenderItemParams,
 } from "react-native-draggable-flatlist";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 import type {
   CompuestoItem,
@@ -106,7 +107,15 @@ export default function DiaRutinaView({
   const isDark = colorScheme === "dark";
 
   const { usuario } = useUsuarioStore();
-  const weightUnit = (usuario?.medidaPeso ?? "KG").toLowerCase();
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase();
+
+  const formatWeight = useCallback(
+    (weightKg?: number | null) => {
+      if (weightKg == null) return "-";
+      return weightUnit === "LB" ? kgToLb(Number(weightKg)) : `${weightKg} kg`;
+    },
+    [weightUnit]
+  );
 
   const sorted = useMemo(
     () => [...(ejercicios ?? [])].sort((a, b) => a.orden - b.orden),
@@ -299,7 +308,7 @@ export default function DiaRutinaView({
                     Reps: {principal.repeticionesSugeridas ?? "-"}
                   </Chip>
                   <Chip isDark={isDark}>
-                    Peso: {principal.pesoSugerido ?? "-"} {weightUnit}
+                    Peso: {formatWeight(principal.pesoSugerido)}
                   </Chip>
                 </View>
               </View>
@@ -308,7 +317,7 @@ export default function DiaRutinaView({
         </View>
       );
     },
-    [activeKey, cardBg, cardBorder, frameGradient, isDark, textPrimary, weightUnit]
+    [activeKey, cardBg, cardBorder, frameGradient, formatWeight, isDark, textPrimary]
   );
 
   if (data.length === 0) {

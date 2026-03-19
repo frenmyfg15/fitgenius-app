@@ -12,6 +12,7 @@ import { useColorScheme } from "nativewind";
 import { Lock } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 const R = 64;
 const C = 2 * Math.PI * R;
@@ -25,6 +26,8 @@ type PesoObjetivoProgresoProps = {
   objetivo?: number | string | null;
   medidaPeso?: UnidadPeso;
 };
+
+const KG_TO_LB = 2.2046226218;
 
 const tokens = {
   color: {
@@ -91,6 +94,11 @@ const GRADIENT = [
 
 function round1(n: number) {
   return Number.isFinite(n) ? Math.round(n * 10) / 10 : 0;
+}
+
+function formatKgOrLb(valueKg: number, medidaPeso: UnidadPeso) {
+  if (medidaPeso === "LB") return kgToLb(Number(valueKg) || 0);
+  return `${round1(valueKg)} kg`;
 }
 
 function Chip({
@@ -194,48 +202,55 @@ export default function PesoObjetivoProgreso({
     navigation.navigate("Perfil", { screen: "PremiumPayment" });
   }, [navigation]);
 
-  const pesoNum = Number(peso ?? 0);
-  const objetivoNum = Number(objetivo ?? 0);
+  // Internamente ambos valores están en KG
+  const pesoKg = Number(peso ?? 0);
+  const objetivoKg = Number(objetivo ?? 0);
 
   const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
-
-  const hasData = Boolean(pesoNum && objetivoNum);
+  const hasData = Boolean(pesoKg && objetivoKg);
 
   const rumbo: "bajar" | "subir" | "igual" = useMemo(() => {
     if (!hasData) return "igual";
-    if (objetivoNum === pesoNum) return "igual";
-    return objetivoNum < pesoNum ? "bajar" : "subir";
-  }, [hasData, objetivoNum, pesoNum]);
+    if (objetivoKg === pesoKg) return "igual";
+    return objetivoKg < pesoKg ? "bajar" : "subir";
+  }, [hasData, objetivoKg, pesoKg]);
 
   const pct = useMemo(() => {
     if (!hasData) return 0;
     if (rumbo === "igual") return 1;
-    return objetivoNum > pesoNum
-      ? Math.min(pesoNum / objetivoNum, 1)
-      : Math.min(objetivoNum / pesoNum, 1);
-  }, [hasData, rumbo, objetivoNum, pesoNum]);
+    return objetivoKg > pesoKg
+      ? Math.min(pesoKg / objetivoKg, 1)
+      : Math.min(objetivoKg / pesoKg, 1);
+  }, [hasData, rumbo, objetivoKg, pesoKg]);
 
-  const delta = useMemo(() => (hasData ? objetivoNum - pesoNum : 0), [hasData, objetivoNum, pesoNum]);
+  const deltaKg = useMemo(() => (hasData ? objetivoKg - pesoKg : 0), [hasData, objetivoKg, pesoKg]);
   const alcanzado = rumbo === "igual";
   const dash = C * (1 - pct);
+
+  const deltaDisplayValue =
+    medidaPeso === "LB" ? round1(deltaKg * KG_TO_LB) : round1(deltaKg);
 
   const estado = useMemo(() => {
     if (!hasData) return "";
     if (alcanzado) return "¡Has alcanzado tu objetivo!";
-    const abs = Math.abs(delta).toFixed(1);
-    return delta < 0 ? `Te sobran ${abs} ${unidadPesoLabel}` : `Te faltan ${abs} ${unidadPesoLabel}`;
-  }, [hasData, alcanzado, delta, unidadPesoLabel]);
+    const abs = Math.abs(deltaDisplayValue).toFixed(1);
+    return deltaDisplayValue < 0
+      ? `Te sobran ${abs} ${unidadPesoLabel}`
+      : `Te faltan ${abs} ${unidadPesoLabel}`;
+  }, [hasData, alcanzado, deltaDisplayValue, unidadPesoLabel]);
 
   const chipLabel = useMemo(() => {
     if (alcanzado) return "Objetivo logrado";
-    return objetivoNum < pesoNum ? "Objetivo: bajar" : "Objetivo: subir";
-  }, [alcanzado, objetivoNum, pesoNum]);
+    return objetivoKg < pesoKg ? "Objetivo: bajar" : "Objetivo: subir";
+  }, [alcanzado, objetivoKg, pesoKg]);
 
   const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
   const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
-
   const ringBase = isDark ? tokens.color.ringBaseDark : tokens.color.ringBaseLight;
+
+  const pesoDisplay = formatKgOrLb(pesoKg, medidaPeso);
+  const objetivoDisplay = formatKgOrLb(objetivoKg, medidaPeso);
+  const diferenciaDisplay = `${deltaDisplayValue > 0 ? "+" : ""}${deltaDisplayValue} ${unidadPesoLabel}`;
 
   if (locked) {
     return (
@@ -357,13 +372,9 @@ export default function PesoObjetivoProgreso({
           </View>
 
           <View style={styles.chipsRow}>
-            <Chip label="Actual" value={`${round1(pesoNum)} ${unidadPesoLabel}`} isDark={isDark} />
-            <Chip label="Objetivo" value={`${round1(objetivoNum)} ${unidadPesoLabel}`} isDark={isDark} />
-            <Chip
-              label="Diferencia"
-              value={`${delta > 0 ? "+" : ""}${round1(delta)} ${unidadPesoLabel}`}
-              isDark={isDark}
-            />
+            <Chip label="Actual" value={pesoDisplay} isDark={isDark} />
+            <Chip label="Objetivo" value={objetivoDisplay} isDark={isDark} />
+            <Chip label="Diferencia" value={diferenciaDisplay} isDark={isDark} />
           </View>
 
           <View style={styles.ringWrap}>

@@ -16,6 +16,9 @@ import {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
+import { lbToKg } from "@/shared/utils/lbToKg";
 
 export type EjercicioAsignadoInput = {
   ejercicioId: number;
@@ -70,8 +73,12 @@ export default function FormularioEjercicio({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const usuario = useUsuarioStore((s) => s.usuario);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase();
+  const isLbUnit = weightUnit === "LB";
 
   const snapPoints = useMemo(() => ["55%", "80%"], []);
   const topInset = Math.max(insets.top, 12);
@@ -106,13 +113,19 @@ export default function FormularioEjercicio({
         ? String(v.repeticionesSugeridas)
         : ""
     );
-    setPeso(typeof v.pesoSugerido === "number" ? String(v.pesoSugerido) : "");
+    setPeso(
+      typeof v.pesoSugerido === "number"
+        ? isLbUnit
+          ? String(kgToLb(v.pesoSugerido).replace(/\s*lb$/i, ""))
+          : String(v.pesoSugerido)
+        : ""
+    );
     setDescanso(
       typeof v.descansoSeg === "number" ? String(v.descansoSeg) : ""
     );
     setNota(typeof v.notaIA === "string" ? v.notaIA : "");
     setErrors({});
-  }, [visible, ejercicioId, initialValues]);
+  }, [visible, ejercicioId, initialValues, isLbUnit]);
 
   const isCardioLocal = Boolean(esCardio);
 
@@ -145,7 +158,8 @@ export default function FormularioEjercicio({
 
   const toNumber = (s: string): number | undefined => {
     if (s.trim() === "") return undefined;
-    const n = Number(s);
+    const normalized = s.replace(",", ".");
+    const n = Number(normalized);
     return Number.isFinite(n) ? n : undefined;
   };
 
@@ -167,12 +181,16 @@ export default function FormularioEjercicio({
       return;
     }
 
+    const pesoSugeridoKg = isLbUnit
+      ? lbToKg(parsed.data.pesoSugerido)
+      : parsed.data.pesoSugerido;
+
     onConfirm({
       ejercicioId,
       orden: orden ?? initialValues?.orden ?? 0,
       seriesSugeridas: parsed.data.seriesSugeridas,
       repeticionesSugeridas: parsed.data.repeticionesSugeridas,
-      pesoSugerido: parsed.data.pesoSugerido,
+      pesoSugerido: pesoSugeridoKg,
       descansoSeg: esParteDeCompuesto ? 0 : (parsed.data.descansoSeg ?? 0),
       notaIA,
     });
@@ -307,13 +325,13 @@ export default function FormularioEjercicio({
               />
 
               <Field
-                label="Peso"
+                label={`Peso (${isLbUnit ? "lb" : "kg"})`}
                 value={pesoSugerido}
                 onChangeText={(t) => {
-                  setPeso(t.replace(/[^\d.]/g, ""));
+                  setPeso(t.replace(/[^\d.,]/g, "").replace(",", "."));
                   if (t !== "") clearError("pesoSugerido");
                 }}
-                placeholder="Ej: 50"
+                placeholder={isLbUnit ? "Ej: 110" : "Ej: 50"}
                 error={errors.pesoSugerido}
                 surface={surface}
                 textPrimary={textPrimary}

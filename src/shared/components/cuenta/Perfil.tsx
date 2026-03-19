@@ -4,21 +4,20 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { cmToFt } from "@/shared/utils/cmToFt";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
-    // Frame gradient
     frameGradientDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
     frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
 
-    // Card interior
     cardBgDark: "rgba(15,24,41,0.70)",
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
 
-    // Avatar
     avatarRingDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
     avatarRingLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
     avatarBgDark: "rgba(255,255,255,0.06)",
@@ -27,13 +26,11 @@ const tokens = {
     avatarInitialsDark: "#CBD5E1",
     avatarInitialsLight: "#6B7280",
 
-    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "#64748B",
     textSecondaryLight: "#64748B",
 
-    // Chip normal (métricas)
     chipBgDark: "rgba(148,163,184,0.12)",
     chipBgLight: "#F1F5F9",
     chipBorderDark: "rgba(255,255,255,0.06)",
@@ -41,7 +38,6 @@ const tokens = {
     chipTextDark: "#CBD5E1",
     chipTextLight: "#475569",
 
-    // ChipSoft (objetivo)
     chipSoftBgDark: "rgba(15,24,41,0.60)",
     chipSoftBgLight: "#FFFFFF",
     chipSoftBorderDark: "rgba(255,255,255,0.09)",
@@ -53,7 +49,6 @@ const tokens = {
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function Perfil() {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { usuario } = useUsuarioStore();
@@ -65,7 +60,26 @@ export default function Perfil() {
   }, [usuario?.nombre, usuario?.apellido]);
 
   if (!usuario) return null;
-  // ── Fin lógica original ───────────────────────────────────────────────────
+
+  // ✅ Helpers aplicados correctamente
+  const alturaCm = Number(usuario.altura);
+
+  const alturaDisplay =
+    usuario.medidaAltura?.toUpperCase() === "FT"
+      ? cmToFt(alturaCm)
+      : `${alturaCm} cm`;
+
+  const pesoDisplay =
+    usuario.medidaPeso?.toUpperCase() === "KG"
+      ?
+      `${usuario.peso} kg`
+      :
+      kgToLb(Number(usuario.peso)) || 0;
+
+  const pesoObjetivoDisplay =
+    usuario.medidaPeso?.toUpperCase() === "KG"
+      ? `${usuario.pesoObjetivo} kg`
+      : kgToLb(Number(usuario.pesoObjetivo));
 
   const frameGradient = isDark ? tokens.color.frameGradientDark : tokens.color.frameGradientLight;
   const avatarRing = isDark ? tokens.color.avatarRingDark : tokens.color.avatarRingLight;
@@ -90,8 +104,7 @@ export default function Perfil() {
           ]}
         >
           <View style={styles.row}>
-
-            {/* ── Avatar ──────────────────────────────────────────────────── */}
+            {/* Avatar */}
             <LinearGradient
               colors={avatarRing as any}
               start={{ x: 0, y: 0 }}
@@ -113,14 +126,16 @@ export default function Perfil() {
                     source={{ uri: usuario.imagenPerfil }}
                     resizeMode="cover"
                     style={styles.avatarImage}
-                    accessibilityLabel={`Foto de ${usuario.nombre ?? "usuario"}`}
                   />
                 ) : (
                   <Text
-                    accessibilityLabel="Avatar por defecto"
                     style={[
                       styles.avatarInitials,
-                      { color: isDark ? tokens.color.avatarInitialsDark : tokens.color.avatarInitialsLight },
+                      {
+                        color: isDark
+                          ? tokens.color.avatarInitialsDark
+                          : tokens.color.avatarInitialsLight,
+                      },
                     ]}
                   >
                     {iniciales}
@@ -129,33 +144,27 @@ export default function Perfil() {
               </View>
             </LinearGradient>
 
-            {/* ── Info ─────────────────────────────────────────────────────── */}
+            {/* Info */}
             <View style={styles.infoCol}>
-              {/* Nombre completo */}
               <Text numberOfLines={1} style={[styles.name, { color: textPrimary }]}>
                 {usuario.nombre} {usuario.apellido}
               </Text>
 
-              {/* Email */}
               <Text numberOfLines={1} style={[styles.email, { color: textSecondary }]}>
                 {usuario.correo}
               </Text>
 
-              {/* Métricas (edad, peso, altura) */}
+              {/* Métricas */}
               <View style={styles.metricsRow}>
                 <Chip isDark={isDark}>{usuario.edad} años</Chip>
-                <Chip isDark={isDark}>
-                  {usuario.peso} {usuario.medidaPeso}
-                </Chip>
-                <Chip isDark={isDark}>
-                  {usuario.altura} {usuario.medidaAltura}
-                </Chip>
+                <Chip isDark={isDark}>{pesoDisplay}</Chip>
+                <Chip isDark={isDark}>{alturaDisplay}</Chip>
               </View>
 
-              {/* Objetivo (peso + lugar) */}
+              {/* Objetivos */}
               <View style={styles.goalsRow}>
                 <ChipSoft isDark={isDark}>
-                  Meta: {usuario.pesoObjetivo} {usuario.medidaPeso}
+                  Meta: {pesoObjetivoDisplay}
                 </ChipSoft>
 
                 {"lugarEntrenamiento" in usuario && (
@@ -172,7 +181,7 @@ export default function Perfil() {
   );
 }
 
-// ── Chip (métricas) ───────────────────────────────────────────────────────────
+// ── Chip ──────────────────────────────────────────────────────────────────────
 function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
@@ -184,14 +193,19 @@ function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean
         },
       ]}
     >
-      <Text style={[styles.chipText, { color: isDark ? tokens.color.chipTextDark : tokens.color.chipTextLight }]}>
+      <Text
+        style={[
+          styles.chipText,
+          { color: isDark ? tokens.color.chipTextDark : tokens.color.chipTextLight },
+        ]}
+      >
         {children}
       </Text>
     </View>
   );
 }
 
-// ── ChipSoft (objetivo) ───────────────────────────────────────────────────────
+// ── ChipSoft ──────────────────────────────────────────────────────────────────
 function ChipSoft({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <View
@@ -203,42 +217,39 @@ function ChipSoft({ children, isDark }: { children: React.ReactNode; isDark: boo
         },
       ]}
     >
-      <Text style={[styles.chipSoftText, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+      <Text
+        style={[
+          styles.chipSoftText,
+          { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+        ]}
+      >
         {children}
       </Text>
     </View>
   );
 }
 
-// ── Estilos estáticos ─────────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: {
     width: "100%",
     maxWidth: 480,
     alignSelf: "center",
   },
-
-  // Frame gradiente
   frame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
   },
-
-  // Card interior
   card: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     padding: tokens.spacing.xl,
   },
-
-  // Fila principal
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.lg,
   },
-
-  // Avatar
   avatarRing: {
     borderRadius: tokens.radius.full,
     padding: 2,
@@ -258,33 +269,24 @@ const styles = StyleSheet.create({
   avatarInitials: {
     fontSize: 22,
     fontWeight: "800",
-    letterSpacing: 0.5,
   },
-
-  // Info
   infoCol: {
     flex: 1,
-    minWidth: 0,
     gap: tokens.spacing.xs,
   },
   name: {
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.1,
   },
   email: {
     fontSize: 12,
   },
-
-  // Métricas
   metricsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.xs,
     marginTop: tokens.spacing.xs,
   },
-
-  // Chips de métricas
   chip: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -295,16 +297,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
-
-  // Objetivos
   goalsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.xs,
     marginTop: 2,
   },
-
-  // ChipSoft
   chipSoft: {
     paddingHorizontal: 10,
     paddingVertical: 5,

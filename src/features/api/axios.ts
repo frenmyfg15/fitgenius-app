@@ -1,8 +1,7 @@
 // src/shared/lib/api.ts
-import { getDeviceId } from "@/shared/lib/deviceId";
 import axios from "axios";
 
-const local = false;
+const local = true;
 
 const URL = local
   ? "http://192.168.1.146:3000"

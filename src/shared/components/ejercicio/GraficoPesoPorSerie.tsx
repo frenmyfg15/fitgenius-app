@@ -5,6 +5,7 @@ import { LineChart } from "react-native-chart-kit";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { kgToLb } from "@/shared/utils/kgToLb";
 
 // ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
 const tokens = {
@@ -45,7 +46,7 @@ const GRADIENT = [
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 type SerieStats = {
   serieNumero: number;
-  pesoKg: number | null;
+  pesoKg: number | null; // ✅ siempre viene en kg
   repeticiones?: number | null;
 };
 
@@ -59,9 +60,9 @@ export default function GraficoPesoPorSerie({ series, esCardio }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const weightUnit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "kg").toLowerCase();
+  const weightUnit = (useUsuarioStore((s) => s.usuario?.medidaPeso) ?? "KG").toUpperCase();
   const isCardioMode = Boolean(esCardio);
-  const unit = isCardioMode ? "seg" : weightUnit;
+  const unit = isCardioMode ? "seg" : weightUnit.toLowerCase();
 
   const [chartWidth, setChartWidth] = useState<number | null>(null);
 
@@ -72,12 +73,21 @@ export default function GraficoPesoPorSerie({ series, esCardio }: Props) {
   }, []);
 
   const data = useMemo(() => {
-    const puntos = (series ?? []).map((s) =>
-      Number(isCardioMode ? s.repeticiones ?? 0 : s.pesoKg ?? 0)
-    );
+    const puntos = (series ?? []).map((s) => {
+      if (isCardioMode) return Number(s.repeticiones ?? 0);
+
+      const pesoKg = Number(s.pesoKg ?? 0);
+      if (weightUnit === "LB") {
+        const lb = kgToLb(pesoKg);
+        return Number(lb.replace(/\s*lb$/i, ""));
+      }
+
+      return pesoKg;
+    });
+
     const labels = (series ?? []).map((s) => `Set ${s.serieNumero}`);
     return { labels, datasets: [{ data: puntos }] };
-  }, [series, isCardioMode]);
+  }, [series, isCardioMode, weightUnit]);
 
   const hasValues = useMemo(
     () => data.datasets[0].data.some((v) => v > 0),
