@@ -1,7 +1,7 @@
 // File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
-import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet, Switch } from "react-native";
-import { X, Loader2, Sparkles } from "lucide-react-native";
+import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import { X, Loader2, Sparkles, TrendingUp, TrendingDown, Minus, AlertCircle } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,12 +13,17 @@ import {
 
 import type { CoachResponse, CoachSuggestion } from "@/features/api/coach.api";
 
+// ── Tokens ────────────────────────────────────────────────────────────────────
+
 const tokens = {
   color: {
     frameGradient: ["#00E85A", "#A855F7"] as string[],
     ctaBg: "#22C55E",
     ctaText: "#FFFFFF",
-    checkBg: "rgba(34,197,94,0.90)",
+    subiendo: "#22C55E",
+    bajando: "#EF4444",
+    estable: "#94A3B8",
+    estancado: "#F97316",
   },
   radius: { lg: 18, md: 12, sm: 6, full: 999 },
   spacing: { xs: 2, sm: 6, md: 12, lg: 16 },
@@ -39,6 +44,8 @@ const formatNumber = (val: number | null | undefined, suffix = "") => {
   return `${Number(val).toFixed(1)}${suffix}`;
 };
 
+// ── Props ─────────────────────────────────────────────────────────────────────
+
 type Props = {
   visible: boolean;
   loading: boolean;
@@ -48,6 +55,8 @@ type Props = {
   autoDisabled?: boolean;
   onToggleAutoDisabled?: (next: boolean) => void;
 };
+
+// ── Componente principal ──────────────────────────────────────────────────────
 
 export default function CoachFeedbackModal({
   visible, loading, coach, onClose, onGoPremium, autoDisabled, onToggleAutoDisabled,
@@ -97,10 +106,7 @@ export default function CoachFeedbackModal({
   const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
   const textSecondary = isDark ? "#64748B" : "#4B5563";
   const textMuted = isDark ? "#6B7280" : "#6B7280";
-
-  // El toggle muestra "Mostrar al entrar" cuando autoDisabled=false (es decir, SÍ se muestra)
-  // y "No mostrar" cuando autoDisabled=true
-  const toggleActivo = !autoDisabled; // true = se muestra al entrar
+  const toggleActivo = !autoDisabled;
 
   return (
     <BottomSheetModal
@@ -133,7 +139,6 @@ export default function CoachFeedbackModal({
         </View>
 
         <View className="flex-row items-center gap-2">
-          {/* Toggle elegante — solo visible para usuarios premium */}
           {typeof autoDisabled === "boolean" && (
             <Pressable
               onPress={() => onToggleAutoDisabled?.(!autoDisabled)}
@@ -149,25 +154,8 @@ export default function CoachFeedbackModal({
                 },
               ]}
             >
-              {/* Dot indicador */}
-              <View
-                style={[
-                  styles.toggleDot,
-                  {
-                    backgroundColor: toggleActivo ? "#22C55E" : isDark ? "#475569" : "#CBD5E1",
-                  },
-                ]}
-              />
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: "600",
-                  color: toggleActivo
-                    ? "#22C55E"
-                    : isDark ? "#64748B" : "#94A3B8",
-                  letterSpacing: 0.2,
-                }}
-              >
+              <View style={[styles.toggleDot, { backgroundColor: toggleActivo ? "#22C55E" : isDark ? "#475569" : "#CBD5E1" }]} />
+              <Text style={{ fontSize: 10, fontWeight: "600", color: toggleActivo ? "#22C55E" : isDark ? "#64748B" : "#94A3B8", letterSpacing: 0.2 }}>
                 {toggleActivo ? "Mostrar al entrar" : "No mostrar"}
               </Text>
             </Pressable>
@@ -187,10 +175,7 @@ export default function CoachFeedbackModal({
         showsVerticalScrollIndicator={false}
         bounces={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingHorizontal: 24,
-          paddingBottom: 180,
-        }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 180 }}
       >
         {loading ? (
           <View className="items-center justify-center py-10">
@@ -198,13 +183,7 @@ export default function CoachFeedbackModal({
             <Text style={{ marginTop: 12, color: textSecondary, fontSize: 12 }}>Analizando sesión...</Text>
           </View>
         ) : esPremium ? (
-          <ContenidoPremium
-            coach={coach}
-            isDark={isDark}
-            textPrimary={textPrimary}
-            textSecondary={textSecondary}
-            textMuted={textMuted}
-          />
+          <ContenidoPremium coach={coach} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} />
         ) : esUpsell ? (
           <ContenidoUpsell
             primeraSugerencia={primeraSugerencia}
@@ -220,57 +199,138 @@ export default function CoachFeedbackModal({
   );
 }
 
-// ── Sub-componentes ──────────────────────────────────────────────────────────
+// ── ContenidoPremium ──────────────────────────────────────────────────────────
 
-function ContenidoPremium({
-  coach, isDark, textPrimary, textSecondary,
-}: any) {
+function ContenidoPremium({ coach, isDark, textPrimary, textSecondary }: any) {
   const data = coach?.data;
   const sugerencias = data?.sugerencias ?? [];
+  const tendencia = data?.tendenciaVolumen ?? "SIN_DATOS";
+  const grupoEstancado = data?.grupoEstancado ?? false;
+  const programacion = data?.programacion ?? null;
 
   return (
-    <View className="flex-col gap-4">
-      <View className="flex-row gap-3">
+    <View style={{ gap: 12 }}>
+      {/* Métricas principales */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
         <Metric label="Estrés" value={formatNumber(data?.estresPromedio, "/10")} isDark={isDark} />
-        <Metric label="Volumen" value={formatNumber(data?.volumenPromedio)} isDark={isDark} />
+        <MetricConTendencia
+          label="Volumen"
+          value={formatNumber(data?.volumenPromedio)}
+          tendencia={tendencia}
+          isDark={isDark}
+        />
         <Metric label="Carga" value={formatNumber(data?.cargaPromedio, " kg")} isDark={isDark} />
       </View>
 
-      {sugerencias.map((sug: any, idx: number) => (
-        <View
-          key={idx}
-          style={[styles.card, {
-            backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC",
-            borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0",
-          }]}
-        >
-          <View className="flex-row justify-between items-start mb-2 gap-2">
-            <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14, flex: 1 }}>{sug.titulo}</Text>
-            <View style={[styles.badge, { borderColor: `${categoriaColor[sug.categoria as keyof typeof categoriaColor]}55` }]}>
-              <Text style={{ color: categoriaColor[sug.categoria as keyof typeof categoriaColor], fontSize: 9, fontWeight: "700" }}>
-                {categoriaLabel[sug.categoria as keyof typeof categoriaLabel]}
-              </Text>
-            </View>
-          </View>
-          <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>{sug.mensaje}</Text>
+      {/* Alerta grupo estancado */}
+      {grupoEstancado && (
+        <View style={[
+          styles.alertaBanner,
+          {
+            backgroundColor: isDark ? "rgba(249,115,22,0.10)" : "rgba(249,115,22,0.08)",
+            borderColor: "rgba(249,115,22,0.30)",
+          },
+        ]}>
+          <AlertCircle size={14} color={tokens.color.estancado} strokeWidth={2} />
+          <Text style={{ color: tokens.color.estancado, fontSize: 12, fontWeight: "600", flex: 1 }}>
+            Este grupo muscular está estancado según tu seguimiento semanal
+          </Text>
         </View>
+      )}
+
+      {/* Programación de rutina */}
+      {programacion?.seriesSugeridas && (
+        <View style={[
+          styles.programacionBanner,
+          {
+            backgroundColor: isDark ? "rgba(59,130,246,0.08)" : "rgba(59,130,246,0.06)",
+            borderColor: "rgba(59,130,246,0.25)",
+          },
+        ]}>
+          <Text style={{ color: isDark ? "#93C5FD" : "#2563EB", fontSize: 11, fontWeight: "700", marginBottom: 2 }}>
+            Programación de hoy
+          </Text>
+          <Text style={{ color: isDark ? "#BFDBFE" : "#3B82F6", fontSize: 12 }}>
+            {programacion.seriesSugeridas} series × {programacion.repeticionesSugeridas} reps
+            {programacion.pesoSugerido ? ` · ${programacion.pesoSugerido} kg` : ""}
+          </Text>
+        </View>
+      )}
+
+      {/* Sugerencias */}
+      {sugerencias.map((sug: any, idx: number) => (
+        <SugerenciaCard key={idx} sug={sug} isDark={isDark} textPrimary={textPrimary} textSecondary={textSecondary} />
       ))}
     </View>
   );
 }
 
+// ── MetricConTendencia ────────────────────────────────────────────────────────
+
+function MetricConTendencia({ label, value, tendencia, isDark }: any) {
+  const colorTendencia =
+    tendencia === "SUBIENDO" ? tokens.color.subiendo
+      : tendencia === "BAJANDO" ? tokens.color.bajando
+        : tokens.color.estable;
+
+  const IconTendencia =
+    tendencia === "SUBIENDO" ? TrendingUp
+      : tendencia === "BAJANDO" ? TrendingDown
+        : Minus;
+
+  return (
+    <View style={[styles.metric, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", flex: 1 }]}>
+      <Text style={{ fontSize: 9, color: isDark ? "#64748B" : "#6B7280", marginBottom: 2 }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "800", color: isDark ? "#F1F5F9" : "#0F172A" }}>{value}</Text>
+      {tendencia !== "SIN_DATOS" && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 }}>
+          <IconTendencia size={10} color={colorTendencia} strokeWidth={2.5} />
+          <Text style={{ fontSize: 9, color: colorTendencia, fontWeight: "600" }}>
+            {tendencia === "SUBIENDO" ? "Subiendo" : tendencia === "BAJANDO" ? "Bajando" : "Estable"}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── Metric ────────────────────────────────────────────────────────────────────
+
 function Metric({ label, value, isDark }: any) {
   return (
-    <View style={[styles.metric, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC" }]}>
+    <View style={[styles.metric, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", flex: 1 }]}>
       <Text style={{ fontSize: 9, color: isDark ? "#64748B" : "#6B7280", marginBottom: 2 }}>{label}</Text>
       <Text style={{ fontSize: 15, fontWeight: "800", color: isDark ? "#F1F5F9" : "#0F172A" }}>{value}</Text>
     </View>
   );
 }
 
+// ── SugerenciaCard ────────────────────────────────────────────────────────────
+
+function SugerenciaCard({ sug, isDark, textPrimary, textSecondary }: any) {
+  return (
+    <View style={[styles.card, {
+      backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC",
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0",
+    }]}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 }}>
+        <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14, flex: 1 }}>{sug.titulo}</Text>
+        <View style={[styles.badge, { borderColor: `${categoriaColor[sug.categoria as keyof typeof categoriaColor]}55` }]}>
+          <Text style={{ color: categoriaColor[sug.categoria as keyof typeof categoriaColor], fontSize: 9, fontWeight: "700" }}>
+            {categoriaLabel[sug.categoria as keyof typeof categoriaLabel]}
+          </Text>
+        </View>
+      </View>
+      <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>{sug.mensaje}</Text>
+    </View>
+  );
+}
+
+// ── ContenidoUpsell ───────────────────────────────────────────────────────────
+
 function ContenidoUpsell({ primeraSugerencia, isDark, textPrimary, textSecondary, textMuted, onGoPremium }: any) {
   return (
-    <View className="gap-4">
+    <View style={{ gap: 16 }}>
       <LinearGradient
         colors={tokens.color.frameGradient as any}
         start={{ x: 0, y: 0 }}
@@ -296,6 +356,8 @@ function ContenidoUpsell({ primeraSugerencia, isDark, textPrimary, textSecondary
   );
 }
 
+// ── Estilos ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   modalZIndex: {
     zIndex: 1000,
@@ -305,21 +367,21 @@ const styles = StyleSheet.create({
     width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center",
   },
   togglePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1,
   },
   toggleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 6, height: 6, borderRadius: 3,
   },
   metric: {
-    flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(148,163,184,0.1)",
+    padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "rgba(148,163,184,0.1)",
+  },
+  alertaBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 10, borderRadius: 10, borderWidth: 1,
+  },
+  programacionBanner: {
+    padding: 10, borderRadius: 10, borderWidth: 1,
   },
   card: {
     padding: 16, borderRadius: 16, borderWidth: 1,
