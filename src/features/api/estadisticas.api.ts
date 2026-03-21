@@ -239,3 +239,42 @@ export const obtenerProgresoSubjetivoEjercicios = async (opts?: {
     );
   }
 };
+
+/** Progreso muscular por grupo (semana 1 vs semana 2) */
+export type ProgresoGrupo = {
+  grupoMuscular: string;
+  volumenSemana1: number;
+  volumenSemana2: number;
+  cambio: number;
+  tendencia: "SUBIENDO" | "BAJANDO" | "ESTABLE" | "SIN_DATOS";
+};
+
+export type ProgresoMuscularData = {
+  grupos: ProgresoGrupo[];
+  grupoMasProgresado: string | null;
+  grupoMasEstancado: string | null;
+};
+
+export const obtenerProgresoMuscular = async (): Promise<ProgresoMuscularData | null> => {
+  try {
+    log("obtenerProgresoMuscular → /estadisticas/progreso-muscular");
+
+    const res = await api.get("/estadisticas/progreso-muscular");
+
+    log("obtenerProgresoMuscular ← ok", {
+      status: res.status,
+      keys: Object.keys(res.data || {}),
+    });
+
+    return res.data?.data ?? null;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+
+    const dayPass = isDayPassError(error);
+    if (dayPass) throw dayPass;
+
+    if (isPremiumRequiredError(error)) return null;
+
+    throw handleApiError(error, "Error al obtener el progreso muscular");
+  }
+};

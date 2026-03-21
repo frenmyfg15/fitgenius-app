@@ -103,12 +103,24 @@ export default function IaGenerateAuto({ onDone, onError }: Props) {
 
                 onDone?.();
             })
-            .catch(() => {
-                Toast.show({
-                    type: "error",
-                    text1: "No se pudo generar la rutina",
-                    text2: "Puedes crearla manualmente cuando quieras.",
-                });
+            .catch((error: any) => {
+                // Verificar si es error de límite de IA
+                const errorCode = error?.response?.data?.code || error?.code;
+                const isIALimitError = errorCode === "IA_LIMIT_REACHED";
+
+                if (isIALimitError) {
+                    Toast.show({
+                        type: "error",
+                        text1: "Límite de rutinas IA alcanzado",
+                        text2: "En el plan gratuito solo puedes generar 1 rutina con IA. Mejora a Premium para crear más.",
+                    });
+                } else {
+                    Toast.show({
+                        type: "error",
+                        text1: "No se pudo generar la rutina",
+                        text2: "Puedes crearla manualmente cuando quieras.",
+                    });
+                }
                 onError?.();
             });
     }, []);  // eslint-disable-line react-hooks/exhaustive-deps

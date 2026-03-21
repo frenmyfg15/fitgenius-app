@@ -231,7 +231,7 @@ export default function EstadisticasSkeleton() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#0b1220" : "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? "#080D17" : "#ffffff" }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12, alignItems: "center" }}>
         <SkeletonLine w={160} h={20} radius={10} />
         <View style={{ height: 8 }} />

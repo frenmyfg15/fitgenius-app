@@ -6,19 +6,39 @@ const log = (...args: any[]) => {
     if (__DEV__) console.log("[API progreso]", ...args);
 };
 
+// ─── Tipos base ───────────────────────────────────────────────────────────────
+
 export type SeguimientoDecision =
     | "MANTENER"
     | "AJUSTAR"
     | "REEMPLAZAR"
     | "INSIGHT";
 
-export type CheckSeguimientoResponse = {
-    ok: boolean;
-    data: {
-        mostrar: boolean;
-        motivo?: "TIEMPO" | "SESIONES" | null;
-        sesionesDesdeUltimo?: number;
-    };
+export type SeguimientoAccion =
+    | "RUTINA_AJUSTADA"
+    | "RUTINA_REEMPLAZADA"
+    | "SIN_CAMBIOS";
+
+export type SeguimientoCambio = {
+    ejercicioId: number;
+    nombreEjercicio: string;
+    antes: { series?: number; repeticiones?: number; peso?: number };
+    despues: { series?: number; repeticiones?: number; peso?: number };
+};
+
+export type SeguimientoMetricas = {
+    adherencia: number;
+    estres: number;
+    progreso: number;
+};
+
+// ─── Respuestas de endpoint ───────────────────────────────────────────────────
+
+export type CheckSeguimientoData = {
+    mostrar: boolean;
+    motivo: "TIEMPO" | "SESIONES" | null;
+    sesionesDesdeUltimo: number;
+    diasDesdeUltimo: number | null;
 };
 
 export type AnalisisSeguimientoData = {
@@ -31,37 +51,32 @@ export type AnalisisSeguimientoData = {
     diasCompletados: number;
 };
 
-export type AnalizarSeguimientoResponse = {
-    ok: boolean;
-    data: AnalisisSeguimientoData;
-};
+export type AplicarSeguimientoData =
+    | (AnalisisSeguimientoData & { aplicado: false })
+    | (AnalisisSeguimientoData & {
+        aplicado: true;
+        accion: SeguimientoAccion;
+        logId: number;
+        nuevaRutinaId?: number;
+    });
 
-export type AplicarSeguimientoData = {
+export type ModalSeguimientoData = {
+    logId: number;
     decision: SeguimientoDecision;
+    accion: SeguimientoAccion;
     mensaje: string;
-    adherencia: number;
-    estres: number;
-    progreso: number;
-    diasEsperados: number;
-    diasCompletados: number;
-    aplicado?: boolean;
-    accion?: "RUTINA_AJUSTADA" | "RUTINA_REEMPLAZADA";
-    nuevaRutinaId?: number;
-};
+    metricas: SeguimientoMetricas;
+    cambios: SeguimientoCambio[];
+    rutinaNuevaId?: number;
+} | null;
 
-export type AplicarSeguimientoResponse = {
-    ok: boolean;
-    data: AplicarSeguimientoData;
-};
+// ─── Llamadas ─────────────────────────────────────────────────────────────────
 
-export const checkSeguimiento = async (): Promise<CheckSeguimientoResponse["data"] | null> => {
+export const checkSeguimiento = async (): Promise<CheckSeguimientoData | null> => {
     try {
         log("checkSeguimiento →");
-
-        const res = await api.get("/progreso/check");
-
-        log("checkSeguimiento ← ok", res.data);
-
+        const res = await api.get("/progreso/seguimiento/check");
+        log("checkSeguimiento ←", res.data);
         return res.data?.data ?? null;
     } catch (err: any) {
         checkAuthTokenInvalid(err);
@@ -72,11 +87,8 @@ export const checkSeguimiento = async (): Promise<CheckSeguimientoResponse["data
 export const analizarSeguimiento = async (): Promise<AnalisisSeguimientoData | null> => {
     try {
         log("analizarSeguimiento →");
-
-        const res = await api.post("/progreso/analizar");
-
-        log("analizarSeguimiento ← ok", res.data);
-
+        const res = await api.get("/progreso/seguimiento/analizar");
+        log("analizarSeguimiento ←", res.data);
         return res.data?.data ?? null;
     } catch (err: any) {
         checkAuthTokenInvalid(err);
@@ -87,14 +99,34 @@ export const analizarSeguimiento = async (): Promise<AnalisisSeguimientoData | n
 export const aplicarSeguimiento = async (): Promise<AplicarSeguimientoData | null> => {
     try {
         log("aplicarSeguimiento →");
-
-        const res = await api.post("/progreso/aplicar");
-
-        log("aplicarSeguimiento ← ok", res.data);
-
+        const res = await api.post("/progreso/seguimiento/aplicar");
+        log("aplicarSeguimiento ←", res.data);
         return res.data?.data ?? null;
     } catch (err: any) {
         checkAuthTokenInvalid(err);
         return handleApiError(err, "No se pudo aplicar la mejora de rutina");
+    }
+};
+
+export const obtenerModalSeguimiento = async (): Promise<ModalSeguimientoData> => {
+    try {
+        log("obtenerModalSeguimiento →");
+        const res = await api.get("/progreso/seguimiento/modal");
+        log("obtenerModalSeguimiento ←", res.data);
+        return res.data?.data ?? null;
+    } catch (err: any) {
+        checkAuthTokenInvalid(err);
+        return handleApiError(err, "No se pudo obtener el resumen de seguimiento");
+    }
+};
+
+export const marcarSeguimientoVisto = async (logId: number): Promise<void> => {
+    try {
+        log("marcarSeguimientoVisto →", logId);
+        await api.patch(`/progreso/seguimiento/modal/${logId}/visto`);
+        log("marcarSeguimientoVisto ← ok");
+    } catch (err: any) {
+        checkAuthTokenInvalid(err);
+        handleApiError(err, "No se pudo marcar el seguimiento como visto");
     }
 };

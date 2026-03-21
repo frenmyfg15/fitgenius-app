@@ -22,6 +22,7 @@ import {
   obtenerCargaInternaSemanal,
   obtenerDiasColorEstres,
   obtenerProgresoSubjetivoEjercicios,
+  obtenerProgresoMuscular,
 } from "@/features/api/estadisticas.api";
 
 import { useSyncStore } from "@/features/store/useSyncStore";
@@ -35,46 +36,39 @@ import EstadisticasSkeleton from "@/shared/components/skeleton/EstadisticasSkele
 import CargaInternaCard from "@/shared/components/estadistica/CargaInternaCard";
 import DiasColorEstresCard from "@/shared/components/estadistica/DiasColorEstresCard";
 import ProgresoSubjetivoEjerciciosCard from "@/shared/components/estadistica/ProgresoSubjetivoEjerciciosCard";
+import ProgresoMuscularCard from "@/shared/components/estadistica/progresoMuscularCard";
 
 const tokens = {
   color: {
     bgDark: "#080D17",
     bgLight: "#F8FAFC",
-
     textPrimaryDark: "#F1F5F9",
     textSecondaryDark: "#94A3B8",
     textMutedDark: "#64748B",
-
     textPrimaryLight: "#0F172A",
     textSecondaryLight: "#475569",
     textMutedLight: "#6B7280",
-
     accent: "#00E85A",
-
     cardBgDark: "rgba(15,24,41,1)",
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
-
     lockCardBgDark: "rgba(15,23,42,0.80)",
     lockCardBgLight: "rgba(240,253,250,0.95)",
     lockCardBorderDark: "rgba(255,255,255,0.16)",
     lockCardBorderLight: "rgba(15,118,110,0.18)",
-
     lockIconBgDark: "rgba(15,23,42,1)",
     lockIconBgLight: "#FFFFFF",
     lockIconBorderDark: "rgba(148,163,184,0.50)",
     lockIconBorderLight: "rgba(16,185,129,0.35)",
     lockIconDark: "#A7F3D0",
     lockIconLight: "#047857",
-
     lockTitleDark: "#F1F5F9",
     lockTitleLight: "#065F46",
     lockTextDark: "#9CA3AF",
     lockTextLight: "#047857",
     lockCtaDark: "#A7F3D0",
     lockCtaLight: "#047857",
-
     skelDark: "rgba(148,163,184,0.16)",
     skelLight: "#E5E7EB",
   },
@@ -94,13 +88,7 @@ const tokens = {
 
 const PREMIUM_GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
 
-function PremiumLockedCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+function PremiumLockedCard({ title, description }: { title: string; description: string }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const navigation = useNavigation<any>();
@@ -120,86 +108,28 @@ function PremiumLockedCard({
         style={[
           styles.premiumCard,
           {
-            backgroundColor: isDark
-              ? tokens.color.cardBgDark
-              : tokens.color.cardBgLight,
-            borderColor: isDark
-              ? tokens.color.cardBorderDark
-              : tokens.color.cardBorderLight,
+            backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
           },
         ]}
       >
         <View style={styles.lockSkeletonWrap} pointerEvents="none">
-          <View
-            style={[
-              styles.lockSkeletonTitle,
-              {
-                backgroundColor: isDark
-                  ? tokens.color.skelDark
-                  : tokens.color.skelLight,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.lockSkeletonLine,
-              {
-                backgroundColor: isDark
-                  ? tokens.color.skelDark
-                  : tokens.color.skelLight,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.lockSkeletonLineShort,
-              {
-                backgroundColor: isDark
-                  ? tokens.color.skelDark
-                  : tokens.color.skelLight,
-              },
-            ]}
-          />
+          <View style={[styles.lockSkeletonTitle, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
+          <View style={[styles.lockSkeletonLine, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
+          <View style={[styles.lockSkeletonLineShort, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
           <View style={styles.lockSkeletonRow}>
-            <View
-              style={[
-                styles.lockSkeletonMiniCard,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(15,24,41,0.55)"
-                    : "#FFFFFF",
-                  borderColor: isDark
-                    ? tokens.color.cardBorderDark
-                    : tokens.color.cardBorderLight,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.lockSkeletonMiniCard,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(15,24,41,0.55)"
-                    : "#FFFFFF",
-                  borderColor: isDark
-                    ? tokens.color.cardBorderDark
-                    : tokens.color.cardBorderLight,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.lockSkeletonMiniCard,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(15,24,41,0.55)"
-                    : "#FFFFFF",
-                  borderColor: isDark
-                    ? tokens.color.cardBorderDark
-                    : tokens.color.cardBorderLight,
-                },
-              ]}
-            />
+            {[0, 1, 2].map((i) => (
+              <View
+                key={i}
+                style={[
+                  styles.lockSkeletonMiniCard,
+                  {
+                    backgroundColor: isDark ? "rgba(15,24,41,0.55)" : "#FFFFFF",
+                    borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+                  },
+                ]}
+              />
+            ))}
           </View>
         </View>
 
@@ -209,12 +139,8 @@ function PremiumLockedCard({
           style={[
             styles.lockCta,
             {
-              borderColor: isDark
-                ? tokens.color.lockCardBorderDark
-                : tokens.color.lockCardBorderLight,
-              backgroundColor: isDark
-                ? tokens.color.lockCardBgDark
-                : tokens.color.lockCardBgLight,
+              borderColor: isDark ? tokens.color.lockCardBorderDark : tokens.color.lockCardBorderLight,
+              backgroundColor: isDark ? tokens.color.lockCardBgDark : tokens.color.lockCardBgLight,
             },
           ]}
         >
@@ -222,60 +148,24 @@ function PremiumLockedCard({
             style={[
               styles.lockIconWrap,
               {
-                backgroundColor: isDark
-                  ? tokens.color.lockIconBgDark
-                  : tokens.color.lockIconBgLight,
-                borderColor: isDark
-                  ? tokens.color.lockIconBorderDark
-                  : tokens.color.lockIconBorderLight,
+                backgroundColor: isDark ? tokens.color.lockIconBgDark : tokens.color.lockIconBgLight,
+                borderColor: isDark ? tokens.color.lockIconBorderDark : tokens.color.lockIconBorderLight,
               },
             ]}
           >
-            <Lock
-              size={18}
-              color={isDark ? tokens.color.lockIconDark : tokens.color.lockIconLight}
-              strokeWidth={2}
-            />
+            <Lock size={18} color={isDark ? tokens.color.lockIconDark : tokens.color.lockIconLight} strokeWidth={2} />
           </View>
 
           <View style={styles.lockTextWrap}>
-            <Text
-              style={[
-                styles.lockTitle,
-                {
-                  color: isDark
-                    ? tokens.color.lockTitleDark
-                    : tokens.color.lockTitleLight,
-                },
-              ]}
-            >
+            <Text style={[styles.lockTitle, { color: isDark ? tokens.color.lockTitleDark : tokens.color.lockTitleLight }]}>
               {title}
             </Text>
-
-            <Text
-              style={[
-                styles.lockDesc,
-                {
-                  color: isDark
-                    ? tokens.color.lockTextDark
-                    : tokens.color.lockTextLight,
-                },
-              ]}
-            >
+            <Text style={[styles.lockDesc, { color: isDark ? tokens.color.lockTextDark : tokens.color.lockTextLight }]}>
               {description}
             </Text>
           </View>
 
-          <Text
-            style={[
-              styles.lockMore,
-              {
-                color: isDark
-                  ? tokens.color.lockCtaDark
-                  : tokens.color.lockCtaLight,
-              },
-            ]}
-          >
+          <Text style={[styles.lockMore, { color: isDark ? tokens.color.lockCtaDark : tokens.color.lockCtaLight }]}>
             Ver más
           </Text>
         </TouchableOpacity>
@@ -305,6 +195,7 @@ export default function EstadisticasScreen() {
   const [cargaInterna, setCargaInterna] = useState<any>(null);
   const [diasColorEstres, setDiasColorEstres] = useState<any>(null);
   const [progresoSubjetivo, setProgresoSubjetivo] = useState<any>(null);
+  const [progresoMuscular, setProgresoMuscular] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const workoutRev = useSyncStore((s) => s.workoutRev);
@@ -313,7 +204,6 @@ export default function EstadisticasScreen() {
   const loadAllStats = useCallback(
     async (opts: { showSkeleton?: boolean } = {}) => {
       const { showSkeleton = true } = opts;
-
       if (showSkeleton) setLoading(true);
       setError(null);
 
@@ -326,18 +216,19 @@ export default function EstadisticasScreen() {
           obtenerCargaInternaSemanal(),
           obtenerDiasColorEstres(),
           obtenerProgresoSubjetivoEjercicios(),
+          obtenerProgresoMuscular(),
         ]);
 
-        const [a, m, c, ad, ci, dce, ps] = results;
+        const [a, m, c, ad, ci, dce, ps, pm] = results;
 
         setActividad(a.status === "fulfilled" ? a.value : null);
         setMuscular(m.status === "fulfilled" ? m.value : null);
         setCalorias(c.status === "fulfilled" ? c.value : null);
-
         setAdherencia(ad.status === "fulfilled" ? ad.value : null);
         setCargaInterna(ci.status === "fulfilled" ? ci.value : null);
         setDiasColorEstres(dce.status === "fulfilled" ? dce.value : null);
         setProgresoSubjetivo(ps.status === "fulfilled" ? ps.value : null);
+        setProgresoMuscular(pm.status === "fulfilled" ? pm.value : null);
 
         const gratisFallaron =
           a.status === "rejected" &&
@@ -345,9 +236,7 @@ export default function EstadisticasScreen() {
           c.status === "rejected";
 
         if (gratisFallaron) {
-          setError(
-            "No pudimos cargar tus estadísticas. Intenta de nuevo más tarde."
-          );
+          setError("No pudimos cargar tus estadísticas. Intenta de nuevo más tarde.");
         }
       } catch (err) {
         console.log("[Estadisticas] loadAllStats error", err);
@@ -377,9 +266,7 @@ export default function EstadisticasScreen() {
     loadAllStats({ showSkeleton: false });
   }, [workoutRev, routineRev, loadAllStats]);
 
-  if (loading) {
-    return <EstadisticasSkeleton />;
-  }
+  if (loading) return <EstadisticasSkeleton />;
 
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
 
@@ -395,25 +282,11 @@ export default function EstadisticasScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.errorTitle,
-              { color: isDark ? "#F87171" : "#DC2626" },
-            ]}
-          >
+          <Text style={[styles.errorTitle, { color: isDark ? "#F87171" : "#DC2626" }]}>
             Hubo un problema
           </Text>
-
-          <Text style={{ color: isDark ? "#CBD5E1" : "#334155" }}>
-            {error}
-          </Text>
-
-          <Text
-            style={[
-              styles.errorSubtitle,
-              { color: isDark ? "#94A3B8" : "#EF4444" },
-            ]}
-          >
+          <Text style={{ color: isDark ? "#CBD5E1" : "#334155" }}>{error}</Text>
+          <Text style={[styles.errorSubtitle, { color: isDark ? "#94A3B8" : "#EF4444" }]}>
             Revisa tu conexión o intenta de nuevo.
           </Text>
         </View>
@@ -437,34 +310,16 @@ export default function EstadisticasScreen() {
       }
     >
       <View style={styles.header}>
-        <Text
-          style={[
-            styles.title,
-            {
-              color: isDark
-                ? tokens.color.textPrimaryDark
-                : tokens.color.textPrimaryLight,
-            },
-          ]}
-        >
+        <Text style={[styles.title, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
           Estadísticas
         </Text>
-
-        <Text
-          style={[
-            styles.subtitle,
-            {
-              color: isDark
-                ? tokens.color.textSecondaryDark
-                : tokens.color.textSecondaryLight,
-            },
-          ]}
-        >
+        <Text style={[styles.subtitle, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
           Revisa tus avances y cómo puedes mejorar
         </Text>
       </View>
 
       <View style={styles.cardsGap}>
+        {/* 1 — Qué hice */}
         {actividad && (
           <ActividadRecienteCard
             diasActivos={actividad?.diasActivos}
@@ -473,6 +328,16 @@ export default function EstadisticasScreen() {
           />
         )}
 
+        {/* 2 — Cuánto quemé */}
+        {calorias && (
+          <CaloriasQuemadasCard
+            total={calorias?.totalCalorias}
+            promedio={calorias?.promedioDiario}
+            detalle={calorias?.detallePorDia}
+          />
+        )}
+
+        {/* 3 — Qué trabajé */}
         {muscular && (
           <DistribucionMuscularCard
             distribucion={
@@ -487,14 +352,7 @@ export default function EstadisticasScreen() {
           />
         )}
 
-        {calorias && (
-          <CaloriasQuemadasCard
-            total={calorias?.totalCalorias}
-            promedio={calorias?.promedioDiario}
-            detalle={calorias?.detallePorDia}
-          />
-        )}
-
+        {/* 4 — Qué tan constante estoy */}
         {isPremium ? (
           adherencia && (
             <AdherenciaConsistenciaCard
@@ -511,6 +369,7 @@ export default function EstadisticasScreen() {
           />
         )}
 
+        {/* 5 — Cuánto volumen acumulo */}
         {isPremium ? (
           cargaInterna && (
             <CargaInternaCard
@@ -526,6 +385,7 @@ export default function EstadisticasScreen() {
           />
         )}
 
+        {/* 6 — Cómo me está afectando */}
         {isPremium ? (
           diasColorEstres && (
             <DiasColorEstresCard
@@ -541,6 +401,23 @@ export default function EstadisticasScreen() {
           />
         )}
 
+        {/* 7 — Estoy mejorando por grupo */}
+        {isPremium ? (
+          progresoMuscular && (
+            <ProgresoMuscularCard
+              grupos={progresoMuscular?.grupos}
+              grupoMasProgresado={progresoMuscular?.grupoMasProgresado}
+              grupoMasEstancado={progresoMuscular?.grupoMasEstancado}
+            />
+          )
+        ) : (
+          <PremiumLockedCard
+            title="Progreso muscular Premium"
+            description="Descubre qué grupos musculares están mejorando y cuáles se están estancando semana a semana."
+          />
+        )}
+
+        {/* 8 — Cómo lo percibo */}
         {isPremium ? (
           progresoSubjetivo && (
             <ProgresoSubjetivoEjerciciosCard
@@ -561,41 +438,32 @@ export default function EstadisticasScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: tokens.spacing.tabBarSafe,
   },
-
   header: {
     marginBottom: tokens.spacing.lg,
     alignItems: "center",
   },
-
   title: {
     fontSize: 28,
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-
   subtitle: {
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
   },
-
-  cardsGap: {
-    gap: 20,
-  },
-
+  cardsGap: { gap: 20 },
   errorContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-
   errorCard: {
     width: "100%",
     borderRadius: 20,
@@ -607,67 +475,31 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-
   errorTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 8,
   },
-
   errorSubtitle: {
     marginTop: 12,
     fontSize: 13,
   },
-
   premiumFrame: {
     borderRadius: tokens.radius.lg,
     padding: 1.5,
     overflow: "hidden",
   },
-
   premiumCard: {
     borderRadius: tokens.radius.lg - 1,
     borderWidth: 1,
     padding: 20,
   },
-
-  lockSkeletonWrap: {
-    opacity: 0.95,
-  },
-
-  lockSkeletonTitle: {
-    height: 16,
-    width: "52%",
-    borderRadius: 6,
-  },
-
-  lockSkeletonLine: {
-    marginTop: 12,
-    height: 12,
-    width: "92%",
-    borderRadius: 6,
-  },
-
-  lockSkeletonLineShort: {
-    marginTop: 8,
-    height: 12,
-    width: "68%",
-    borderRadius: 6,
-  },
-
-  lockSkeletonRow: {
-    marginTop: 16,
-    flexDirection: "row",
-    gap: 12,
-  },
-
-  lockSkeletonMiniCard: {
-    flex: 1,
-    height: 74,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-
+  lockSkeletonWrap: { opacity: 0.95 },
+  lockSkeletonTitle: { height: 16, width: "52%", borderRadius: 6 },
+  lockSkeletonLine: { marginTop: 12, height: 12, width: "92%", borderRadius: 6 },
+  lockSkeletonLineShort: { marginTop: 8, height: 12, width: "68%", borderRadius: 6 },
+  lockSkeletonRow: { marginTop: 16, flexDirection: "row", gap: 12 },
+  lockSkeletonMiniCard: { flex: 1, height: 74, borderRadius: 14, borderWidth: 1 },
   lockCta: {
     marginTop: 18,
     borderRadius: 14,
@@ -677,7 +509,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-
   lockIconWrap: {
     height: 32,
     width: 32,
@@ -688,28 +519,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexShrink: 0,
   },
-
-  lockTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  lockTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    lineHeight: 16,
-  },
-
-  lockDesc: {
-    marginTop: 2,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: "600",
-  },
-
-  lockMore: {
-    marginLeft: 8,
-    fontSize: 11,
-    fontWeight: "800",
-  },
+  lockTextWrap: { flex: 1, minWidth: 0 },
+  lockTitle: { fontSize: 13, fontWeight: "800", lineHeight: 16 },
+  lockDesc: { marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: "600" },
+  lockMore: { marginLeft: 8, fontSize: 11, fontWeight: "800" },
 });

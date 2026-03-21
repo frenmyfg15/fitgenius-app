@@ -1,4 +1,3 @@
-// File: Home.tsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { View, ScrollView, RefreshControl, StyleSheet, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -18,16 +17,11 @@ import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
-
-import {
-  checkSeguimiento,
-  analizarSeguimiento,
-  aplicarSeguimiento,
-  type AnalisisSeguimientoData,
-} from "@/features/api/progreso.api";
+import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
 import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
+
 const tokens = {
   color: {
     bgDark: "#080D17",
@@ -47,6 +41,7 @@ const tokens = {
 } as const;
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
+
 type DiaNombre =
   | "LUNES"
   | "MARTES"
@@ -78,6 +73,7 @@ type RutinaResp = {
 };
 
 // ── Utils ────────────────────────────────────────────────────────────────────
+
 const getDiaActualEnum = (): DiaNombre => {
   const dias: DiaNombre[] = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
   return dias[new Date().getDay()] as DiaNombre;
@@ -99,11 +95,10 @@ const toMadridYMD = (() => {
 const isYMD = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 // ── Screen ───────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  // ── Navegación ──────────────────────────────────────────────────────────
   const navigation = useNavigation<any>();
 
   const { usuario } = useUsuarioStore();
@@ -111,35 +106,14 @@ export default function Home() {
   const workoutRev = useSyncStore((s) => s.workoutRev);
   const rutinaCache = useRutinaCache();
 
-  // ── Plan premium ─────────────────────────────────────────────────────────
-  // Se considera premium cuando el plan es BASICO o PREMIUM y el stripe
-  // está activo (active o trialing). Ajusta la condición a tu lógica real.
-  const esPremium =
-    (usuario?.planActual === "BASICO" || usuario?.planActual === "PREMIUM") &&
-    (usuario?.stripeStatus === "active" || usuario?.stripeStatus === "trialing");
-
-  const [seguimientoVisible, setSeguimientoVisible] = useState(false);
-  const [seguimientoLoading, setSeguimientoLoading] = useState(false);
-  const [seguimientoApplying, setSeguimientoApplying] = useState(false);
-  const [seguimientoData, setSeguimientoData] =
-    useState<AnalisisSeguimientoData | null>(null);
-  const seguimientoTriggered = useRef(false);
-
-  // ── Onboarding ──────────────────────────────────────────────────────────
+  // ── Onboarding ────────────────────────────────────────────────────────
   const onboardingCompletado = useOnboardingStore((s) => s.completado);
   const pendienteMostrar = useOnboardingStore((s) => s.pendienteMostrar);
   const hydrated = useOnboardingStore((s) => s.hydrated);
   const marcarPendiente = useOnboardingStore((s) => s.marcarPendiente);
   const limpiarPendiente = useOnboardingStore((s) => s.limpiarPendiente);
 
-  // ── Rutina ───────────────────────────────────────────────────────────────
-  const [rutina, setRutina] = useState<RutinaResp | null>(null);
-  const [dia, setDia] = useState<DiaNombre>(getDiaActualEnum());
-  const [loading, setLoading] = useState<boolean>(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedYMD, setSelectedYMD] = useState<string>(() => toMadridYMD(new Date()));
-
-  // ── Auto-generación primera vez ─────────────────────────────────────────
+  // ── Auto-generación ───────────────────────────────────────────────────
   const [autoGenerating, setAutoGenerating] = useState(false);
   const autoGenTriggered = useRef(false);
 
@@ -147,10 +121,26 @@ export default function Home() {
     if (autoGenTriggered.current) return;
     if (!usuario) return;
     if ((usuario.rutinasIACreadas ?? 0) > 0) return;
-
     autoGenTriggered.current = true;
     setAutoGenerating(true);
   }, [usuario]);
+
+  // ── Seguimiento inteligente ───────────────────────────────────────────
+  // El hook gestiona todo: check → aplicar → modal → marcar visto.
+  // Solo lo lanzamos cuando el usuario está listo y no hay auto-generación en curso.
+  const seguimiento = useSeguimientoInteligente();
+
+  useEffect(() => {
+    if (!usuario?.id || autoGenerating) return;
+    seguimiento.iniciar();
+  }, [usuario?.id, autoGenerating]);
+
+  // ── Rutina ────────────────────────────────────────────────────────────
+  const [rutina, setRutina] = useState<RutinaResp | null>(null);
+  const [dia, setDia] = useState<DiaNombre>(getDiaActualEnum());
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedYMD, setSelectedYMD] = useState<string>(() => toMadridYMD(new Date()));
 
   const lastKeyRef = useRef<string | null>(null);
   const inflightRef = useRef<Promise<any> | null>(null);
@@ -158,11 +148,7 @@ export default function Home() {
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
-
-      if (!id) {
-        setRutina(null);
-        return;
-      }
+      if (!id) { setRutina(null); return; }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
       if (!force && lastKeyRef.current === key) return;
@@ -173,7 +159,6 @@ export default function Home() {
 
       try {
         if (!force) setLoading(true);
-
         const p = obtenerRutina(id)
           .then((data) => {
             const rutinaResp = (data ?? null) as RutinaResp | null;
@@ -185,11 +170,10 @@ export default function Home() {
             inflightRef.current = null;
             if (!force) setLoading(false);
           });
-
         inflightRef.current = p;
         await p;
       } catch (e) {
-        console.log("[Home] fetchRutina try/catch", e);
+        console.log("[Home] fetchRutina error", e);
       }
     },
     [usuario?.rutinaActivaId, routineRev, workoutRev, rutinaCache]
@@ -199,61 +183,10 @@ export default function Home() {
     fetchRutina(false);
   }, [fetchRutina]);
 
-  useEffect(() => {
-    if (seguimientoTriggered.current) return;
-    if (!usuario?.id) return;
-    if (autoGenerating) return;
-
-    seguimientoTriggered.current = true;
-
-    const runSeguimiento = async () => {
-      try {
-        setSeguimientoLoading(true);
-
-        const check = await checkSeguimiento();
-
-        if (!check?.mostrar) return;
-
-        const analisis = await analizarSeguimiento();
-
-        if (!analisis) return;
-
-        setSeguimientoData(analisis);
-        setSeguimientoVisible(true);
-      } catch (error) {
-        console.log("[Home] seguimiento error", error);
-      } finally {
-        setSeguimientoLoading(false);
-      }
-    };
-
-    runSeguimiento();
-  }, [usuario?.id, autoGenerating]);
-
-  const handleAplicarSeguimiento = useCallback(async () => {
-    try {
-      setSeguimientoApplying(true);
-
-      const result = await aplicarSeguimiento();
-
-      if (!result) return;
-
-      setSeguimientoVisible(false);
-      await fetchRutina(true);
-    } catch (error) {
-      console.log("[Home] aplicarSeguimiento error", error);
-    } finally {
-      setSeguimientoApplying(false);
-    }
-  }, [fetchRutina]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await fetchRutina(true);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await fetchRutina(true); }
+    finally { setRefreshing(false); }
   }, [fetchRutina]);
 
   const devolver = useCallback((ymd: string, diaEnum: string) => {
@@ -276,17 +209,14 @@ export default function Home() {
 
   const rutinaHidratada = useMemo(() => {
     if (!rutina?.dias) return rutina;
-
     const diasH = rutina.dias.map((d) => {
-      const ejerciciosH = (d.ejercicios ?? []).map((e) => {
-        const completado = e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false;
-        return { ...e, completadoHoy: completado };
-      });
-
+      const ejerciciosH = (d.ejercicios ?? []).map((e) => ({
+        ...e,
+        completadoHoy: e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false,
+      }));
       const diaCompleto = ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
       return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
     });
-
     return { ...rutina, dias: diasH };
   }, [rutina, selectedYMD]);
 
@@ -312,13 +242,16 @@ export default function Home() {
       />
 
       <SeguimientoInteligenteModal
-        visible={seguimientoVisible}
-        loading={seguimientoApplying}
-        analisis={seguimientoData}
-        lockedByPlan={(usuario?.rutinasIACreadas ?? 0) >= 1 && !esPremium}
-        onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })}
-        onClose={() => setSeguimientoVisible(false)}
-        onApply={handleAplicarSeguimiento}
+        visible={seguimiento.modalVisible}
+        lockedByPlan={usuario?.planActual === 'GRATUITO'}
+        applying={seguimiento.applying}
+        data={seguimiento.modalData}
+        onClose={seguimiento.cerrar}
+        onConfirm={seguimiento.confirmar}
+        onGoPremium={() => {
+          seguimiento.cerrar();
+          navigation.navigate("Premium"); // ajusta a tu ruta real
+        }}
       />
 
       <ScrollView
@@ -366,6 +299,7 @@ export default function Home() {
 }
 
 // ── Estilos ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: {
