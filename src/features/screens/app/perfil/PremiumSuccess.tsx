@@ -1,58 +1,89 @@
 // src/features/premium/screens/PremiumSuccess.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+
+type PremiumSuccessRouteParams = {
+  plan?: "monthly" | "yearly";
+};
 
 export default function PremiumSuccess() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const setPlanActual = (plan: any) => {} // ajusta a tu store
 
-  useEffect(() => {
-    (async () => {
-      try {
-        // (Opcional) verifica con tu backend si quieres estar 100% seguro
-        // await verifyStripeSubscription(route.params?.subscriptionId)
-        setPlanActual?.("PREMIUM");
-      } catch (e: any) {
-        setErr(e?.message || "No se pudo verificar la suscripción");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const params = (route.params || {}) as PremiumSuccessRouteParams;
+  const plan = params.plan;
 
-  if (loading) {
-    return (
-      <View style={{ flex:1, alignItems:"center", justifyContent:"center" }}>
-        <ActivityIndicator />
-        <Text style={{ marginTop: 8 }}>Activando Premium…</Text>
-      </View>
-    );
-  }
-
-  if (err) {
-    return (
-      <View style={{ flex:1, alignItems:"center", justifyContent:"center", padding: 20 }}>
-        <Text style={{ color:"#dc2626", textAlign:"center", marginBottom: 12 }}>{err}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding:12, borderRadius:10, backgroundColor:"#111827" }}>
-          <Text style={{ color:"#fff", fontWeight:"700" }}>Volver</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const planLabel = plan === "yearly" ? "anual" : "mensual";
 
   return (
-    <View style={{ flex:1, alignItems:"center", justifyContent:"center", padding: 24 }}>
-      <Text style={{ fontSize:22, fontWeight:"800", marginBottom:8 }}>¡Premium activado! 🎉</Text>
-      <Text style={{ color:"#475569", textAlign:"center", marginBottom:16 }}>
-        Disfruta de todo el catálogo e IA avanzada.
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: "800",
+          marginBottom: 8,
+          textAlign: "center",
+          color: "#0F172A",
+        }}
+      >
+        ¡Pago confirmado! 🎉
       </Text>
-      <TouchableOpacity onPress={() => navigation.navigate("Cuenta" as never)} style={{ padding:12, borderRadius:10, backgroundColor:"#111827" }}>
-        <Text style={{ color:"#fff", fontWeight:"700" }}>Ir a mi cuenta</Text>
+
+      <Text
+        style={{
+          color: "#475569",
+          textAlign: "center",
+          marginBottom: 10,
+          lineHeight: 22,
+        }}
+      >
+        Tu suscripción Premium {planLabel} se ha procesado correctamente.
+      </Text>
+
+      <Text
+        style={{
+          color: "#64748B",
+          textAlign: "center",
+          marginBottom: 20,
+          lineHeight: 22,
+        }}
+      >
+        Estamos terminando la sincronización de tu cuenta. En unos segundos tu
+        plan aparecerá actualizado en la app.
+      </Text>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Cuenta")}
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 10,
+          backgroundColor: "#111827",
+          marginBottom: 10,
+        }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700" }}>
+          Ir a mi cuenta
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+        }}
+      >
+        <Text style={{ color: "#475569", fontWeight: "600" }}>Volver</Text>
       </TouchableOpacity>
     </View>
   );

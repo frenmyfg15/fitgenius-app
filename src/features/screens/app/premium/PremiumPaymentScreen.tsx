@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,17 +12,32 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { CardField, useStripe } from "@stripe/stripe-react-native";
+import { CardField, confirmSetupIntent, useStripe } from "@stripe/stripe-react-native";
 import Toast from "react-native-toast-message";
 
-import { createPremiumSubscription, CreatePremiumSubscriptionResponse } from "@/features/api/stripe.api";
+import {
+  activatePremiumSubscription,
+  createPremiumSubscription,
+  CreatePremiumSubscriptionResponse,
+  PremiumPlan,
+} from "@/features/api/stripe.api";
 import { useNavigation } from "@react-navigation/native";
-import { X, XCircle, Check, Sparkles, Zap, TrendingUp } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useUsuarioStore, UsuarioLogin } from "@/features/store/useUsuarioStore";
+import {
+  X,
+  XCircle,
+  Check,
+  Sparkles,
+  Zap,
+  TrendingUp,
+} from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
-const PRICE = "4,99 €";
+const MONTHLY_PRICE = "9,99 €";
+const YEARLY_PRICE = "59,99 €";
+const YEARLY_MONTH_EQUIVALENT = "5,00 €";
+const YEARLY_SAVINGS = "Ahorra un 50%";
 
 const getPremiumTheme = (isDark: boolean) => ({
   background: isDark ? "#020617" : "#F8FAFC",
@@ -49,21 +64,44 @@ const getPremiumTheme = (isDark: boolean) => ({
 
   gradientPrimary: ["#22C55E", "#A855F7"],
   gradientHero: ["#22C55E", "#A855F7", "#FACC15"],
+
+  selectorBg: isDark ? "rgba(2,6,23,0.7)" : "#EEF2FF",
+  selectorBorder: isDark ? "rgba(148,163,184,0.22)" : "rgba(99,102,241,0.10)",
+  selectorActiveBg: isDark ? "rgba(168,85,247,0.18)" : "rgba(168,85,247,0.10)",
+  selectorActiveBorder: isDark ? "#A855F7" : "#9333EA",
 });
 
 export default function PremiumPaymentScreen() {
-  const { confirmPayment } = useStripe();
+  const { confirmSetupIntent } = useStripe();
   const navigation = useNavigation<any>();
 
+  const { usuario, setUsuario } = useUsuarioStore();
   const isDark = useColorScheme() === "dark";
   const theme = getPremiumTheme(isDark);
 
-  const { usuario, setUsuario } = useUsuarioStore();
-
+  const [selectedPlan, setSelectedPlan] = useState<PremiumPlan>("yearly");
   const [cardComplete, setCardComplete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
+
+  const planSummary = useMemo(() => {
+    if (selectedPlan === "monthly") {
+      return {
+        price: MONTHLY_PRICE,
+        unit: "/ mes",
+        modalText: `Suscripción mensual por ${MONTHLY_PRICE}. Cancela cuando quieras sin compromisos.`,
+        ctaText: "Confirmar y activar Premium mensual",
+      };
+    }
+
+    return {
+      price: YEARLY_PRICE,
+      unit: "/ año",
+      modalText: `Suscripción anual por ${YEARLY_PRICE}. Equivale a ${YEARLY_MONTH_EQUIVALENT}/mes. Cancela cuando quieras y mantendrás el acceso hasta el final del periodo.`,
+      ctaText: "Confirmar y activar Premium anual",
+    };
+  }, [selectedPlan]);
 
   const handlePay = async () => {
     if (!cardComplete) {
@@ -81,7 +119,9 @@ export default function PremiumPaymentScreen() {
     setErrorMsg(null);
 
     try {
-      const data: CreatePremiumSubscriptionResponse = await createPremiumSubscription();
+      const data: CreatePremiumSubscriptionResponse =
+        await createPremiumSubscription(selectedPlan);
+
       const { clientSecret } = data;
 
       if (!clientSecret) {
@@ -95,7 +135,7 @@ export default function PremiumPaymentScreen() {
         return;
       }
 
-      const { error, paymentIntent } = await confirmPayment(clientSecret, {
+      const { error, setupIntent } = await confirmSetupIntent(clientSecret, {
         paymentMethodType: "Card",
       });
 
@@ -104,24 +144,40 @@ export default function PremiumPaymentScreen() {
         setErrorMsg(msg);
         Toast.show({
           type: "error",
-          text1: "Pago fallido",
+          text1: "Tarjeta no válida",
           text2: msg,
         });
         return;
       }
 
-      const status = paymentIntent?.status?.toLowerCase();
-      if (!["succeeded", "processing"].includes(status as string)) {
-        const msg = `Pago no completado (estado: ${status}).`;
+      const status = setupIntent?.status?.toLowerCase();
+
+      if (status !== "succeeded") {
+        const msg = `No se pudo guardar la tarjeta (estado: ${status}).`;
         setErrorMsg(msg);
         Toast.show({
           type: "error",
-          text1: "Pago pendiente",
+          text1: "Configuración pendiente",
           text2: msg,
         });
         return;
       }
 
+      // ✅ tarjeta guardada correctamente
+      Toast.show({
+        type: "success",
+        text1: "Tarjeta guardada",
+        text2: "Activando tu suscripción...",
+      });
+
+      // 🚀 activar suscripción REAL
+      const activation = await activatePremiumSubscription(selectedPlan);
+
+      if (!activation?.data) {
+        throw new Error("No se pudo activar la suscripción.");
+      }
+
+      // ✅ actualizar usuario local
       if (usuario) {
         const u: UsuarioLogin = {
           ...usuario,
@@ -133,8 +189,8 @@ export default function PremiumPaymentScreen() {
 
       Toast.show({
         type: "success",
-        text1: "¡Bienvenido a Premium!",
-        text2: "Tu suscripción se ha activado correctamente.",
+        text1: "¡Premium activado!",
+        text2: "Tu suscripción ya está activa 🚀",
       });
 
       setShowPayModal(false);
@@ -142,9 +198,12 @@ export default function PremiumPaymentScreen() {
     } catch (e: any) {
       const msg =
         e?.response?.data?.error ||
+        e?.response?.data?.message ||
         e?.message ||
         "Error inesperado. Inténtalo de nuevo.";
+
       setErrorMsg(msg);
+
       Toast.show({
         type: "error",
         text1: "Error al procesar",
@@ -156,9 +215,7 @@ export default function PremiumPaymentScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safe, { backgroundColor: theme.background }]}
-    >
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -183,20 +240,10 @@ export default function PremiumPaymentScreen() {
             </View>
 
             <View>
-              <Text
-                style={[
-                  styles.appName,
-                  { color: theme.textPrimary },
-                ]}
-              >
+              <Text style={[styles.appName, { color: theme.textPrimary }]}>
                 fitgenius
               </Text>
-              <Text
-                style={[
-                  styles.appTagline,
-                  { color: theme.textSecondary },
-                ]}
-              >
+              <Text style={[styles.appTagline, { color: theme.textSecondary }]}>
                 Tu entrenamiento, en otra dimensión
               </Text>
             </View>
@@ -224,47 +271,76 @@ export default function PremiumPaymentScreen() {
           >
             <View style={styles.heroTop}>
               <View>
-                <Text
-                  style={[
-                    styles.heroLabel,
-                    { color: theme.heroLabel },
-                  ]}
-                >
+                <Text style={[styles.heroLabel, { color: theme.heroLabel }]}>
                   FITGENIUS PREMIUM
                 </Text>
+
                 <View style={styles.priceRow}>
-                  <Text
-                    style={[
-                      styles.price,
-                      { color: theme.textPrimary },
-                    ]}
-                  >
-                    {PRICE}
+                  <Text style={[styles.price, { color: theme.textPrimary }]}>
+                    {planSummary.price}
                   </Text>
-                  <Text
-                    style={[
-                      styles.priceUnit,
-                      { color: theme.textSoft },
-                    ]}
-                  >
-                    / mes
+                  <Text style={[styles.priceUnit, { color: theme.textSoft }]}>
+                    {planSummary.unit}
                   </Text>
                 </View>
               </View>
 
-              <Sparkles size={32} color={theme.iconPremium} strokeWidth={1.5} />
+              <Sparkles
+                size={32}
+                color={theme.iconPremium}
+                strokeWidth={1.5}
+              />
             </View>
 
-            <Text
-              style={[
-                styles.billingHint,
-                { color: theme.textSoft },
-              ]}
-            >
-              Sin permanencia · Cancela cuando quieras
+            <Text style={[styles.billingHint, { color: theme.textSoft }]}>
+              {selectedPlan === "monthly"
+                ? "Sin permanencia · Cancela cuando quieras"
+                : `${YEARLY_SAVINGS} · Pago anual · Cancela cuando quieras`}
             </Text>
           </View>
         </LinearGradient>
+
+        <View
+          style={[
+            styles.planSelectorCard,
+            {
+              backgroundColor: theme.cardSoftBg,
+              borderColor: theme.cardBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+            Elige tu plan
+          </Text>
+
+          <View
+            style={[
+              styles.selectorContainer,
+              {
+                backgroundColor: theme.selectorBg,
+                borderColor: theme.selectorBorder,
+              },
+            ]}
+          >
+            <PlanOption
+              title="Mensual"
+              subtitle={`${MONTHLY_PRICE}/mes`}
+              isActive={selectedPlan === "monthly"}
+              onPress={() => setSelectedPlan("monthly")}
+              theme={theme}
+            />
+
+            <PlanOption
+              title="Anual"
+              subtitle={`${YEARLY_PRICE}/año`}
+              badge={YEARLY_SAVINGS}
+              extra={`Equivale a ${YEARLY_MONTH_EQUIVALENT}/mes`}
+              isActive={selectedPlan === "yearly"}
+              onPress={() => setSelectedPlan("yearly")}
+              theme={theme}
+            />
+          </View>
+        </View>
 
         <View
           style={[
@@ -275,12 +351,7 @@ export default function PremiumPaymentScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.textPrimary },
-            ]}
-          >
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
             ¿Qué cambia con Premium?
           </Text>
 
@@ -327,35 +398,59 @@ export default function PremiumPaymentScreen() {
             >
               ¿Qué estás dejando fuera?
             </Text>
-            <Text
-              style={[
-                styles.planLabel,
-                { color: theme.badgeFreeText },
-              ]}
-            >
+            <Text style={[styles.planLabel, { color: theme.badgeFreeText }]}>
               Free
             </Text>
             <Text
-              style={[
-                styles.planLabel,
-                { color: theme.badgePremiumText },
-              ]}
+              style={[styles.planLabel, { color: theme.badgePremiumText }]}
             >
               Premium
             </Text>
           </View>
 
-          <CompareRow label="Registrar sesiones" free="unlimited" premium="unlimited" />
-          <CompareRow label="Crear rutinas manuales" free="unlimited" premium="unlimited" />
-          <CompareRow label="Buscar ejercicios" free="unlimited" premium="unlimited" />
-          <CompareRow label="Estadísticas básicas" free="unlimited" premium="unlimited" />
+          <CompareRow
+            label="Registrar sesiones"
+            free="unlimited"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Crear rutinas manuales"
+            free="unlimited"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Buscar ejercicios"
+            free="unlimited"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Estadísticas básicas"
+            free="unlimited"
+            premium="unlimited"
+          />
 
           <View style={styles.divider} />
 
-          <CompareRow label="Rutinas con IA" free="limited" premium="unlimited" />
-          <CompareRow label="Coach inteligente" free="none" premium="unlimited" />
-          <CompareRow label="Preguntas sobre ejercicios" free="none" premium="unlimited" />
-          <CompareRow label="Informes de progreso" free="limited" premium="unlimited" />
+          <CompareRow
+            label="Rutinas con IA"
+            free="limited"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Coach inteligente"
+            free="none"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Preguntas sobre ejercicios"
+            free="none"
+            premium="unlimited"
+          />
+          <CompareRow
+            label="Informes de progreso"
+            free="limited"
+            premium="unlimited"
+          />
         </View>
 
         <View style={{ marginTop: 24 }}>
@@ -371,18 +466,15 @@ export default function PremiumPaymentScreen() {
               end={{ x: 1, y: 1 }}
             >
               <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                Quiero Premium
+                {selectedPlan === "yearly"
+                  ? "Quiero Premium anual"
+                  : "Quiero Premium mensual"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <Text
-            style={[
-              styles.securityNote,
-              { color: theme.textSoft },
-            ]}
-          >
-            Pago seguro · Sin permanencia · Cancela desde tu perfil
+          <Text style={[styles.securityNote, { color: theme.textSoft }]}>
+            Pago seguro · Cancela desde tu perfil · Acceso inmediato tras validación
           </Text>
         </View>
       </ScrollView>
@@ -411,12 +503,7 @@ export default function PremiumPaymentScreen() {
               <View style={styles.sheetHandle} />
 
               <View style={styles.modalHeaderRow}>
-                <Text
-                  style={[
-                    styles.modalTitle,
-                    { color: theme.textPrimary },
-                  ]}
-                >
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                   Método de pago
                 </Text>
 
@@ -426,12 +513,9 @@ export default function PremiumPaymentScreen() {
               </View>
 
               <Text
-                style={[
-                  styles.modalSubtitle,
-                  { color: theme.textSecondary },
-                ]}
+                style={[styles.modalSubtitle, { color: theme.textSecondary }]}
               >
-                Suscripción mensual por {PRICE}. Cancela cuando quieras sin compromisos.
+                {planSummary.modalText}
               </Text>
 
               <View style={{ marginTop: 16, marginBottom: 18 }}>
@@ -502,7 +586,7 @@ export default function PremiumPaymentScreen() {
                     </View>
                   ) : (
                     <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                      Confirmar y activar Premium
+                      {planSummary.ctaText}
                     </Text>
                   )}
                 </LinearGradient>
@@ -511,10 +595,7 @@ export default function PremiumPaymentScreen() {
               <View style={styles.securityBadge}>
                 <Check size={12} color={theme.textSoft} />
                 <Text
-                  style={[
-                    styles.securityBadgeText,
-                    { color: theme.textSoft },
-                  ]}
+                  style={[styles.securityBadgeText, { color: theme.textSoft }]}
                 >
                   Pago seguro con Stripe · No almacenamos datos bancarios
                 </Text>
@@ -524,6 +605,69 @@ export default function PremiumPaymentScreen() {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+function PlanOption({
+  title,
+  subtitle,
+  extra,
+  badge,
+  isActive,
+  onPress,
+  theme,
+}: {
+  title: string;
+  subtitle: string;
+  extra?: string;
+  badge?: string;
+  isActive: boolean;
+  onPress: () => void;
+  theme: ReturnType<typeof getPremiumTheme>;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      style={[
+        styles.planOption,
+        {
+          backgroundColor: isActive ? theme.selectorActiveBg : "transparent",
+          borderColor: isActive ? theme.selectorActiveBorder : "transparent",
+        },
+      ]}
+    >
+      <View style={styles.planOptionTop}>
+        <Text style={[styles.planOptionTitle, { color: theme.textPrimary }]}>
+          {title}
+        </Text>
+
+        {badge ? (
+          <View
+            style={[
+              styles.planBadge,
+              { backgroundColor: theme.badgePremiumBg },
+            ]}
+          >
+            <Text
+              style={[styles.planBadgeText, { color: theme.badgePremiumText }]}
+            >
+              {badge}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text style={[styles.planOptionSubtitle, { color: theme.textSecondary }]}>
+        {subtitle}
+      </Text>
+
+      {!!extra && (
+        <Text style={[styles.planOptionExtra, { color: theme.textSoft }]}>
+          {extra}
+        </Text>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -543,19 +687,11 @@ function BenefitItem({
     <View style={styles.benefitItem}>
       <View style={styles.benefitIcon}>{icon}</View>
       <View style={styles.benefitText}>
-        <Text
-          style={[
-            styles.benefitTitle,
-            { color: theme.textPrimary },
-          ]}
-        >
+        <Text style={[styles.benefitTitle, { color: theme.textPrimary }]}>
           {title}
         </Text>
         <Text
-          style={[
-            styles.benefitDescription,
-            { color: theme.textSecondary },
-          ]}
+          style={[styles.benefitDescription, { color: theme.textSecondary }]}
         >
           {description}
         </Text>
@@ -578,23 +714,20 @@ function CompareRow({
 
   const renderBadge = (
     type: "unlimited" | "limited" | "none",
-    isPremium: boolean,
+    isPremium: boolean
   ) => {
     if (type === "unlimited") {
       return (
         <View style={styles.checkIcon}>
           <Check
             size={14}
-            color={
-              isPremium
-                ? theme.badgePremiumText
-                : theme.badgeFreeText
-            }
+            color={isPremium ? theme.badgePremiumText : theme.badgeFreeText}
             strokeWidth={3}
           />
         </View>
       );
     }
+
     if (type === "limited") {
       return (
         <View
@@ -604,45 +737,30 @@ function CompareRow({
           ]}
         >
           <Text
-            style={[
-              styles.limitedText,
-              { color: theme.badgeMutedText },
-            ]}
+            style={[styles.limitedText, { color: theme.badgeMutedText }]}
           >
             1
           </Text>
         </View>
       );
     }
+
     return (
       <View style={styles.checkIcon}>
-        <X
-          size={14}
-          color={theme.iconMuted}
-          strokeWidth={2}
-        />
+        <X size={14} color={theme.iconMuted} strokeWidth={2} />
       </View>
     );
   };
 
   return (
     <View style={styles.compareRow}>
-      <Text
-        style={[
-          styles.compareLabel,
-          { color: theme.textPrimary },
-        ]}
-      >
+      <Text style={[styles.compareLabel, { color: theme.textPrimary }]}>
         {label}
       </Text>
 
-      <View style={styles.compareValue}>
-        {renderBadge(free, false)}
-      </View>
+      <View style={styles.compareValue}>{renderBadge(free, false)}</View>
 
-      <View style={styles.compareValue}>
-        {renderBadge(premium, true)}
-      </View>
+      <View style={styles.compareValue}>{renderBadge(premium, true)}</View>
     </View>
   );
 }
@@ -733,6 +851,56 @@ const styles = StyleSheet.create({
   },
   billingHint: {
     fontSize: 12,
+  },
+
+  planSelectorCard: {
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  selectorContainer: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 8,
+    rowGap: 10,
+  },
+  planOption: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  planOptionTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+    columnGap: 8,
+  },
+  planOptionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  planOptionSubtitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  planOptionExtra: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  planBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  planBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 
   benefitsCard: {

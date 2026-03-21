@@ -1,5 +1,5 @@
 // File: src/features/cuenta/Cuenta.tsx
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   RefreshCcw,
 } from "lucide-react-native";
 import Toast from "react-native-toast-message";
+import { useFocusEffect } from "@react-navigation/native";
 
 import PremiumMiniCTACard from "@/shared/components/ui/PremiumCTA";
 import Experiencia from "@/shared/components/cuenta/Experiencia";
@@ -85,9 +86,12 @@ const tokens = {
 // ── Utils — sin cambios ───────────────────────────────────────────────────────
 function formatDateMaybe(raw: any) {
   if (!raw) return null;
-  const d = raw instanceof Date ? raw
-    : typeof raw === "number" ? new Date(raw)
-      : new Date(String(raw));
+  const d =
+    raw instanceof Date
+      ? raw
+      : typeof raw === "number"
+        ? new Date(raw)
+        : new Date(String(raw));
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString();
 }
@@ -95,32 +99,68 @@ function formatDateMaybe(raw: any) {
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function Cuenta() {
   // ── Lógica original — sin cambios ─────────────────────────────────────────
-  const { isDark, isPremium, haPagado, closing, go, cerrarSesion, usuario } = useCuenta();
+  const { isDark, isPremium, haPagado, closing, go, cerrarSesion, usuario } =
+    useCuenta();
   const setUsuario = useUsuarioStore((s) => s.setUsuario);
 
   const [canceling, setCanceling] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [refreshingMe, setRefreshingMe] = useState(false);
 
-  const yaCancelado = usuario?.stripeCancelAtPeriodEnd === true;
-  const periodEndText = useMemo(() => formatDateMaybe((usuario as any)?.stripeCurrentPeriodEnd), [usuario]);
-  const trialEndText = useMemo(() => formatDateMaybe((usuario as any)?.stripeTrialEndsAt), [usuario]);
+  const lastAutoRefreshAtRef = useRef(0);
 
-  const refreshMe = async () => {
+  const yaCancelado = usuario?.stripeCancelAtPeriodEnd === true;
+  const periodEndText = useMemo(
+    () => formatDateMaybe((usuario as any)?.stripeCurrentPeriodEnd),
+    [usuario]
+  );
+  const trialEndText = useMemo(
+    () => formatDateMaybe((usuario as any)?.stripeTrialEndsAt),
+    [usuario]
+  );
+
+  const refreshMe = async (options?: { silent?: boolean }) => {
     if (refreshingMe) return null;
+
     try {
       setRefreshingMe(true);
       const me = await getMe();
       if (me?.id) setUsuario(me as any);
       return me;
     } catch (e: any) {
-      console.log("[Cuenta] getMe failed:", e?.response?.data ?? e?.message ?? e);
-      Toast.show({ type: "error", text1: "No se pudo actualizar", text2: "Inténtalo de nuevo en unos minutos." });
+      console.log(
+        "[Cuenta] getMe failed:",
+        e?.response?.data ?? e?.message ?? e
+      );
+
+      if (!options?.silent) {
+        Toast.show({
+          type: "error",
+          text1: "No se pudo actualizar",
+          text2: "Inténtalo de nuevo en unos minutos.",
+        });
+      }
+
       return null;
     } finally {
       setRefreshingMe(false);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      const elapsed = now - lastAutoRefreshAtRef.current;
+
+      // Evita refrescos duplicados muy seguidos al montar/enfocar
+      if (elapsed < 2500) {
+        return;
+      }
+
+      lastAutoRefreshAtRef.current = now;
+      void refreshMe({ silent: true });
+    }, [])
+  );
 
   const applyStripePatch = (patch: Partial<any>) => {
     if (!usuario?.id) return;
@@ -141,16 +181,30 @@ export default function Cuenta() {
               setCanceling(true);
               const res = await cancelPremiumSubscription();
               console.log("[Cuenta] Suscripción cancelada:", res);
+
               applyStripePatch({
                 stripeCancelAtPeriodEnd: true,
-                stripeCurrentPeriodEnd: res.currentPeriodEnd ?? (usuario as any)?.stripeCurrentPeriodEnd,
+                stripeCurrentPeriodEnd:
+                  res.currentPeriodEnd ??
+                  (usuario as any)?.stripeCurrentPeriodEnd,
                 stripeStatus: (usuario as any)?.stripeStatus ?? "ACTIVE",
               });
+
               await refreshMe();
-              Toast.show({ type: "success", text1: "Suscripción cancelada", text2: "Seguirás teniendo acceso hasta el final del periodo actual." });
+
+              Toast.show({
+                type: "success",
+                text1: "Suscripción cancelada",
+                text2:
+                  "Seguirás teniendo acceso hasta el final del periodo actual.",
+              });
             } catch (e: any) {
               console.warn("[Cuenta] Error al cancelar suscripción", e);
-              Toast.show({ type: "error", text1: "No se pudo cancelar", text2: e?.message || "Inténtalo de nuevo en unos minutos." });
+              Toast.show({
+                type: "error",
+                text1: "No se pudo cancelar",
+                text2: e?.message || "Inténtalo de nuevo en unos minutos.",
+              });
             } finally {
               setCanceling(false);
             }
@@ -174,19 +228,36 @@ export default function Cuenta() {
               setReactivating(true);
               const res = await reactivatePremiumSubscription();
               console.log("[Cuenta] Suscripción reactivada:", res);
+
               applyStripePatch({
                 stripeCancelAtPeriodEnd: false,
-                stripeCurrentPeriodEnd: res.currentPeriodEnd ?? (usuario as any)?.stripeCurrentPeriodEnd,
+                stripeCurrentPeriodEnd:
+                  res.currentPeriodEnd ??
+                  (usuario as any)?.stripeCurrentPeriodEnd,
                 stripeStatus: (usuario as any)?.stripeStatus ?? "ACTIVE",
               });
+
               const me = await refreshMe();
+
               if (me?.id && (me as any)?.stripeCancelAtPeriodEnd === true) {
-                setTimeout(() => refreshMe(), 1200);
+                setTimeout(() => {
+                  void refreshMe({ silent: true });
+                }, 1200);
               }
-              Toast.show({ type: "success", text1: "Suscripción reactivada", text2: "Tu Premium seguirá activo y no se cancelará al final del periodo." });
+
+              Toast.show({
+                type: "success",
+                text1: "Suscripción reactivada",
+                text2:
+                  "Tu Premium seguirá activo y no se cancelará al final del periodo.",
+              });
             } catch (e: any) {
               console.warn("[Cuenta] Error al reactivar suscripción", e);
-              Toast.show({ type: "error", text1: "No se pudo reactivar", text2: e?.message || "Inténtalo de nuevo en unos minutos." });
+              Toast.show({
+                type: "error",
+                text1: "No se pudo reactivar",
+                text2: e?.message || "Inténtalo de nuevo en unos minutos.",
+              });
             } finally {
               setReactivating(false);
             }
@@ -196,12 +267,21 @@ export default function Cuenta() {
     );
   };
 
-  const showRenewal = isPremium && haPagado && !yaCancelado &&
+  const showRenewal =
+    isPremium &&
+    haPagado &&
+    !yaCancelado &&
     (usuario as any)?.stripeStatus &&
-    ["ACTIVE", "TRIALING", "PAST_DUE", "UNPAID"].includes(String((usuario as any)?.stripeStatus));
+    ["ACTIVE", "TRIALING", "PAST_DUE", "UNPAID"].includes(
+      String((usuario as any)?.stripeStatus)
+    );
 
   const showCancelInfo = isPremium && haPagado && yaCancelado;
-  const showTrial = isPremium && haPagado && String((usuario as any)?.stripeStatus) === "TRIALING" && !!trialEndText;
+  const showTrial =
+    isPremium &&
+    haPagado &&
+    String((usuario as any)?.stripeStatus) === "TRIALING" &&
+    !!trialEndText;
   const showSubscriptionCard = showCancelInfo || showRenewal || showTrial;
   // ── Fin lógica original ───────────────────────────────────────────────────
 
@@ -210,7 +290,13 @@ export default function Cuenta() {
   return (
     <ScrollView
       style={[styles.scroll, { backgroundColor: bg }]}
-      contentContainerStyle={[styles.scrollContent, { backgroundColor: bg, paddingBottom: Platform.OS === "ios" ? 150 : 130 }]}
+      contentContainerStyle={[
+        styles.scrollContent,
+        {
+          backgroundColor: bg,
+          paddingBottom: Platform.OS === "ios" ? 150 : 130,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {/* CTA Premium (solo para usuarios free) */}
@@ -254,18 +340,42 @@ export default function Cuenta() {
           style={[
             styles.subCard,
             {
-              backgroundColor: isDark ? tokens.color.subCardBgDark : tokens.color.subCardBgLight,
-              borderColor: isDark ? tokens.color.subCardBorderDark : tokens.color.subCardBorderLight,
+              backgroundColor: isDark
+                ? tokens.color.subCardBgDark
+                : tokens.color.subCardBgLight,
+              borderColor: isDark
+                ? tokens.color.subCardBorderDark
+                : tokens.color.subCardBorderLight,
             },
           ]}
         >
           {showCancelInfo && (
             <>
-              <Text style={[styles.subTitle, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+              <Text
+                style={[
+                  styles.subTitle,
+                  {
+                    color: isDark
+                      ? tokens.color.textPrimaryDark
+                      : tokens.color.textPrimaryLight,
+                  },
+                ]}
+              >
                 Suscripción programada para cancelarse
               </Text>
-              <Text style={[styles.subBody, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
-                {periodEndText ? `Se cancelará el ${periodEndText}.` : "Se cancelará al final del periodo actual."}{" "}
+              <Text
+                style={[
+                  styles.subBody,
+                  {
+                    color: isDark
+                      ? tokens.color.textSecondaryDark
+                      : tokens.color.textSecondaryLight,
+                  },
+                ]}
+              >
+                {periodEndText
+                  ? `Se cancelará el ${periodEndText}.`
+                  : "Se cancelará al final del periodo actual."}{" "}
                 Puedes reactivarla antes de esa fecha.
               </Text>
             </>
@@ -273,17 +383,46 @@ export default function Cuenta() {
 
           {showRenewal && (
             <>
-              <Text style={[styles.subTitle, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+              <Text
+                style={[
+                  styles.subTitle,
+                  {
+                    color: isDark
+                      ? tokens.color.textPrimaryDark
+                      : tokens.color.textPrimaryLight,
+                  },
+                ]}
+              >
                 Premium activo
               </Text>
-              <Text style={[styles.subBody, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
-                {periodEndText ? `Próxima renovación: ${periodEndText}.` : "Próxima renovación: al final del periodo actual."}
+              <Text
+                style={[
+                  styles.subBody,
+                  {
+                    color: isDark
+                      ? tokens.color.textSecondaryDark
+                      : tokens.color.textSecondaryLight,
+                  },
+                ]}
+              >
+                {periodEndText
+                  ? `Próxima renovación: ${periodEndText}.`
+                  : "Próxima renovación: al final del periodo actual."}
               </Text>
             </>
           )}
 
           {showTrial && (
-            <Text style={[styles.subTrial, { color: isDark ? tokens.color.trialDark : tokens.color.trialLight }]}>
+            <Text
+              style={[
+                styles.subTrial,
+                {
+                  color: isDark
+                    ? tokens.color.trialDark
+                    : tokens.color.trialLight,
+                },
+              ]}
+            >
               Tu prueba termina el {trialEndText}
             </Text>
           )}
@@ -293,50 +432,175 @@ export default function Cuenta() {
       {/* Botones de acción */}
       <View style={styles.actionsWrapper}>
         <ActionButton onPress={() => go("EditarPerfil")} isDark={isDark}>
-          <Settings size={17} color={isDark ? tokens.color.iconDark : tokens.color.iconLight} strokeWidth={2} />
-          <Text style={[styles.actionText, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+          <Settings
+            size={17}
+            color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+            strokeWidth={2}
+          />
+          <Text
+            style={[
+              styles.actionText,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
+          >
             Configuración
           </Text>
         </ActionButton>
 
         <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
-          <Lock size={17} color={isDark ? tokens.color.iconDark : tokens.color.iconLight} strokeWidth={2} />
-          <Text style={[styles.actionText, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+          <Lock
+            size={17}
+            color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+            strokeWidth={2}
+          />
+          <Text
+            style={[
+              styles.actionText,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
+          >
             Cambiar contraseña
           </Text>
         </ActionButton>
 
         {isPremium && haPagado && yaCancelado && (
-          <ActionButton onPress={handleReactivateSubscription} isDark={isDark} loading={reactivating}>
-            <RefreshCcw size={17} color={isDark ? tokens.color.iconDark : tokens.color.iconLight} strokeWidth={2} />
-            <Text style={[styles.actionText, styles.actionTextBold, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+          <ActionButton
+            onPress={handleReactivateSubscription}
+            isDark={isDark}
+            loading={reactivating}
+          >
+            <RefreshCcw
+              size={17}
+              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              strokeWidth={2}
+            />
+            <Text
+              style={[
+                styles.actionText,
+                styles.actionTextBold,
+                {
+                  color: isDark
+                    ? tokens.color.textPrimaryDark
+                    : tokens.color.textPrimaryLight,
+                },
+              ]}
+            >
               {reactivating ? "Reactivando…" : "Reactivar suscripción"}
             </Text>
           </ActionButton>
         )}
 
         {isPremium && haPagado && !yaCancelado && (
-          <ActionButton onPress={handleCancelSubscription} isDark={isDark} variant="danger" loading={canceling}>
+          <ActionButton
+            onPress={handleCancelSubscription}
+            isDark={isDark}
+            variant="danger"
+            loading={canceling}
+          >
             <XOctagon size={17} color={tokens.color.danger} strokeWidth={2} />
-            <Text style={[styles.actionText, styles.actionTextBold, { color: tokens.color.danger }]}>
+            <Text
+              style={[
+                styles.actionText,
+                styles.actionTextBold,
+                { color: tokens.color.danger },
+              ]}
+            >
               {canceling ? "Cancelando…" : "Cancelar suscripción"}
             </Text>
           </ActionButton>
         )}
 
-        <ActionButton onPress={() => go("EliminarCuenta")} isDark={isDark} variant="danger">
+        <ActionButton
+          onPress={() => {
+            void refreshMe();
+          }}
+          isDark={isDark}
+          loading={refreshingMe}
+        >
+          {refreshingMe ? (
+            <ActivityIndicator
+              size="small"
+              color={
+                isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight
+              }
+            />
+          ) : (
+            <RefreshCcw
+              size={17}
+              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              strokeWidth={2}
+            />
+          )}
+          <Text
+            style={[
+              styles.actionText,
+              styles.actionTextBold,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
+          >
+            {refreshingMe ? "Actualizando…" : "Actualizar estado"}
+          </Text>
+        </ActionButton>
+
+        <ActionButton
+          onPress={() => go("EliminarCuenta")}
+          isDark={isDark}
+          variant="danger"
+        >
           <UserX size={17} color={tokens.color.danger} strokeWidth={2} />
-          <Text style={[styles.actionText, styles.actionTextBold, { color: tokens.color.danger }]}>
+          <Text
+            style={[
+              styles.actionText,
+              styles.actionTextBold,
+              { color: tokens.color.danger },
+            ]}
+          >
             Dar de baja mi cuenta
           </Text>
         </ActionButton>
 
         <ActionButton onPress={cerrarSesion} isDark={isDark} loading={closing}>
-          {closing
-            ? <ActivityIndicator size="small" color={isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight} />
-            : <LogOut size={17} color={isDark ? tokens.color.iconDark : tokens.color.iconLight} strokeWidth={2} />
-          }
-          <Text style={[styles.actionText, styles.actionTextBold, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+          {closing ? (
+            <ActivityIndicator
+              size="small"
+              color={
+                isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight
+              }
+            />
+          ) : (
+            <LogOut
+              size={17}
+              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              strokeWidth={2}
+            />
+          )}
+          <Text
+            style={[
+              styles.actionText,
+              styles.actionTextBold,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
+          >
             Cerrar sesión
           </Text>
         </ActionButton>
@@ -347,7 +611,11 @@ export default function Cuenta() {
 
 // ── ActionButton ──────────────────────────────────────────────────────────────
 function ActionButton({
-  children, onPress, isDark, variant = "default", loading = false,
+  children,
+  onPress,
+  isDark,
+  variant = "default",
+  loading = false,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -363,8 +631,15 @@ function ActionButton({
       style={[
         styles.actionBtn,
         {
-          backgroundColor: isDark ? tokens.color.actionBgDark : tokens.color.actionBgLight,
-          borderColor: variant === "danger" ? tokens.color.dangerBorder : isDark ? tokens.color.actionBorderDark : tokens.color.actionBorderLight,
+          backgroundColor: isDark
+            ? tokens.color.actionBgDark
+            : tokens.color.actionBgLight,
+          borderColor:
+            variant === "danger"
+              ? tokens.color.dangerBorder
+              : isDark
+                ? tokens.color.actionBorderDark
+                : tokens.color.actionBorderLight,
           opacity: loading ? 0.65 : 1,
         },
       ]}
