@@ -130,6 +130,10 @@ export function useMisRutinas() {
     await fetchRutinas({ force: true });
   }, [fetchRutinas]);
 
+  const removeRutina = useCallback((id: number) => {
+    setRutinas(prev => prev.filter(r => r.id !== id));
+  }, []);
+
   const rutinaSeleccionada = useMemo(
     () =>
       idMostrar != null
@@ -147,6 +151,7 @@ export function useMisRutinas() {
     mostrar,
     cerrarVisor,
     reloadRutinas,
+    removeRutina,
     totalIA,
     maxIA,
     isPremium,

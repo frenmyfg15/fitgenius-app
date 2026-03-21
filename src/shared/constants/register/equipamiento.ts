@@ -61,4 +61,9 @@ export const equipamiento = [
     nombre: "Banco",
     imagen: require("../../../../assets/register/equipamiento/banco.webp"),
   },
+  {
+    id: "BANDA_RESISTENCIA",
+    nombre: "Banda de resistencia",
+    imagen: require("../../../../assets/register/equipamiento/banda_resistencia.webp"),
+  },
 ];

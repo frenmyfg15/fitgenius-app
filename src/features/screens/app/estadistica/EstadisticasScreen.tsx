@@ -36,7 +36,7 @@ import EstadisticasSkeleton from "@/shared/components/skeleton/EstadisticasSkele
 import CargaInternaCard from "@/shared/components/estadistica/CargaInternaCard";
 import DiasColorEstresCard from "@/shared/components/estadistica/DiasColorEstresCard";
 import ProgresoSubjetivoEjerciciosCard from "@/shared/components/estadistica/ProgresoSubjetivoEjerciciosCard";
-import ProgresoMuscularCard from "@/shared/components/estadistica/progresoMuscularCard";
+import ProgresoMuscularCard from "@/shared/components/estadistica/ProgresoMuscularCard";
 
 const tokens = {
   color: {

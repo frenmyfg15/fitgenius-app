@@ -27,6 +27,9 @@ import {
 } from "@gorhom/bottom-sheet";
 import type { Item } from "@/features/type/crearRutina";
 
+// Mínimo de ejercicios necesarios para poder preguntar a la IA
+const MIN_EJERCICIOS_PARA_IA = 2;
+
 type Props = {
   onPreguntarRutina?: () => void;
   onCrear: () => void;
@@ -48,6 +51,8 @@ type Props = {
   puedeSubir?: boolean;
   puedeBajar?: boolean;
   modoEdicion?: boolean;
+  /** Número total de ejercicios en la rutina (todos los días) */
+  totalEjercicios?: number;
 };
 
 export default function RutinaControls({
@@ -71,6 +76,7 @@ export default function RutinaControls({
   puedeSubir = false,
   puedeBajar = false,
   modoEdicion = false,
+  totalEjercicios = 0,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -92,6 +98,9 @@ export default function RutinaControls({
       : "bg-white border border-neutral-200");
 
   const iconColor = isDark ? "#f8fafc" : "#1e293b";
+
+  // La IA solo está disponible cuando hay suficientes ejercicios
+  const puedeUsarIA = totalEjercicios >= MIN_EJERCICIOS_PARA_IA;
 
   useEffect(() => {
     if (menuOpen) {
@@ -209,10 +218,21 @@ export default function RutinaControls({
                 isDark={isDark}
               />
               <MenuOption
-                icon={<Sparkles size={20} color="#a855f7" />}
+                icon={
+                  <Sparkles
+                    size={20}
+                    color={puedeUsarIA ? "#a855f7" : (isDark ? "#475569" : "#cbd5e1")}
+                  />
+                }
                 label="IA Chat"
-                onPress={() => executeAction(onPreguntarRutina)}
+                onPress={() => puedeUsarIA && executeAction(onPreguntarRutina)}
                 isDark={isDark}
+                disabled={!puedeUsarIA}
+                tooltip={
+                  !puedeUsarIA
+                    ? `Añade al menos ${MIN_EJERCICIOS_PARA_IA} ejercicios`
+                    : undefined
+                }
               />
             </View>
 
@@ -278,6 +298,13 @@ export default function RutinaControls({
                 isDark={isDark}
               />
             </View>
+
+            {/* Hint visible cuando la IA está bloqueada */}
+            {!puedeUsarIA && (
+              <Text style={[styles.iaHint, { color: textSecondary }]}>
+                💡 Añade al menos {MIN_EJERCICIOS_PARA_IA} ejercicios a la rutina para activar el chat con IA.
+              </Text>
+            )}
           </ScrollView>
         </BottomSheetView>
       </BottomSheetModal>
@@ -285,7 +312,21 @@ export default function RutinaControls({
   );
 }
 
-function MenuOption({ icon, label, onPress, isDark, disabled }: any) {
+function MenuOption({
+  icon,
+  label,
+  onPress,
+  isDark,
+  disabled,
+  tooltip,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  isDark: boolean;
+  disabled?: boolean;
+  tooltip?: string;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -314,7 +355,7 @@ function MenuOption({ icon, label, onPress, isDark, disabled }: any) {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: "absolute",
-    bottom: 140,
+    bottom: 70,
     right: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -394,5 +435,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     textAlign: "center",
+  },
+  iaHint: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    lineHeight: 18,
   },
 });

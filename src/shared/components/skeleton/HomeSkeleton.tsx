@@ -84,7 +84,7 @@ export default function HomeSkeleton() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? "#080D17" : "#ffffff" }}
       contentContainerStyle={{
         padding: 16,
         paddingBottom: 80,

@@ -46,7 +46,7 @@ export default function FormularioNombreRutina({
   const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["45%", "75%"], []);
+  const snapPoints = useMemo(() => ["100%"], []);
   const topInset = Math.max(insets.top, 12);
 
   const [nombre, setNombre] = useState(nombreInicial);

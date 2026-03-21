@@ -13,12 +13,13 @@ import {
   Platform,
   Pressable,
   Modal,
+  Easing,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { PenLine, ChevronDown, Plus } from "lucide-react-native";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
@@ -42,9 +43,6 @@ const tokens = {
     textSecondaryLight: "#475569",
     borderDark: "rgba(255,255,255,0.07)",
     borderLight: "rgba(15,23,42,0.08)",
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
     overlay: "rgba(0,0,0,0.55)",
     dangerDark: "#FF4D4D",
     dangerLight: "#E53E3E",
@@ -85,8 +83,7 @@ export default function MisRutinasScreen() {
     mostrar,
     cerrarVisor,
     reloadRutinas,
-    totalIA,
-    maxIA,
+    removeRutina,
   } = useMisRutinas();
 
   const isPremium = useUsuarioStore((s) => s.usuario?.haPagado === true);
@@ -96,39 +93,29 @@ export default function MisRutinasScreen() {
   const [mostrarContinuarModal, setMostrarContinuarModal] = useState(false);
   const [continuarTipo, setContinuarTipo] = useState<"edit" | "crear" | null>(null);
 
-  // Aparece siempre al hacer focus si hay borrador pendiente
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
-
       (async () => {
         const editId = await AsyncStorage.getItem("rutinaEditId");
         if (!mounted) return;
-
         if (editId) {
           setContinuarTipo("edit");
           setMostrarContinuarModal(true);
           return;
         }
-
         const draft = await AsyncStorage.getItem("crearRutinaState");
         if (!mounted) return;
-
         if (hasPendingRutina(draft)) {
           setContinuarTipo("crear");
           setMostrarContinuarModal(true);
         }
       })();
-
-      return () => {
-        mounted = false;
-      };
+      return () => { mounted = false; };
     }, [])
   );
 
-  const handleMasTarde = useCallback(() => {
-    setMostrarContinuarModal(false);
-  }, []);
+  const handleMasTarde = useCallback(() => setMostrarContinuarModal(false), []);
 
   const handleDescartarBorrador = useCallback(async () => {
     setMostrarContinuarModal(false);
@@ -144,39 +131,40 @@ export default function MisRutinasScreen() {
     navigation.navigate("CrearRutina");
   }, [navigation]);
 
-  // --- ANIMACIÓN FAB ---
-  const [menuOpen, setMenuOpen] = useState(false);
-  const animValue = useRef(new Animated.Value(0)).current;
+  // ─── FAB estilo VistaEjercicio ────────────────────────────────────────
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabAnim = useRef(new Animated.Value(0)).current;
 
-  const toggleMenu = () => {
-    const toValue = menuOpen ? 0 : 1;
-    Animated.spring(animValue, {
-      toValue,
-      friction: 5,
-      tension: 40,
+  useEffect(() => {
+    Animated.timing(fabAnim, {
+      toValue: fabOpen ? 1 : 0,
+      duration: fabOpen ? 220 : 180,
+      easing: fabOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start();
-    setMenuOpen(!menuOpen);
+  }, [fabOpen, fabAnim]);
+
+  const getItemAnimStyle = (index: number) => {
+    const delayFactor = index * 0.08;
+    const opacity = fabAnim.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [0, 1],
+      extrapolate: "clamp",
+    });
+    const translateY = fabAnim.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [12, 0],
+      extrapolate: "clamp",
+    });
+    const scale = fabAnim.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [0.92, 1],
+      extrapolate: "clamp",
+    });
+    return { opacity, transform: [{ translateY }, { scale }] };
   };
 
-  const closeMenu = () => {
-    if (menuOpen) toggleMenu();
-  };
-
-  const translateY = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
-  const opacity = animValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
-  const rotation = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "45deg"],
-  });
-
-  // --- VISOR + REFRESH ---
+  // ─── Visor + Refresh ──────────────────────────────────────────────────
   const screenH = Dimensions.get("window").height;
   const slideY = useRef(new Animated.Value(screenH)).current;
   const [refreshing, setRefreshing] = useState(false);
@@ -191,14 +179,10 @@ export default function MisRutinasScreen() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await reloadRutinas();
-    } finally {
-      setRefreshing(false);
-    }
+    try { await reloadRutinas(); } finally { setRefreshing(false); }
   }, [reloadRutinas]);
 
-  // --- COLORES ---
+  // ─── Colores ──────────────────────────────────────────────────────────
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
   const modalSurface = isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight;
   const modalBorder = isDark ? tokens.color.borderDark : tokens.color.borderLight;
@@ -206,6 +190,8 @@ export default function MisRutinasScreen() {
   const modalText = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
   const dangerColor = isDark ? tokens.color.dangerDark : tokens.color.dangerLight;
   const dangerSurface = isDark ? tokens.color.dangerSurfaceDark : tokens.color.dangerSurfaceLight;
+  const iconColor = isDark ? "#e5e7eb" : "#111827";
+  const fabBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
 
   const modalInfo =
     continuarTipo === "edit"
@@ -214,8 +200,7 @@ export default function MisRutinasScreen() {
         iconColor: "#A78BFA",
         iconBg: isDark ? "rgba(167,139,250,0.12)" : "rgba(167,139,250,0.10)",
         title: "Tienes una edición sin guardar",
-        description:
-          "Estabas modificando una rutina existente. Puedes continuar ahora o retomarlo más tarde.",
+        description: "Estabas modificando una rutina existente. Puedes continuar ahora o retomarlo más tarde.",
         continuarLabel: "Seguir editando",
         descartarLabel: "Descartar cambios",
       }
@@ -224,18 +209,13 @@ export default function MisRutinasScreen() {
         iconColor: tokens.color.primary,
         iconBg: isDark ? "rgba(0,232,90,0.10)" : "rgba(0,232,90,0.08)",
         title: "Tienes una rutina sin terminar",
-        description:
-          "Empezaste a crear una rutina nueva pero no la guardaste. Puedes terminarla ahora o retomarlo más tarde.",
+        description: "Empezaste a crear una rutina nueva pero no la guardaste. Puedes terminarla ahora o retomarlo más tarde.",
         continuarLabel: "Terminar rutina",
         descartarLabel: "Descartar borrador",
       };
 
   return (
     <View style={[styles.flex1, { backgroundColor: bg }]}>
-      {menuOpen && (
-        <Pressable style={StyleSheet.absoluteFill} onPress={closeMenu} />
-      )}
-
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -244,16 +224,7 @@ export default function MisRutinasScreen() {
         }
       >
         <View style={styles.header}>
-          <Text
-            style={[
-              styles.title,
-              {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
-              },
-            ]}
-          >
+          <Text style={[styles.title, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
             Tus rutinas
           </Text>
         </View>
@@ -276,60 +247,79 @@ export default function MisRutinasScreen() {
         </View>
       </ScrollView>
 
+      {/* ─── FAB estilo VistaEjercicio ─── */}
       {!loading && (
-        <View style={styles.fabContainer}>
-          <Animated.View
-            style={[styles.optionsMenu, { opacity, transform: [{ translateY }] }]}
-          >
-            <IaGenerate
-              onCreate={() => {
-                reloadRutinas();
-                closeMenu();
+        <View
+          pointerEvents="box-none"
+          style={styles.fabWrapper}
+        >
+          <View style={{ alignItems: "flex-end" }}>
+            {/* Items animados */}
+            <Animated.View
+              pointerEvents={fabOpen ? "auto" : "none"}
+              style={{
+                marginBottom: 12,
+                alignItems: "flex-end",
+                opacity: fabAnim,
+                transform: [{
+                  translateY: fabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [6, 0],
+                  }),
+                }],
               }}
-            />
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("CrearRutina");
-                closeMenu();
-              }}
-              style={[
-                styles.manualBtn,
-                { backgroundColor: isDark ? tokens.color.surfaceDark : "#fff" },
-              ]}
             >
-              <Ionicons name="create-outline" size={20} color={tokens.color.primary} />
-              <Text style={[styles.manualText, { color: isDark ? "#fff" : "#000" }]}>
-                Manual
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+              <View style={{ flexDirection: "column", gap: 14, alignItems: "flex-end" }}>
+                {/* Generar con IA */}
+                <Animated.View style={getItemAnimStyle(1)}>
+                  <IaGenerate
+                    onCreate={() => {
+                      reloadRutinas();
+                      setFabOpen(false);
+                    }}
+                  />
+                </Animated.View>
 
-          <TouchableOpacity activeOpacity={0.9} onPress={toggleMenu}>
-            <LinearGradient
-              colors={[
-                tokens.color.gradientStart,
-                tokens.color.gradientMid,
-                tokens.color.gradientEnd,
-              ]}
-              style={styles.fabCircle}
+                {/* Crear manual */}
+                <Animated.View style={getItemAnimStyle(0)}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFabOpen(false);
+                      navigation.navigate("CrearRutina");
+                    }}
+                    activeOpacity={0.88}
+                    style={[styles.fabItem, { backgroundColor: fabBg }]}
+                  >
+                    <PenLine size={22} color={iconColor} />
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </Animated.View>
+
+            {/* Toggle */}
+            <TouchableOpacity
+              onPress={() => setFabOpen((v) => !v)}
+              activeOpacity={0.9}
+              style={[styles.fabToggle, { backgroundColor: fabBg }]}
             >
-              <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-                <Ionicons name="add" size={32} color="#fff" />
-              </Animated.View>
-            </LinearGradient>
-          </TouchableOpacity>
+              {fabOpen
+                ? <ChevronDown size={22} color={iconColor} />
+                : <Plus size={22} color={iconColor} />
+              }
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
-      <Animated.View
-        style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}
-      >
+      {/* ─── Visor rutina ─── */}
+      <Animated.View style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}>
         <View style={styles.visorContent}>
           {rutinaSeleccionada && (
             <MostrarRutina
               rutinas={rutinaSeleccionada}
               setVer={(v: boolean) => !v && cerrarVisor()}
               onDelete={async () => {
+                removeRutina(rutinaSeleccionada.id);
                 await reloadRutinas();
                 cerrarVisor();
               }}
@@ -338,7 +328,7 @@ export default function MisRutinasScreen() {
         </View>
       </Animated.View>
 
-      {/* ─── Modal: borrador pendiente ─── */}
+      {/* ─── Modal borrador pendiente ─── */}
       <Modal
         visible={mostrarContinuarModal}
         transparent
@@ -349,27 +339,13 @@ export default function MisRutinasScreen() {
           style={[StyleSheet.absoluteFill, { backgroundColor: tokens.color.overlay }]}
           onPress={handleMasTarde}
         />
-
         <View style={styles.continuarModalWrap}>
-          <View
-            style={[
-              styles.continuarModalCard,
-              { backgroundColor: modalSurface, borderColor: modalBorder },
-            ]}
-          >
-            {/* Icono contextual */}
+          <View style={[styles.continuarModalCard, { backgroundColor: modalSurface, borderColor: modalBorder }]}>
             <View style={[styles.continuarIconWrap, { backgroundColor: modalInfo.iconBg }]}>
               <Ionicons name={modalInfo.icon} size={22} color={modalInfo.iconColor} />
             </View>
-
-            <Text style={[styles.continuarTitle, { color: modalTitle }]}>
-              {modalInfo.title}
-            </Text>
-            <Text style={[styles.continuarDesc, { color: modalText }]}>
-              {modalInfo.description}
-            </Text>
-
-            {/* Botón primario: continuar */}
+            <Text style={[styles.continuarTitle, { color: modalTitle }]}>{modalInfo.title}</Text>
+            <Text style={[styles.continuarDesc, { color: modalText }]}>{modalInfo.description}</Text>
             <TouchableOpacity
               onPress={handleContinuarEdicion}
               style={[styles.btnContinuar, { backgroundColor: tokens.color.primary }]}
@@ -378,34 +354,22 @@ export default function MisRutinasScreen() {
               <Ionicons name="arrow-forward" size={16} color="#080D17" />
               <Text style={styles.btnContinuarText}>{modalInfo.continuarLabel}</Text>
             </TouchableOpacity>
-
-            {/* Botón secundario: más tarde */}
             <TouchableOpacity
               onPress={handleMasTarde}
-              style={[
-                styles.btnMasTarde,
-                { borderColor: modalBorder },
-              ]}
+              style={[styles.btnMasTarde, { borderColor: modalBorder }]}
               activeOpacity={0.88}
             >
               <Ionicons name="time-outline" size={15} color={modalText} />
-              <Text style={[styles.btnMasTardeText, { color: modalText }]}>
-                Más tarde
-              </Text>
+              <Text style={[styles.btnMasTardeText, { color: modalText }]}>Más tarde</Text>
             </TouchableOpacity>
-
             <View style={[styles.divider, { backgroundColor: modalBorder }]} />
-
-            {/* Botón terciario: descartar */}
             <TouchableOpacity
               onPress={handleDescartarBorrador}
               style={[styles.btnDescartar, { backgroundColor: dangerSurface }]}
               activeOpacity={0.88}
             >
               <Ionicons name="trash-outline" size={15} color={dangerColor} />
-              <Text style={[styles.btnDescartarText, { color: dangerColor }]}>
-                {modalInfo.descartarLabel}
-              </Text>
+              <Text style={[styles.btnDescartarText, { color: dangerColor }]}>{modalInfo.descartarLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -425,56 +389,28 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: "800" },
   content: { width: "100%" },
 
-  fabContainer: {
+  // ─── FAB ───────────────────────────────────────────────────────────────
+  fabWrapper: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 100 : 130,
     right: 20,
-    alignItems: "flex-end",
+    bottom: Platform.OS === "ios" ? 130 : 150,
+    zIndex: 20,
   },
-  fabCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  fabItem: {
+    padding: 16,
+    borderRadius: 999,
+    alignItems: "center",
     justifyContent: "center",
+  },
+  fabToggle: {
+    padding: 12,
+    borderRadius: 999,
     alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    justifyContent: "center",
+    marginRight: 4,
   },
-  optionsMenu: {
-    marginBottom: 15,
-    gap: 12,
-    alignItems: "flex-end",
-  },
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  manualBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  manualText: { fontSize: 14, fontWeight: "700" },
-  iaBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
+
+  // ─── Visor ─────────────────────────────────────────────────────────────
   visorOverlay: {
     position: "absolute",
     top: 0,
@@ -486,7 +422,7 @@ const styles = StyleSheet.create({
   },
   visorContent: { flex: 1, paddingTop: 50 },
 
-  // Modal borrador
+  // ─── Modal borrador ────────────────────────────────────────────────────
   continuarModalWrap: {
     flex: 1,
     justifyContent: "center",
@@ -541,14 +477,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 14,
   },
-  btnMasTardeText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  divider: {
-    height: 1,
-    marginBottom: 10,
-  },
+  btnMasTardeText: { fontSize: 14, fontWeight: "600" },
+  divider: { height: 1, marginBottom: 10 },
   btnDescartar: {
     flexDirection: "row",
     alignItems: "center",
@@ -557,8 +487,5 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 16,
   },
-  btnDescartarText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  btnDescartarText: { fontSize: 14, fontWeight: "700" },
 });

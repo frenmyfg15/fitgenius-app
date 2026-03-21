@@ -7,13 +7,12 @@ import {
   Platform,
 } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  createNativeStackNavigator,
-} from "@react-navigation/native-stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigationState } from "@react-navigation/native";
 
 import Header from "@/shared/components/ui/Header";
 import Cuenta from "../screens/app/perfil/Cuenta";
@@ -83,6 +82,9 @@ const stackOptions = {
   animation: "slide_from_right" as const,
 };
 
+/* ---------- Pantallas que ocultan tab bar y header ---------- */
+const HIDDEN_TAB_SCREENS = new Set(["CrearRutina"]);
+
 /* ---------- Root screen por tab ---------- */
 const TAB_ROOT_SCREEN: Record<string, string> = {
   Inicio: "Home",
@@ -94,14 +96,31 @@ const TAB_ROOT_SCREEN: Record<string, string> = {
 /* ---------- Helper para ir siempre a la raíz del tab ---------- */
 function navigateToTabRoot(navigation: any, tabName: string) {
   const rootScreen = TAB_ROOT_SCREEN[tabName];
-
   if (!rootScreen) {
     navigation.navigate(tabName);
     return;
   }
+  navigation.navigate(tabName, { screen: rootScreen });
+}
 
-  navigation.navigate(tabName, {
-    screen: rootScreen,
+/* ---------- Hook: detecta si la pantalla activa debe ocultar el tab bar ---------- */
+function useIsTabBarHidden(): boolean {
+  return useNavigationState((state) => {
+    if (!state) return false;
+
+    // Recorre cada tab buscando la pantalla activa en su stack
+    for (const tabRoute of state.routes) {
+      // Solo analiza el tab activo
+      if (tabRoute.state) {
+        const tabState = tabRoute.state;
+        const activeIndex = tabState.index ?? (tabState.routes.length - 1);
+        const activeScreen = tabState.routes[activeIndex];
+        if (activeScreen && HIDDEN_TAB_SCREENS.has(activeScreen.name)) {
+          return true;
+        }
+      }
+    }
+    return false;
   });
 }
 
@@ -113,9 +132,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="VistaEjercicio"
         component={VistaEjercicio}
-        options={{
-          contentStyle: { backgroundColor: "#0b1220" },
-        }}
+        options={{ contentStyle: { backgroundColor: "#0b1220" } }}
       />
     </HomeStack.Navigator>
   );
@@ -143,10 +160,7 @@ function PerfilStackNavigator() {
     <PerfilStack.Navigator screenOptions={stackOptions}>
       <PerfilStack.Screen name="Cuenta" component={Cuenta} />
       <PerfilStack.Screen name="EditarPerfil" component={EditarPerfil} />
-      <PerfilStack.Screen
-        name="CambiarContrasena"
-        component={CambiarContrasena}
-      />
+      <PerfilStack.Screen name="CambiarContrasena" component={CambiarContrasena} />
       <PerfilStack.Screen name="EliminarCuenta" component={EliminarCuenta} />
       <PerfilStack.Screen
         name="PremiumPayment"
@@ -174,17 +188,15 @@ function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const isHidden = useIsTabBarHidden();
+
+  // Ocultar completamente cuando corresponda
+  if (isHidden) return null;
 
   const cardBg = isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight;
-  const cardBorder = isDark
-    ? tokens.color.cardBorderDark
-    : tokens.color.cardBorderLight;
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
+  const cardBorder = isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
 
   const mainIndex = state.routes.findIndex((r: any) => r.name === "Inicio");
   const isMainFocused = state.index === mainIndex;
@@ -269,12 +281,19 @@ function CustomTabBar({ state, navigation }: any) {
   );
 }
 
+/* ---------- Header condicional ---------- */
+function ConditionalHeader() {
+  const isHidden = useIsTabBarHidden();
+  if (isHidden) return null;
+  return <Header />;
+}
+
 export default function AppNavigator() {
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        header: () => <Header />,
+        header: () => <ConditionalHeader />,
         tabBarHideOnKeyboard: true,
       }}
     >

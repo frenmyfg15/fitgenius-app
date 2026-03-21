@@ -47,7 +47,7 @@ export default function FormularioCompuesto({
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
-  const snapPoints = useMemo(() => ["55%", "80%"], []);
+  const snapPoints = useMemo(() => ["100%"], []);
   const topInset = Math.max(insets.top, 12);
 
   useEffect(() => {

@@ -90,7 +90,7 @@ export default function CrearRutinaScreen() {
   }, [h.state.dias]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: h.ui.bg, position: "relative" }}>
+    <View style={{ flex: 1, backgroundColor: h.ui.bg, position: "relative", paddingTop: 20 }}>
       <ScrollView
         style={{ flexGrow: 0, flexShrink: 0 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
