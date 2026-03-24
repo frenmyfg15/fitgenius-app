@@ -108,6 +108,17 @@ export const aplicarSeguimiento = async (): Promise<AplicarSeguimientoData | nul
     }
 };
 
+export const omitirSeguimiento = async (): Promise<void> => {
+    try {
+        log("omitirSeguimiento →");
+        await api.post("/progreso/seguimiento/omitir");
+        log("omitirSeguimiento ← ok");
+    } catch (err: any) {
+        checkAuthTokenInvalid(err);
+        handleApiError(err, "No se pudo omitir el seguimiento");
+    }
+};
+
 export const obtenerModalSeguimiento = async (): Promise<ModalSeguimientoData> => {
     try {
         log("obtenerModalSeguimiento →");

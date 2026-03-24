@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     Modal,
     View,
@@ -10,6 +10,7 @@ import {
 import { useColorScheme } from "nativewind";
 import { Lock } from "lucide-react-native";
 import type { AnalisisSeguimientoData } from "@/features/api/progreso.api";
+import { omitirSeguimiento } from "@/features/api/progreso.api";
 
 type Props = {
     visible: boolean;
@@ -32,6 +33,7 @@ export default function SeguimientoInteligenteModal({
 }: Props) {
     const { colorScheme } = useColorScheme();
     const isDark = colorScheme === "dark";
+    const [omitting, setOmitting] = useState(false);
 
     const colors = {
         overlay: "rgba(15,23,42,0.85)",
@@ -53,11 +55,14 @@ export default function SeguimientoInteligenteModal({
     const isReemplazar = decision === "REEMPLAZAR";
     const buttonIsLocked = isReemplazar && lockedByPlan;
 
+    // Cualquier acción en curso bloquea ambos botones
+    const isAnyLoading = applying || omitting;
+
     const titulo =
         decision === "MANTENER" ? "Vas en la dirección correcta"
             : decision === "AJUSTAR" ? "Pequeños ajustes, grandes resultados"
                 : decision === "REEMPLAZAR" ? "Es momento de una rutina mejor"
-                    : "Seguimiento inteligente";
+                    : "Análisis de coach";
 
     const subtitulo =
         decision === "MANTENER" ? "Tu consistencia ya está marcando la diferencia."
@@ -73,6 +78,13 @@ export default function SeguimientoInteligenteModal({
 
     const handlePrimary = buttonIsLocked ? onGoPremium : onConfirm;
 
+    const handleClose = async () => {
+        setOmitting(true);
+        await omitirSeguimiento();
+        setOmitting(false);
+        onClose();
+    };
+
     return (
         <Modal visible={visible} transparent animationType="fade">
             <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
@@ -81,7 +93,7 @@ export default function SeguimientoInteligenteModal({
                     {!!data && (
                         <View style={[styles.pill, { backgroundColor: colors.primarySoft }]}>
                             <Text style={[styles.pillText, { color: colors.primaryText }]}>
-                                Seguimiento inteligente activo
+                                Análisis de coach
                             </Text>
                         </View>
                     )}
@@ -110,24 +122,37 @@ export default function SeguimientoInteligenteModal({
                     )}
 
                     <View style={styles.footer}>
+                        {/* ── Botón secundario: Omitir ── */}
                         <Pressable
-                            onPress={onClose}
-                            disabled={applying}
-                            style={[styles.secondaryBtn, { borderColor: colors.border, backgroundColor: colors.neutralPill }]}
+                            onPress={handleClose}
+                            disabled={isAnyLoading}
+                            style={[
+                                styles.secondaryBtn,
+                                {
+                                    borderColor: colors.border,
+                                    backgroundColor: colors.neutralPill,
+                                    opacity: isAnyLoading ? 0.6 : 1,
+                                },
+                            ]}
                         >
-                            <Text style={[styles.secondaryBtnText, { color: colors.subtext }]}>
-                                Continuar más tarde
-                            </Text>
+                            {omitting ? (
+                                <ActivityIndicator color={colors.subtext} />
+                            ) : (
+                                <Text style={[styles.secondaryBtnText, { color: colors.subtext }]}>
+                                    Omitir
+                                </Text>
+                            )}
                         </Pressable>
 
+                        {/* ── Botón primario: Acción principal ── */}
                         <Pressable
                             onPress={handlePrimary}
-                            disabled={applying}
+                            disabled={isAnyLoading}
                             style={[
                                 styles.primaryBtn,
                                 buttonIsLocked
                                     ? { backgroundColor: colors.lockedBg, borderWidth: 1, borderColor: colors.lockedBorder }
-                                    : { backgroundColor: colors.primary, opacity: applying ? 0.85 : 1 },
+                                    : { backgroundColor: colors.primary, opacity: isAnyLoading ? 0.6 : 1 },
                             ]}
                         >
                             {applying && !buttonIsLocked ? (
