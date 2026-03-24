@@ -12,6 +12,9 @@
       "tsconfigPaths": true
     },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-google-signin/google-signin",
       [
         "@stripe/stripe-react-native",
         {
@@ -53,7 +56,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.novaforge.fitgenius",
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
@@ -66,7 +70,7 @@
       "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
-      "STRIPE_PUBLISHABLE_KEY": "pk_test_51S0nmRIYazlpLyQudoJSjSyXbLtfzZklvxcEHdzkaXVplMeijyLBz5NtWPsSTVORpDhWJ29GdKwthG053SRjzisv00LfITbdX5"
+      "STRIPE_PUBLISHABLE_KEY": "pk_test_..."
     }
   }
 }

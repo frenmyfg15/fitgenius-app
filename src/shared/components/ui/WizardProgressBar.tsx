@@ -103,14 +103,8 @@ export default memo(WizardProgressBarBase);
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 5,
     width: "100%",
     paddingHorizontal: 24,
-    paddingBottom: 8,
   },
   label: {
     textAlign: "center",

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Controller } from "react-hook-form";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react-native";
 import clsx from "clsx";
 import GoogleSignInButton from "@/shared/components/ui/GoogleSignInButton";
 import { useLogin } from "@/shared/hooks/useLogin";
@@ -38,14 +38,12 @@ export default function Sesion() {
 
   const setShowWizard = useRegistroStore((s) => s.setShowWizard);
 
-  // ✅ estado modal
   const [openReset, setOpenReset] = useState(false);
 
   useEffect(() => {
-    setShowWizard(false); // ⬅️ ocultar en Sesion
+    setShowWizard(false);
   }, [setShowWizard]);
 
-  // ✅ Navega a Legal (registrada en RootAuthStack en App.tsx)
   const openLegal = () => {
     // @ts-ignore
     nav.navigate("Legal", { initialTab: "terminos" });
@@ -53,7 +51,6 @@ export default function Sesion() {
 
   return (
     <View className={clsx("flex-1", isDark ? "bg-[#0b1220]" : "bg-slate-50")}>
-      {/* Fondo degradado */}
       <LinearGradient
         colors={bgGradient as any}
         start={{ x: 0, y: 0 }}
@@ -73,39 +70,38 @@ export default function Sesion() {
             <View className="flex-1 px-4 py-6">
               <View className="flex-1 items-center justify-center">
                 <View className="w-full max-w-md">
-                  {/* Header con marca */}
                   <View className="mb-6 items-center">
-                    <View className="h-20 w-20 rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-800">
+                    <View className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800">
                       <Image
                         source={require("../../../../assets/logo.png")}
                         resizeMode="contain"
                         style={{ width: "100%", height: "100%" }}
                       />
                     </View>
+
                     <Text className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                       FitGenius
                     </Text>
+
                     <Text className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                       Entrena con confianza
                     </Text>
                   </View>
 
-                  {/* Tarjeta sólida */}
                   <View
                     className={clsx(
-                      "rounded-3xl p-6 border",
+                      "rounded-3xl border p-6",
                       isDark
-                        ? "bg-slate-900 border-slate-700"
-                        : "bg-white border-slate-200 shadow-lg"
+                        ? "border-slate-700 bg-slate-900"
+                        : "border-slate-200 bg-white shadow-lg"
                     )}
                   >
-                    {/* Formulario */}
                     <View className="gap-5">
-                      {/* Correo */}
                       <View>
                         <Text className="mb-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                           Correo electrónico
                         </Text>
+
                         <Controller
                           control={control}
                           name="correo"
@@ -118,18 +114,19 @@ export default function Sesion() {
                           }}
                           render={({ field: { onChange, onBlur, value } }) => (
                             <View className="relative">
-                              <Feather
-                                name="mail"
-                                size={18}
-                                style={{ position: "absolute", left: 12, top: 14 }}
-                                color={isDark ? "#94a3b8" : "#64748b"}
-                              />
+                              <View className="absolute left-3 top-0 bottom-0 z-10 justify-center">
+                                <Mail
+                                  size={18}
+                                  color={isDark ? "#94a3b8" : "#64748b"}
+                                />
+                              </View>
+
                               <TextInput
                                 className={clsx(
-                                  "w-full rounded-xl border pl-9 pr-3 py-3",
+                                  "w-full rounded-xl border py-3 pl-10 pr-3",
                                   isDark
-                                    ? "bg-slate-800 text-slate-100 border-slate-700"
-                                    : "bg-slate-50 text-slate-900 border-slate-300",
+                                    ? "border-slate-700 bg-slate-800 text-slate-100"
+                                    : "border-slate-300 bg-slate-50 text-slate-900",
                                   errors.correo && "border-red-500"
                                 )}
                                 inputMode="email"
@@ -139,11 +136,12 @@ export default function Sesion() {
                                 onChangeText={onChange}
                                 value={value}
                                 placeholder="tucorreo@dominio.com"
-                                placeholderTextColor={isDark ? "#94a3b8" : "#94a3b8"}
+                                placeholderTextColor="#94a3b8"
                               />
                             </View>
                           )}
                         />
+
                         {errors.correo && (
                           <Text className="mt-1 text-sm text-red-500">
                             {errors.correo.message}
@@ -151,14 +149,12 @@ export default function Sesion() {
                         )}
                       </View>
 
-                      {/* Contraseña */}
                       <View>
                         <View className="mb-1 flex-row items-center justify-between">
                           <Text className="text-sm font-medium text-slate-800 dark:text-slate-200">
                             Contraseña
                           </Text>
 
-                          {/* ✅ Abrir modal */}
                           <Pressable onPress={() => setOpenReset(true)}>
                             <Text className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                               ¿Olvidaste tu contraseña?
@@ -167,20 +163,30 @@ export default function Sesion() {
                         </View>
 
                         <View className="relative">
+                          <View className="absolute left-3 top-0 bottom-0 z-10 justify-center">
+                            <Lock
+                              size={18}
+                              color={isDark ? "#94a3b8" : "#64748b"}
+                            />
+                          </View>
+
                           <Controller
                             control={control}
                             name="contrasena"
                             rules={{
                               required: "La contraseña es obligatoria",
-                              minLength: { value: 6, message: "Mínimo 6 caracteres" },
+                              minLength: {
+                                value: 6,
+                                message: "Mínimo 6 caracteres",
+                              },
                             }}
                             render={({ field: { onChange, onBlur, value } }) => (
                               <TextInput
                                 className={clsx(
-                                  "w-full rounded-xl border pl-9 pr-12 py-3",
+                                  "w-full rounded-xl border py-3 pl-10 pr-12",
                                   isDark
-                                    ? "bg-slate-800 text-slate-100 border-slate-700"
-                                    : "bg-slate-50 text-slate-900 border-slate-300",
+                                    ? "border-slate-700 bg-slate-800 text-slate-100"
+                                    : "border-slate-300 bg-slate-50 text-slate-900",
                                   errors.contrasena && "border-red-500"
                                 )}
                                 secureTextEntry={!showPassword}
@@ -189,30 +195,23 @@ export default function Sesion() {
                                 onChangeText={onChange}
                                 value={value}
                                 placeholder="Tu contraseña"
-                                placeholderTextColor={isDark ? "#94a3b8" : "#94a3b8"}
+                                placeholderTextColor="#94a3b8"
                               />
                             )}
                           />
-                          <Feather
-                            name="lock"
-                            size={18}
-                            style={{ position: "absolute", left: 12, top: 14 }}
-                            color={isDark ? "#94a3b8" : "#64748b"}
-                          />
+
                           <Pressable
-                            className="absolute right-3 top-1/2 -translate-y-1/2"
+                            className="absolute right-3 top-0 bottom-0 justify-center"
                             onPress={() => setShowPassword((s) => !s)}
                             hitSlop={10}
                           >
                             {showPassword ? (
-                              <Feather
-                                name="eye-off"
+                              <EyeOff
                                 size={20}
                                 color={isDark ? "#e2e8f0" : "#0f172a"}
                               />
                             ) : (
-                              <Feather
-                                name="eye"
+                              <Eye
                                 size={20}
                                 color={isDark ? "#e2e8f0" : "#0f172a"}
                               />
@@ -227,11 +226,10 @@ export default function Sesion() {
                         )}
                       </View>
 
-                      {/* Botón */}
                       <Pressable
                         disabled={loading}
                         onPress={handleSubmit(submitLogin)}
-                        className="w-full rounded-xl overflow-hidden"
+                        className="w-full overflow-hidden rounded-xl"
                         style={{
                           shadowColor: "#0f172a",
                           shadowOpacity: 0.15,
@@ -246,11 +244,11 @@ export default function Sesion() {
                           end={{ x: 1, y: 0 }}
                           style={{ borderRadius: 12 }}
                         >
-                          <View className="px-4 py-3 items-center justify-center">
+                          <View className="items-center justify-center px-4 py-3">
                             {loading ? (
                               <ActivityIndicator size="small" color="#ffffff" />
                             ) : (
-                              <Text className="text-white font-bold tracking-wide">
+                              <Text className="font-bold tracking-wide text-white">
                                 Iniciar sesión
                               </Text>
                             )}
@@ -259,7 +257,6 @@ export default function Sesion() {
                       </Pressable>
                     </View>
 
-                    {/* Separador */}
                     <View className="relative my-6">
                       <View className="absolute inset-0 flex-row items-center">
                         <View
@@ -269,6 +266,7 @@ export default function Sesion() {
                           )}
                         />
                       </View>
+
                       <View className="relative items-center">
                         <Text className="px-3 text-xs text-slate-600 dark:text-slate-400">
                           o
@@ -276,17 +274,17 @@ export default function Sesion() {
                       </View>
                     </View>
 
-                    {/* Google */}
                     <GoogleSignInButton
                       text="Iniciar sesión con Google"
                       onSuccess={(res) => {
                         loginConGoogle(res.token);
                       }}
-                      onError={(err) => console.log("[APP] Error Google:", err.message)}
+                      onError={(err) =>
+                        console.log("[APP] Error Google:", err.message)
+                      }
                       className="mt-4"
                     />
 
-                    {/* Registro */}
                     <Text className="mt-6 text-center text-sm text-slate-700 dark:text-slate-300">
                       ¿No tienes cuenta?{" "}
                       <Text
@@ -300,14 +298,14 @@ export default function Sesion() {
                 </View>
               </View>
 
-              {/* Footer */}
               <View className="mt-8 items-center">
                 <Text className="text-xs text-slate-500 dark:text-slate-400">
-                  © {new Date().getFullYear()} FitGenius. Todos los derechos reservados.
+                  © {new Date().getFullYear()} FitGenius. Todos los derechos
+                  reservados.
                 </Text>
 
                 <Pressable onPress={openLegal} className="mt-2" hitSlop={10}>
-                  <Text className="text-xs underline underline-offset-2 text-slate-700 dark:text-slate-300">
+                  <Text className="text-xs text-slate-700 underline underline-offset-2 dark:text-slate-300">
                     Legal (Términos y Privacidad)
                   </Text>
                 </Pressable>
@@ -317,7 +315,6 @@ export default function Sesion() {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* ✅ Modal recuperar contraseña */}
       <PasswordResetModal
         visible={openReset}
         onClose={() => setOpenReset(false)}

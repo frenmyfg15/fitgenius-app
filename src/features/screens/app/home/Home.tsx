@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { View, ScrollView, RefreshControl, StyleSheet, Platform } from "react-native";
+import { View, ScrollView, RefreshControl, StyleSheet, Platform, Text } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 
@@ -12,7 +12,6 @@ import { useOnboardingStore } from "@/features/store/useOnboardingStore";
 import Calendar from "@/shared/components/home/Calendar";
 import TarjetaHome from "@/shared/components/home/TarjetaHome";
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
-import Extra from "@/shared/components/home/Extra";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
@@ -30,6 +29,10 @@ const tokens = {
     tintLight: "#0F172A",
     spinnerDark: "#00E85A",
     spinnerLight: "#16A34A",
+    textPrimaryDark: "#F1F5F9",
+    textPrimaryLight: "#0F172A",
+    textSecondaryDark: "rgba(226,232,240,0.72)",
+    textSecondaryLight: "rgba(15,23,42,0.62)",
   },
   spacing: {
     sm: 8,
@@ -75,7 +78,15 @@ type RutinaResp = {
 // ── Utils ────────────────────────────────────────────────────────────────────
 
 const getDiaActualEnum = (): DiaNombre => {
-  const dias: DiaNombre[] = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+  const dias: DiaNombre[] = [
+    "DOMINGO",
+    "LUNES",
+    "MARTES",
+    "MIERCOLES",
+    "JUEVES",
+    "VIERNES",
+    "SABADO",
+  ];
   return dias[new Date().getDay()] as DiaNombre;
 };
 
@@ -126,8 +137,6 @@ export default function Home() {
   }, [usuario]);
 
   // ── Seguimiento inteligente ───────────────────────────────────────────
-  // El hook gestiona todo: check → aplicar → modal → marcar visto.
-  // Solo lo lanzamos cuando el usuario está listo y no hay auto-generación en curso.
   const seguimiento = useSeguimientoInteligente();
 
   useEffect(() => {
@@ -148,7 +157,10 @@ export default function Home() {
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
-      if (!id) { setRutina(null); return; }
+      if (!id) {
+        setRutina(null);
+        return;
+      }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
       if (!force && lastKeyRef.current === key) return;
@@ -170,6 +182,7 @@ export default function Home() {
             inflightRef.current = null;
             if (!force) setLoading(false);
           });
+
         inflightRef.current = p;
         await p;
       } catch (e) {
@@ -185,13 +198,18 @@ export default function Home() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { await fetchRutina(true); }
-    finally { setRefreshing(false); }
+    try {
+      await fetchRutina(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchRutina]);
 
   const devolver = useCallback((ymd: string, diaEnum: string) => {
     setDia(normalizeEnum(diaEnum));
-    setSelectedYMD(typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date()));
+    setSelectedYMD(
+      typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date())
+    );
   }, []);
 
   const totalEjercicios = useMemo(() => {
@@ -209,20 +227,46 @@ export default function Home() {
 
   const rutinaHidratada = useMemo(() => {
     if (!rutina?.dias) return rutina;
+
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => ({
         ...e,
-        completadoHoy: e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false,
+        completadoHoy:
+          e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false,
       }));
-      const diaCompleto = ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
+
+      const diaCompleto =
+        ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
+
       return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
     });
+
     return { ...rutina, dias: diasH };
   }, [rutina, selectedYMD]);
+
+  const progresoHoy = useMemo(() => {
+    const ejercicios =
+      rutinaHidratada?.dias?.find((d) => d.diaSemana === dia)?.ejercicios ?? [];
+
+    const total = ejercicios.length;
+    const completados = ejercicios.filter((e) => e.completadoHoy).length;
+
+    return { total, completados };
+  }, [rutinaHidratada, dia]);
+
+  const helperMessage = useMemo(() => {
+    const { total, completados } = progresoHoy;
+
+    if (total === 0) return "Día de descanso";
+    if (completados === 0) return `${total} ejercicios para hoy`;
+    if (completados < total) return `Te quedan ${total - completados} ejercicios`;
+    return "Entrenamiento completado";
+  }, [progresoHoy]);
 
   if (loading && !rutina) return <HomeSkeleton />;
 
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+  const hasRutinaActiva = !!usuario?.rutinaActivaId;
 
   return (
     <>
@@ -243,20 +287,24 @@ export default function Home() {
 
       <SeguimientoInteligenteModal
         visible={seguimiento.modalVisible}
-        lockedByPlan={usuario?.planActual === 'GRATUITO'}
+        lockedByPlan={usuario?.planActual === "GRATUITO"}
         applying={seguimiento.applying}
         data={seguimiento.modalData}
         onClose={seguimiento.cerrar}
         onConfirm={seguimiento.confirmar}
         onGoPremium={() => {
           seguimiento.cerrar();
-          navigation.navigate("Premium"); // ajusta a tu ruta real
+          navigation.navigate("Premium");
         }}
       />
 
       <ScrollView
         style={[styles.scroll, { backgroundColor: bg }]}
-        contentContainerStyle={[styles.content, { backgroundColor: bg }]}
+        contentContainerStyle={[
+          styles.content,
+          { backgroundColor: bg },
+          !hasRutinaActiva && styles.contentEmpty,
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -268,30 +316,93 @@ export default function Home() {
           />
         }
       >
-        <View style={styles.calendarWrapper}>
-          <Calendar devolverDato={devolver} completadas={completadasMap} />
+        <View style={styles.header}>
+          <Text
+            style={[
+              styles.eyebrow,
+              {
+                color: isDark
+                  ? tokens.color.textSecondaryDark
+                  : tokens.color.textSecondaryLight,
+              },
+            ]}
+          >
+            HOY
+          </Text>
+
+          <Text
+            style={[
+              styles.title,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
+          >
+            Tu entrenamiento
+          </Text>
+
+          <Text
+            style={[
+              styles.subtitle,
+              {
+                color: isDark
+                  ? tokens.color.textSecondaryDark
+                  : tokens.color.textSecondaryLight,
+              },
+            ]}
+          >
+            {hasRutinaActiva
+              ? "Sigue tu planificación diaria y completa tus ejercicios."
+              : "Empieza creando o generando una rutina personalizada."}
+          </Text>
         </View>
 
-        {rutinaHidratada && <Extra ejercicios={totalEjercicios} />}
+        {hasRutinaActiva ? (
+          <>
 
-        <View style={styles.cardWrapper}>
-          <TarjetaHome rutina={rutinaHidratada as any} dia={dia} selectedYMD={selectedYMD} />
-        </View>
-
-        {!usuario?.rutinaActivaId && !autoGenerating && (
-          <View style={styles.emptyWrapper}>
-            <MensajeVacio
-              titulo="Aún no tienes una rutina"
-              descripcion="No hemos encontrado una rutina activa. Puedes generar una personalizada con IA."
-              textoBoton="Crear mi rutina"
-              rutaDestino="/crear-rutina"
-              nombreImagen="rutinas"
-              mostrarBoton={false}
-            />
-            <View style={styles.iaWrapper}>
-              <IaGenerate />
+            <View style={styles.calendarWrapper}>
+              <Calendar devolverDato={devolver} completadas={completadasMap} />
             </View>
-          </View>
+
+            <Text
+              style={[
+                styles.helperText,
+                {
+                  color: isDark
+                    ? tokens.color.textSecondaryDark
+                    : tokens.color.textSecondaryLight,
+                },
+              ]}
+            >
+              {helperMessage}
+            </Text>
+
+            <View style={styles.cardWrapper}>
+              <TarjetaHome
+                rutina={rutinaHidratada as any}
+                dia={dia}
+                selectedYMD={selectedYMD}
+              />
+            </View>
+          </>
+        ) : (
+          !autoGenerating && (
+            <View style={styles.emptyWrapper}>
+              <MensajeVacio
+                titulo="Aún no tienes una rutina"
+                descripcion="No hemos encontrado una rutina activa. Puedes generar una personalizada con IA."
+                textoBoton="Crear mi rutina"
+                rutaDestino="/crear-rutina"
+                nombreImagen="rutinas"
+                mostrarBoton={false}
+              />
+              <View style={styles.iaWrapper}>
+                <IaGenerate />
+              </View>
+            </View>
+          )
         )}
       </ScrollView>
     </>
@@ -302,14 +413,69 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
+
   content: {
     padding: tokens.spacing.md,
     paddingBottom: tokens.spacing.tabBarSafe,
     gap: tokens.spacing.lg,
     minHeight: "100%",
   },
-  calendarWrapper: { width: "100%", alignItems: "center" },
-  cardWrapper: { width: "100%", alignItems: "center" },
-  emptyWrapper: { alignItems: "center", gap: tokens.spacing.xl },
-  iaWrapper: { alignItems: "center" },
+
+  header: {
+    width: "100%",
+    gap: 6,
+  },
+
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "500",
+    maxWidth: "92%",
+  },
+
+  helperText: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: -4,
+  },
+
+  contentEmpty: {
+    justifyContent: "center",
+  },
+
+  extraWrapper: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: -4,
+  },
+
+  calendarWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+
+  cardWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+
+  emptyWrapper: {
+    alignItems: "center",
+    gap: tokens.spacing.xl,
+  },
+
+  iaWrapper: {
+    alignItems: "center",
+  },
 });

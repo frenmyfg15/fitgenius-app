@@ -310,11 +310,16 @@ export default function EstadisticasScreen() {
       }
     >
       <View style={styles.header}>
+        <Text style={[styles.eyebrow, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
+          PROGRESO
+        </Text>
+
         <Text style={[styles.title, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
           Estadísticas
         </Text>
+
         <Text style={[styles.subtitle, { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight }]}>
-          Revisa tus avances y cómo puedes mejorar
+          Revisa tus avances y entiende cómo está evolucionando tu entrenamiento.
         </Text>
       </View>
 
@@ -444,18 +449,24 @@ const styles = StyleSheet.create({
     paddingBottom: tokens.spacing.tabBarSafe,
   },
   header: {
-    marginBottom: tokens.spacing.lg,
-    alignItems: "center",
+    marginBottom: 18,
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    textAlign: "center",
-    marginTop: 4,
+    lineHeight: 21,
+    fontWeight: "500",
+    maxWidth: "92%",
   },
   cardsGap: { gap: 20 },
   errorContainer: {

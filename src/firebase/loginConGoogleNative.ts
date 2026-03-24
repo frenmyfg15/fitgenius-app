@@ -1,6 +1,12 @@
 // src/auth/loginConGoogleNativo.ts
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import auth from "@react-native-firebase/auth";
+import { getApp } from "@react-native-firebase/app";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signOut,
+} from "@react-native-firebase/auth";
 
 /** Web Client ID de google-services.json */
 const WEB_CLIENT_ID =
@@ -14,7 +20,6 @@ export function configurarGoogle() {
   });
 }
 
-// 🔍 helper para decodificar el payload de un JWT
 function decodeJwtPayload(token: string) {
   try {
     const base64Url = token.split(".")[1];
@@ -31,58 +36,54 @@ function decodeJwtPayload(token: string) {
   }
 }
 
-/**
- * Inicia sesión con Google **mostrando siempre el selector de cuenta**:
- * - Cierra sesión previa en Google (si la hubiera)
- * - Cierra sesión previa en Firebase
- * - Lanza signIn para elegir cuenta
- */
 export async function loginConGoogleNativo() {
   try {
-    // 1) Limpia Google Sign-In previo (si hubo uno)
     try {
-      // hasPreviousSignIn() existe en versiones recientes y evita TS error
       const hadPrev = await GoogleSignin.hasPreviousSignIn();
       if (hadPrev) {
         console.log("[Google] Cerrando sesión previa…");
       }
-      await GoogleSignin.signOut().catch(() => { }); // safe: aunque no hubiera sesión
+      await GoogleSignin.signOut().catch(() => { });
     } catch (signoutErr) {
       console.warn("[Google] signOut warning:", signoutErr);
     }
 
-    // 2) Limpia sesión Firebase (si la hubiera)
     try {
-      await auth().signOut();
+      const app = getApp();
+      const firebaseAuth = getAuth(app);
+      await signOut(firebaseAuth);
     } catch (firebaseErr) {
       console.warn("[Firebase] signOut warning:", firebaseErr);
     }
 
-    // 3) Verifica servicios de Google Play
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-    // 4) Inicia el flujo con selector de cuenta
     const userInfo = await GoogleSignin.signIn();
-    console.log("[Google] Usuario:", userInfo?.user?.email, userInfo?.user?.name);
+    console.log("[Google] Usuario:", userInfo?.data?.user?.email ?? userInfo?.user?.email);
 
-    // 5) Obtén tokens de Google
     const { idToken: googleIdToken } = await GoogleSignin.getTokens();
-    if (!googleIdToken) throw new Error("No se recibió idToken de Google");
+    if (!googleIdToken) {
+      throw new Error("No se recibió idToken de Google");
+    }
 
-    // (opcional) Inspección de payload
     const payload = decodeJwtPayload(googleIdToken);
     console.log("[Google] ID real (sub):", payload?.sub);
     console.log("[Google] Email verificado:", payload?.email_verified);
     console.log("[Google] Email:", payload?.email);
 
-    // 6) Autenticar en Firebase con Google
-    const credential = auth.GoogleAuthProvider.credential(googleIdToken);
-    const res = await auth().signInWithCredential(credential);
+    const app = getApp();
+    const firebaseAuth = getAuth(app);
+
+    const credential = GoogleAuthProvider.credential(googleIdToken);
+    const res = await signInWithCredential(firebaseAuth, credential);
 
     const firebaseIdToken = await res.user.getIdToken();
 
     console.log("[Firebase] UID:", res.user.uid);
-    console.log("[Firebase] ID Token (recortado):", firebaseIdToken.slice(0, 24) + "...");
+    console.log(
+      "[Firebase] ID Token (recortado):",
+      firebaseIdToken.slice(0, 24) + "..."
+    );
 
     return {
       token: firebaseIdToken,
@@ -92,7 +93,7 @@ export async function loginConGoogleNativo() {
         email: res.user.email ?? undefined,
         foto: res.user.photoURL ?? undefined,
         uid: res.user.uid,
-        googleId: payload?.sub, // opcional
+        googleId: payload?.sub,
       },
     };
   } catch (error: any) {

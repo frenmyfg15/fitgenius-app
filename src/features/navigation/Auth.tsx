@@ -1,9 +1,9 @@
 // navigation/AuthNavigator.tsx
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StatusBar, View } from "react-native";
-import { useColorScheme } from "nativewind";
-import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 import React from "react";
+import { View } from "react-native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useColorScheme } from "nativewind";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Screens SOLO del registro (wizard)
 import Objetivo from "../screens/auth/Objetivo";
@@ -51,16 +51,14 @@ export default function AuthNavigator() {
   const isDark = colorScheme === "dark";
   const showWizard = useRegistroStore((s) => s.showWizard);
 
+  const backgroundColor = isDark ? "#0b1220" : "#f6f7fb";
+
   return (
-    <View style={{ flex: 1 }}>
-
-      {/* Toggle de tema flotante */}
-      <View className="absolute right-5 top-10 z-10 mt-14">
-        <ThemeToggle />
-      </View>
-      <WizardProgressBar isDark={isDark} height={12} visible={showWizard} />
-
-      {/* Barra de progreso del wizard, solo en registro */}
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor }}
+    >
+      <WizardProgressBar isDark={isDark} visible={showWizard} />
 
       <Stack.Navigator
         initialRouteName="Objetivo"
@@ -70,9 +68,8 @@ export default function AuthNavigator() {
           animation: "slide_from_right",
           gestureEnabled: true,
           contentStyle: {
-            backgroundColor: isDark ? "#0b1220" : "#f6f7fb",
-            // padding fijo para no tapar contenido con la barra
-            paddingTop: 100,
+            backgroundColor,
+            paddingTop: showWizard ? 16 : 0,
           },
         }}
       >
@@ -92,6 +89,6 @@ export default function AuthNavigator() {
         <Stack.Screen name="Limitaciones" component={Limitaciones} />
         <Stack.Screen name="Registrar" component={Registrar} />
       </Stack.Navigator>
-    </View>
+    </SafeAreaView>
   );
 }

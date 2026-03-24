@@ -15,6 +15,7 @@ import {
   Easing,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { usePreventRemove } from "@react-navigation/native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useColorScheme } from "nativewind";
 import {
@@ -52,19 +53,33 @@ import NivelEstresModal from "@/shared/components/ejercicio/NivelEstresModal";
 import CoachFeedbackModal from "@/shared/components/ejercicio/CoachFeedbackModal";
 import ExerciseQuestionModal from "@/shared/components/ejercicio/ExerciseQuestionModal";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import AlertaConfirmacion from "@/shared/components/ui/AlertaConfirmacion";
 
 /* ---------------- Vista (sólo UI) ---------------- */
 export default function VistaEjercicio() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<Record<string, Params>, string>>();
-  const { slug, asignadoId, ejercicio: ejercicioPrefetch } = (route.params ??
-    {}) as Params;
+
+  const {
+    slug,
+    asignadoId,
+    ejercicio: ejercicioPrefetch,
+    esSiguiente = false,
+  } = ((route.params ?? {}) as Params & { esSiguiente?: boolean });
 
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const [qaVisible, setQaVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+
+  const [confirmExitVisible, setConfirmExitVisible] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
+
+  const exitActionRef = useRef<null | (() => void)>(null);
+  const ignoreExitGuardRef = useRef(false);
+  const initialSimpleRef = useRef("");
+  const initialCompRef = useRef("");
 
   // ✅ Animación FAB (acciones)
   const fabAnim = useRef(new Animated.Value(0)).current; // 0 cerrado, 1 abierto
@@ -78,7 +93,6 @@ export default function VistaEjercicio() {
     }).start();
   }, [fabOpen, fabAnim]);
 
-  // Helpers para animar cada botón con “stagger” visual
   const getItemAnimStyle = (index: number) => {
     const delayFactor = index * 0.08;
 
@@ -135,11 +149,9 @@ export default function VistaEjercicio() {
     guardarSeries,
     guardarSeriesCompuesto,
 
-    // nivel de estrés desde el hook
     nivelEstres,
     setNivelEstres,
 
-    // Coach Premium
     coachData,
     coachLoading,
     coachVisible,
@@ -189,7 +201,7 @@ export default function VistaEjercicio() {
     return comps
       .map((c: any) =>
         c.ejercicio?.idGif
-          ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${ejercicio.idGif}.gif`
+          ? `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${c.ejercicio.idGif}.gif`
           : null
       )
       .filter(Boolean) as string[];
@@ -200,7 +212,6 @@ export default function VistaEjercicio() {
     return [componentes.map((c) => ({ ejercicioId: c.ejercicioId }))];
   });
 
-  // 🔹 Estado local para mostrar/ocultar el modal de estrés
   const [estresModalVisible, setEstresModalVisible] = useState(false);
 
   const onChangeComp = useCallback(
@@ -233,7 +244,6 @@ export default function VistaEjercicio() {
     setSeriesComp((prev) => prev.filter((_, i) => i !== sIdx));
   }, []);
 
-  // 🔹 Función que realmente guarda la sesión
   const guardarSesionReal = useCallback(() => {
     if (esCompuesto) {
       return guardarSeriesCompuesto(seriesComp);
@@ -241,17 +251,13 @@ export default function VistaEjercicio() {
     return guardarSeries();
   }, [esCompuesto, guardarSeriesCompuesto, guardarSeries, seriesComp]);
 
-  // 🔹 Handler del botón "guardar sesión"
   const handleGuardar = useCallback(() => {
     if (nivelEstres == null) {
       setEstresModalVisible(true);
       return;
     }
-    // RPE ya elegido: lanzar celebración directamente
     setFestejo(true);
-  }, [nivelEstres]);
-
-
+  }, [nivelEstres, setFestejo]);
 
   const handleConfirmNivelEstres = useCallback(() => {
     if (nivelEstres == null) {
@@ -264,16 +270,14 @@ export default function VistaEjercicio() {
     }
     setEstresModalVisible(false);
     setFestejo(true);
-  }, [nivelEstres]);
+  }, [nivelEstres, setFestejo]);
 
-  // 🔹 Ir al paywall Premium
   const handleGoToPayment = useCallback(() => {
     navigation.navigate("Perfil", {
       screen: "PremiumPayment",
     });
   }, [navigation]);
 
-  // 🔹 Handlers para funcionalidades Premium (Chat y Coach)
   const handleOpenChat = useCallback(() => {
     if (!isPremium) {
       handleGoToPayment();
@@ -289,6 +293,71 @@ export default function VistaEjercicio() {
     }
     mostrarCoach();
   }, [isPremium, handleGoToPayment, mostrarCoach]);
+
+  // ── snapshots para saber si tocó algo ──────────────────────────────
+  const simpleSnapshot = useMemo(() => {
+    return JSON.stringify(
+      (series ?? []).map((s: any) => ({
+        repeticiones: s?.repeticiones ?? "",
+        pesoKg: s?.pesoKg ?? "",
+        tiempoSeg: s?.tiempoSeg ?? "",
+      }))
+    );
+  }, [series]);
+
+  const compSnapshot = useMemo(() => {
+    return JSON.stringify(
+      (seriesComp ?? []).map((serie) =>
+        serie.map((r) => ({
+          ejercicioId: r?.ejercicioId,
+          repeticiones: r?.repeticiones ?? "",
+          pesoKg: r?.pesoKg ?? ""
+        }))
+      )
+    );
+  }, [seriesComp]);
+
+  useEffect(() => {
+    setHasSaved(false);
+    initialSimpleRef.current = "";
+    initialCompRef.current = "";
+  }, [slug, asignadoId, ejercicio?.id, ejercicio?.ejercicioCompuestoId]);
+
+  useEffect(() => {
+    if (!ejercicio) return;
+
+    if (esCompuesto) {
+      if (!initialCompRef.current && compSnapshot !== "[]") {
+        initialCompRef.current = compSnapshot;
+      }
+    } else {
+      if (!initialSimpleRef.current && simpleSnapshot !== "[]") {
+        initialSimpleRef.current = simpleSnapshot;
+      }
+    }
+  }, [ejercicio, esCompuesto, simpleSnapshot, compSnapshot]);
+
+  const hayCambiosPendientes = useMemo(() => {
+    if (!ejercicio || hasSaved) return false;
+
+    if (esCompuesto) {
+      if (!initialCompRef.current) return false;
+      return compSnapshot !== initialCompRef.current;
+    }
+
+    if (!initialSimpleRef.current) return false;
+    return simpleSnapshot !== initialSimpleRef.current;
+  }, [ejercicio, hasSaved, esCompuesto, simpleSnapshot, compSnapshot]);
+
+  const debeAdvertirSalida =
+    !!esSiguiente && !hasSaved && !guardando;
+
+  usePreventRemove(debeAdvertirSalida, ({ data }) => {
+    if (ignoreExitGuardRef.current) return;
+
+    exitActionRef.current = () => navigation.dispatch(data.action);
+    setConfirmExitVisible(true);
+  });
 
 
   if (!ejercicio) {
@@ -374,14 +443,12 @@ export default function VistaEjercicio() {
           }
           repeticiones={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]
-                ?.repeticiones
+              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.repeticiones
               : ejercicio.ejercicioAsignado?.repeticionesSugeridas
           }
           peso={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]
-                ?.pesoSugerido
+              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.pesoSugerido
               : ejercicio.ejercicioAsignado?.pesoSugerido
           }
           esCardio={esCardio}
@@ -403,7 +470,6 @@ export default function VistaEjercicio() {
           />
         )}
 
-        {/* Botones Añadir/Quitar serie + Guardar */}
         <View className="w-full max-w-md mt-3 flex-row gap-3 items-center">
           <TouchableOpacity
             onPress={esCompuesto ? addSerieComp : agregar}
@@ -420,8 +486,7 @@ export default function VistaEjercicio() {
           <TouchableOpacity
             onPress={() => {
               if (esCompuesto) {
-                if (seriesComp.length > 1)
-                  removeSerieComp(seriesComp.length - 1);
+                if (seriesComp.length > 1) removeSerieComp(seriesComp.length - 1);
               } else {
                 quitar();
               }
@@ -465,7 +530,6 @@ export default function VistaEjercicio() {
         </View>
       </KeyboardAwareScrollView>
 
-      {/* ✅ FAB lateral con animación */}
       <View
         pointerEvents="box-none"
         className="absolute right-5"
@@ -489,7 +553,6 @@ export default function VistaEjercicio() {
             }}
           >
             <View className="flex-col gap-4 items-end">
-              {/* Pregunta IA (premium) */}
               <Animated.View style={getItemAnimStyle(3)}>
                 <TouchableOpacity
                   onPress={handleOpenChat}
@@ -507,7 +570,6 @@ export default function VistaEjercicio() {
                 </TouchableOpacity>
               </Animated.View>
 
-              {/* Coach (premium) */}
               <Animated.View style={getItemAnimStyle(2)}>
                 <TouchableOpacity
                   onPress={handleOpenCoach}
@@ -525,7 +587,6 @@ export default function VistaEjercicio() {
                 </TouchableOpacity>
               </Animated.View>
 
-              {/* Info (solo simples) */}
               {!esCompuesto && (
                 <Animated.View style={getItemAnimStyle(1)}>
                   <TouchableOpacity
@@ -545,7 +606,6 @@ export default function VistaEjercicio() {
                 </Animated.View>
               )}
 
-              {/* Estadísticas */}
               <Animated.View style={getItemAnimStyle(0)}>
                 <TouchableOpacity
                   onPress={() => setEstadisticaVisible((v) => !v)}
@@ -565,7 +625,6 @@ export default function VistaEjercicio() {
             </View>
           </Animated.View>
 
-          {/* Botón toggle */}
           <TouchableOpacity
             onPress={() => setFabOpen((v) => !v)}
             disabled={guardando}
@@ -634,7 +693,9 @@ export default function VistaEjercicio() {
           nivelEstres={nivelEstres}
           esCompuesto={esCompuesto}
           onFinish={async () => {
-            await guardarSesionReal();    // guarda en el servidor
+            await guardarSesionReal();
+            ignoreExitGuardRef.current = true;
+            setHasSaved(true);
             setFestejo(false);
             navigation.goBack();
           }}
@@ -670,6 +731,24 @@ export default function VistaEjercicio() {
             ? ejercicio.ejercicioCompuestoId || ejercicio.ejercicioCompuesto?.id
             : undefined
         }
+      />
+
+      <AlertaConfirmacion
+        visible={confirmExitVisible}
+        titulo="Salir sin completar"
+        mensaje="Has empezado el siguiente ejercicio, pero aún no lo has marcado como completado. ¿Seguro que quieres salir?"
+        textoCancelar="Seguir aquí"
+        textoConfirmar="Salir"
+        onCancelar={() => {
+          exitActionRef.current = null;
+          setConfirmExitVisible(false);
+        }}
+        onConfirmar={() => {
+          setConfirmExitVisible(false);
+          ignoreExitGuardRef.current = true;
+          exitActionRef.current?.();
+          exitActionRef.current = null;
+        }}
       />
     </View>
   );

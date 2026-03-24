@@ -17,6 +17,7 @@ import {
   UserX,
   XOctagon,
   RefreshCcw,
+  Palette,
 } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
@@ -29,6 +30,7 @@ import GastoCalorico from "@/shared/components/ui/GastoCalorico";
 import PesoIdeal from "@/shared/components/ui/PesoIdeal";
 import TasaMetabolicaBasal from "@/shared/components/ui/TasaMetabolicaBasal";
 import PesoObjetivoProgreso from "@/shared/components/ui/PesoObjetivoProgreso";
+import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 import { useCuenta } from "@/shared/hooks/useCuenta";
 import {
   cancelPremiumSubscription,
@@ -37,45 +39,38 @@ import {
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { getMe } from "@/features/api/usuario.api";
 
-// ── Tokens (mismo sistema compartido) ────────────────────────────────────────
+// ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
     bgDark: "#080D17",
     bgLight: "#F8FAFC",
 
-    // Card de suscripción
     subCardBgDark: "rgba(15,24,41,0.60)",
     subCardBgLight: "rgba(248,250,252,0.95)",
     subCardBorderDark: "rgba(255,255,255,0.08)",
     subCardBorderLight: "rgba(0,0,0,0.07)",
 
-    // Botón "Actualizar estado" dentro del card
     refreshBgDark: "rgba(255,255,255,0.06)",
     refreshBgLight: "rgba(15,23,42,0.04)",
     refreshBorderDark: "rgba(255,255,255,0.09)",
     refreshBorderLight: "rgba(0,0,0,0.07)",
 
-    // Botones de acción
     actionBgDark: "rgba(15,24,41,0.60)",
     actionBgLight: "#FFFFFF",
     actionBorderDark: "rgba(255,255,255,0.08)",
     actionBorderLight: "rgba(0,0,0,0.08)",
 
-    // Texto
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textSecondaryDark: "rgba(241,245,249,0.70)",
     textSecondaryLight: "rgba(15,23,42,0.70)",
 
-    // Iconos
     iconDark: "#CBD5E1",
     iconLight: "#475569",
 
-    // Danger
     danger: "#DC2626",
     dangerBorder: "rgba(220,38,38,0.30)",
 
-    // Trial (verde)
     trialDark: "#86EFAC",
     trialLight: "#166534",
   },
@@ -83,7 +78,7 @@ const tokens = {
   spacing: { sm: 8, md: 12, lg: 16, xl: 20, "2xl": 80 },
 } as const;
 
-// ── Utils — sin cambios ───────────────────────────────────────────────────────
+// ── Utils ────────────────────────────────────────────────────────────────────
 function formatDateMaybe(raw: any) {
   if (!raw) return null;
   const d =
@@ -96,9 +91,8 @@ function formatDateMaybe(raw: any) {
   return d.toLocaleDateString();
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+// ── Componente principal ─────────────────────────────────────────────────────
 export default function Cuenta() {
-  // ── Lógica original — sin cambios ─────────────────────────────────────────
   const { isDark, isPremium, haPagado, closing, go, cerrarSesion, usuario } =
     useCuenta();
   const setUsuario = useUsuarioStore((s) => s.setUsuario);
@@ -152,10 +146,7 @@ export default function Cuenta() {
       const now = Date.now();
       const elapsed = now - lastAutoRefreshAtRef.current;
 
-      // Evita refrescos duplicados muy seguidos al montar/enfocar
-      if (elapsed < 2500) {
-        return;
-      }
+      if (elapsed < 2500) return;
 
       lastAutoRefreshAtRef.current = now;
       void refreshMe({ silent: true });
@@ -283,9 +274,15 @@ export default function Cuenta() {
     String((usuario as any)?.stripeStatus) === "TRIALING" &&
     !!trialEndText;
   const showSubscriptionCard = showCancelInfo || showRenewal || showTrial;
-  // ── Fin lógica original ───────────────────────────────────────────────────
 
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
+  const iconColor = isDark ? tokens.color.iconDark : tokens.color.iconLight;
 
   return (
     <ScrollView
@@ -299,10 +296,43 @@ export default function Cuenta() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* CTA Premium (solo para usuarios free) */}
+      <View style={styles.header}>
+        <Text
+          style={[
+            styles.eyebrow,
+            {
+              color: textSecondary,
+            },
+          ]}
+        >
+          CUENTA
+        </Text>
+
+        <Text
+          style={[
+            styles.title,
+            {
+              color: textPrimary,
+            },
+          ]}
+        >
+          Tu cuenta
+        </Text>
+
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              color: textSecondary,
+            },
+          ]}
+        >
+          Gestiona tu perfil, tu plan y la configuración de tu cuenta.
+        </Text>
+      </View>
+
       {!isPremium && !haPagado && <PremiumMiniCTACard />}
 
-      {/* Widgets de cuenta */}
       <Experiencia />
       <Perfil />
       <IMCVisual peso={usuario?.peso} altura={usuario?.altura} />
@@ -327,14 +357,12 @@ export default function Cuenta() {
         medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
         medidaAltura={usuario?.medidaAltura as "CM" | "FT"}
       />
-
       <PesoObjetivoProgreso
         peso={usuario?.peso}
         objetivo={usuario?.pesoObjetivo}
         medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
       />
 
-      {/* Card de suscripción (si aplica) */}
       {showSubscriptionCard && (
         <View
           style={[
@@ -355,9 +383,7 @@ export default function Cuenta() {
                 style={[
                   styles.subTitle,
                   {
-                    color: isDark
-                      ? tokens.color.textPrimaryDark
-                      : tokens.color.textPrimaryLight,
+                    color: textPrimary,
                   },
                 ]}
               >
@@ -367,9 +393,7 @@ export default function Cuenta() {
                 style={[
                   styles.subBody,
                   {
-                    color: isDark
-                      ? tokens.color.textSecondaryDark
-                      : tokens.color.textSecondaryLight,
+                    color: textSecondary,
                   },
                 ]}
               >
@@ -387,9 +411,7 @@ export default function Cuenta() {
                 style={[
                   styles.subTitle,
                   {
-                    color: isDark
-                      ? tokens.color.textPrimaryDark
-                      : tokens.color.textPrimaryLight,
+                    color: textPrimary,
                   },
                 ]}
               >
@@ -399,9 +421,7 @@ export default function Cuenta() {
                 style={[
                   styles.subBody,
                   {
-                    color: isDark
-                      ? tokens.color.textSecondaryDark
-                      : tokens.color.textSecondaryLight,
+                    color: textSecondary,
                   },
                 ]}
               >
@@ -429,21 +449,18 @@ export default function Cuenta() {
         </View>
       )}
 
-      {/* Botones de acción */}
       <View style={styles.actionsWrapper}>
         <ActionButton onPress={() => go("EditarPerfil")} isDark={isDark}>
           <Settings
             size={17}
-            color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+            color={iconColor}
             strokeWidth={2}
           />
           <Text
             style={[
               styles.actionText,
               {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
+                color: textPrimary,
               },
             ]}
           >
@@ -451,19 +468,19 @@ export default function Cuenta() {
           </Text>
         </ActionButton>
 
+        <ThemeActionRow isDark={isDark} />
+
         <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
           <Lock
             size={17}
-            color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+            color={iconColor}
             strokeWidth={2}
           />
           <Text
             style={[
               styles.actionText,
               {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
+                color: textPrimary,
               },
             ]}
           >
@@ -479,7 +496,7 @@ export default function Cuenta() {
           >
             <RefreshCcw
               size={17}
-              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              color={iconColor}
               strokeWidth={2}
             />
             <Text
@@ -487,9 +504,7 @@ export default function Cuenta() {
                 styles.actionText,
                 styles.actionTextBold,
                 {
-                  color: isDark
-                    ? tokens.color.textPrimaryDark
-                    : tokens.color.textPrimaryLight,
+                  color: textPrimary,
                 },
               ]}
             >
@@ -528,16 +543,12 @@ export default function Cuenta() {
           {refreshingMe ? (
             <ActivityIndicator
               size="small"
-              color={
-                isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight
-              }
+              color={textPrimary}
             />
           ) : (
             <RefreshCcw
               size={17}
-              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              color={iconColor}
               strokeWidth={2}
             />
           )}
@@ -546,9 +557,7 @@ export default function Cuenta() {
               styles.actionText,
               styles.actionTextBold,
               {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
+                color: textPrimary,
               },
             ]}
           >
@@ -577,16 +586,12 @@ export default function Cuenta() {
           {closing ? (
             <ActivityIndicator
               size="small"
-              color={
-                isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight
-              }
+              color={textPrimary}
             />
           ) : (
             <LogOut
               size={17}
-              color={isDark ? tokens.color.iconDark : tokens.color.iconLight}
+              color={iconColor}
               strokeWidth={2}
             />
           )}
@@ -595,9 +600,7 @@ export default function Cuenta() {
               styles.actionText,
               styles.actionTextBold,
               {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
+                color: textPrimary,
               },
             ]}
           >
@@ -609,7 +612,7 @@ export default function Cuenta() {
   );
 }
 
-// ── ActionButton ──────────────────────────────────────────────────────────────
+// ── ActionButton ─────────────────────────────────────────────────────────────
 function ActionButton({
   children,
   onPress,
@@ -649,16 +652,76 @@ function ActionButton({
   );
 }
 
-// ── Estilos estáticos ─────────────────────────────────────────────────────────
+// ── Theme row ────────────────────────────────────────────────────────────────
+function ThemeActionRow({ isDark }: { isDark: boolean }) {
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textSecondary = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
+  const iconColor = isDark ? tokens.color.iconDark : tokens.color.iconLight;
+
+  return (
+    <View
+      style={[
+        styles.actionBtn,
+        {
+          backgroundColor: isDark
+            ? tokens.color.actionBgDark
+            : tokens.color.actionBgLight,
+          borderColor: isDark
+            ? tokens.color.actionBorderDark
+            : tokens.color.actionBorderLight,
+        },
+      ]}
+    >
+      <View style={styles.themeRowLeft}>
+        <Palette size={17} color={iconColor} strokeWidth={2} />
+        <View style={styles.themeTextWrap}>
+          <Text style={[styles.actionText, { color: textPrimary }]}>
+            Tema
+          </Text>
+          <Text style={[styles.themeSubtext, { color: textSecondary }]}>
+            Cambia entre modo claro y oscuro
+          </Text>
+        </View>
+      </View>
+
+      <ThemeToggle text={false} />
+    </View>
+  );
+}
+
+// ── Estilos ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
+
+  header: {
+    gap: 6,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "500",
+    maxWidth: "92%",
+  },
+
   scrollContent: {
     padding: tokens.spacing.xl,
     paddingBottom: tokens.spacing["2xl"],
     gap: tokens.spacing.xl,
   },
 
-  // Card de suscripción
   subCard: {
     padding: tokens.spacing.md,
     borderRadius: tokens.radius.lg,
@@ -683,24 +746,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // Botón refresh dentro del card
-  refreshBtn: {
-    marginTop: 6,
-    borderRadius: tokens.radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: tokens.spacing.md,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: tokens.spacing.sm,
-  },
-  refreshBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-
-  // Wrapper de acciones
   actionsWrapper: {
     gap: tokens.spacing.md,
     paddingTop: tokens.spacing.sm,
@@ -709,7 +754,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  // Botón de acción
   actionBtn: {
     borderRadius: tokens.radius.lg,
     paddingVertical: 13,
@@ -726,5 +770,22 @@ const styles = StyleSheet.create({
   },
   actionTextBold: {
     fontWeight: "800",
+  },
+
+  themeRowLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  themeTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  themeSubtext: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "500",
+    lineHeight: 15,
   },
 });

@@ -3,13 +3,17 @@ import React, { memo, useCallback, useMemo } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
-import { Sparkles, Lock, Gift, ChevronRight, Sun, Moon } from "lucide-react-native";
+import {
+  Sparkles,
+  Lock,
+  Gift,
+  ChevronRight,
+} from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 import logo from "../../../../assets/logo.png";
-import ThemeToggle from "./ThemeToggle";
 
 type PlanState = "PREMIUM_ACTIVE" | "PREMIUM_UNPAID" | "FREE";
 
@@ -20,11 +24,6 @@ const tokens = {
     headerBorderDark: "rgba(255,255,255,0.06)",
     headerBorderLight: "rgba(15,23,42,0.08)",
 
-    surfaceDark: "rgba(148,163,184,0.10)",
-    surfaceLight: "#F1F5F9",
-    surfaceBorderDark: "rgba(255,255,255,0.06)",
-    surfaceBorderLight: "rgba(0,0,0,0.06)",
-
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",
     textMutedDark: "#94A3B8",
@@ -34,8 +33,6 @@ const tokens = {
     ringNeutralLight: ["rgba(15,23,42,0.10)", "rgba(15,23,42,0.06)"],
     ringPremium: ["#a78bfa", "#f472b6", "#60a5fa"],
   },
-  radius: { md: 12, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
 } as const;
 
 function PlanChip({ state }: { state: PlanState }) {
@@ -45,7 +42,7 @@ function PlanChip({ state }: { state: PlanState }) {
   if (state === "FREE") return null;
 
   const isActive = state === "PREMIUM_ACTIVE";
-  const label = isActive ? "Premium" : "Premium (pendiente)";
+  const label = isActive ? "Premium" : "Premium pendiente";
   const Icon = isActive ? Sparkles : Lock;
 
   return (
@@ -53,8 +50,12 @@ function PlanChip({ state }: { state: PlanState }) {
       style={[
         styles.planChip,
         {
-          borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.10)",
-          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+          borderColor: isDark
+            ? "rgba(255,255,255,0.10)"
+            : "rgba(15,23,42,0.10)",
+          backgroundColor: isDark
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(15,23,42,0.04)",
         },
       ]}
       accessibilityLabel={label}
@@ -63,7 +64,11 @@ function PlanChip({ state }: { state: PlanState }) {
       <Text
         style={[
           styles.planChipText,
-          { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
+          {
+            color: isDark
+              ? tokens.color.textPrimaryDark
+              : tokens.color.textPrimaryLight,
+          },
         ]}
       >
         {label}
@@ -84,38 +89,69 @@ function Avatar({ uri, planState }: { uri: string; planState: PlanState }) {
         : tokens.color.ringNeutralLight;
 
   const badge = useMemo(() => {
-    if (planState === "PREMIUM_ACTIVE") return { Icon: Sparkles, color: "#7c3aed", a11y: "Plan Premium activo" };
-    if (planState === "PREMIUM_UNPAID") return { Icon: Lock, color: "#b45309", a11y: "Suscripción pendiente o expirada" };
-    return { Icon: Gift, color: isDark ? "#9ca3af" : "#525252", a11y: "Plan Gratuito" };
+    if (planState === "PREMIUM_ACTIVE") {
+      return {
+        Icon: Sparkles,
+        color: "#7C3AED",
+        a11y: "Plan Premium activo",
+      };
+    }
+    if (planState === "PREMIUM_UNPAID") {
+      return {
+        Icon: Lock,
+        color: "#B45309",
+        a11y: "Suscripción pendiente o expirada",
+      };
+    }
+    return {
+      Icon: Gift,
+      color: isDark ? "#9CA3AF" : "#525252",
+      a11y: "Plan Gratuito",
+    };
   }, [planState, isDark]);
 
   return (
-    <LinearGradient colors={ring as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarRing}>
-      <View
-        style={[
-          styles.avatarInner,
-          {
-            backgroundColor: isDark ? tokens.color.headerBgDark : tokens.color.headerBgLight,
-            borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.10)",
-          },
-        ]}
+    <View style={styles.avatarWrap}>
+      <LinearGradient
+        colors={ring as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.avatarRing}
       >
-        <Image source={{ uri }} resizeMode="cover" style={styles.avatarImg} />
-      </View>
+        <View
+          style={[
+            styles.avatarInner,
+            {
+              backgroundColor: isDark
+                ? tokens.color.headerBgDark
+                : tokens.color.headerBgLight,
+              borderColor: isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(15,23,42,0.10)",
+            },
+          ]}
+        >
+          <Image source={{ uri }} resizeMode="cover" style={styles.avatarImg} />
+        </View>
+      </LinearGradient>
 
       <View
         style={[
           styles.avatarBadge,
           {
-            backgroundColor: isDark ? tokens.color.headerBgDark : tokens.color.headerBgLight,
-            borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.10)",
+            backgroundColor: isDark
+              ? tokens.color.headerBgDark
+              : tokens.color.headerBgLight,
+            borderColor: isDark
+              ? "rgba(255,255,255,0.10)"
+              : "rgba(15,23,42,0.10)",
           },
         ]}
         accessibilityLabel={badge.a11y}
       >
-        <badge.Icon size={14} color={badge.color} strokeWidth={2.2} />
+        <badge.Icon size={12} color={badge.color} strokeWidth={2.2} />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -157,44 +193,38 @@ function Header() {
   const hasUser = Boolean(nombre || imagenPerfil);
 
   const bg = isDark ? tokens.color.headerBgDark : tokens.color.headerBgLight;
-  const border = isDark ? tokens.color.headerBorderDark : tokens.color.headerBorderLight;
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
+  const border = isDark
+    ? tokens.color.headerBorderDark
+    : tokens.color.headerBorderLight;
+  const textPrimary = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textMuted = isDark
+    ? tokens.color.textMutedDark
+    : tokens.color.textMutedLight;
 
   return (
     <SafeAreaView edges={["top"]} style={{ backgroundColor: bg }}>
-      <View style={[styles.bar, { backgroundColor: bg, borderBottomColor: border }]}>
+      <View
+        style={[
+          styles.bar,
+          { backgroundColor: bg, borderBottomColor: border },
+        ]}
+      >
         <Pressable
           onPress={goRutinasTab}
           hitSlop={10}
-          style={styles.logoBtn}
+          style={styles.brandBtn}
           accessibilityRole="button"
           accessibilityLabel="Ir a Rutinas"
         >
           <Image source={logo} resizeMode="contain" style={styles.logo} />
+          <Text style={[styles.brandText, { color: textPrimary }]}>
+            FitGenius
+          </Text>
         </Pressable>
 
-        <View style={styles.center}>
-          <View
-            style={[
-              styles.togglePill,
-              {
-                backgroundColor: isDark ? "rgba(148,163,184,0.08)" : "rgba(15,23,42,0.04)",
-                borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-              },
-            ]}
-          >
-            <View style={styles.toggleIcon} pointerEvents="none">
-              {isDark ? (
-                <Moon size={14} color={textMuted} strokeWidth={2.2} />
-              ) : (
-                <Sun size={14} color={textMuted} strokeWidth={2.2} />
-              )}
-            </View>
-
-            <ThemeToggle text={false} />
-          </View>
-        </View>
+        <View style={styles.spacer} />
 
         {hasUser ? (
           <Pressable
@@ -205,7 +235,10 @@ function Header() {
             accessibilityLabel="Abrir perfil"
           >
             <View style={styles.userText}>
-              <Text numberOfLines={1} style={[styles.userName, { color: textPrimary }]}>
+              <Text
+                numberOfLines={1}
+                style={[styles.userName, { color: textPrimary }]}
+              >
                 {nombre}
               </Text>
               <PlanChip state={planState} />
@@ -215,8 +248,12 @@ function Header() {
 
             <ChevronRight
               size={16}
-              color={isDark ? "rgba(226,232,240,0.75)" : "rgba(15,23,42,0.55)"}
-              style={{ marginLeft: tokens.spacing.sm }}
+              color={
+                isDark
+                  ? "rgba(226,232,240,0.75)"
+                  : "rgba(15,23,42,0.55)"
+              }
+              style={{ marginLeft: 8 }}
             />
           </Pressable>
         ) : (
@@ -231,47 +268,40 @@ export default memo(Header);
 
 const styles = StyleSheet.create({
   bar: {
-    height: 60,
+    minHeight: 68,
     paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  logoBtn: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logo: { width: 54, height: 54 },
-
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 0,
-  },
-  togglePill: {
+  brandBtn: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: tokens.radius.full,
-    borderWidth: 1,
-    paddingLeft: 10,
-    paddingRight: 6,
-    height: 36,
-    overflow: "hidden",
+    minWidth: 0,
   },
-  toggleIcon: {
-    width: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 6,
+  logo: {
+    width: 42,
+    height: 42,
+  },
+  brandText: {
+    marginLeft: 10,
+    fontSize: 19,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+
+  spacer: {
+    flex: 1,
   },
 
   userBtn: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
+    minWidth: 0,
   },
   userText: {
     alignItems: "flex-end",
@@ -279,7 +309,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   userName: {
-    maxWidth: 170,
+    maxWidth: 150,
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: -0.2,
@@ -302,9 +332,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
+  avatarWrap: {
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   avatarRing: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     padding: 2.5,
   },
@@ -314,22 +350,25 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
   },
-  avatarImg: { width: "100%", height: "100%" },
+  avatarImg: {
+    width: "100%",
+    height: "100%",
+  },
 
   avatarBadge: {
     position: "absolute",
-    bottom: -6,
-    left: -6,
-    width: 26,
-    height: 26,
+    bottom: 1,
+    right: 0,
+    width: 16,
+    height: 16,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
 });

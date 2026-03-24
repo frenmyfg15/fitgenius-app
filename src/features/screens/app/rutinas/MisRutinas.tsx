@@ -1,6 +1,6 @@
 // src/features/fit/screens/app/rutinas/MisRutinas.tsx
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,13 +13,12 @@ import {
   Platform,
   Pressable,
   Modal,
-  Easing,
 } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PenLine, ChevronDown, Plus } from "lucide-react-native";
+import { PenLine, Dumbbell } from "lucide-react-native";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
@@ -37,6 +36,8 @@ const tokens = {
     surfaceDark: "#0F1829",
     surfaceLight: "#FFFFFF",
     primary: "#00E85A",
+    primarySoftDark: "rgba(0,232,90,0.10)",
+    primarySoftLight: "rgba(0,232,90,0.08)",
     textPrimaryDark: "#F1F5F9",
     textSecondaryDark: "#64748B",
     textPrimaryLight: "#0F172A",
@@ -49,12 +50,13 @@ const tokens = {
     dangerSurfaceDark: "rgba(255,77,77,0.08)",
     dangerSurfaceLight: "rgba(229,62,62,0.06)",
   },
-  radius: { full: 999, lg: 16 },
+  radius: { full: 999, lg: 16, xl: 22 },
   spacing: {
+    sm: 10,
     md: 16,
     lg: 24,
     xl: 32,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 130,
+    tabBarSafe: Platform.OS === "ios" ? 110 : 96,
   },
 } as const;
 
@@ -86,7 +88,7 @@ export default function MisRutinasScreen() {
     removeRutina,
   } = useMisRutinas();
 
-  const isPremium = useUsuarioStore((s) => s.usuario?.haPagado === true);
+  const rutinaActivaId = useUsuarioStore((s) => s.usuario?.rutinaActivaId);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -96,29 +98,39 @@ export default function MisRutinasScreen() {
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
+
       (async () => {
         const editId = await AsyncStorage.getItem("rutinaEditId");
         if (!mounted) return;
+
         if (editId) {
           setContinuarTipo("edit");
           setMostrarContinuarModal(true);
           return;
         }
+
         const draft = await AsyncStorage.getItem("crearRutinaState");
         if (!mounted) return;
+
         if (hasPendingRutina(draft)) {
           setContinuarTipo("crear");
           setMostrarContinuarModal(true);
         }
       })();
-      return () => { mounted = false; };
+
+      return () => {
+        mounted = false;
+      };
     }, [])
   );
 
-  const handleMasTarde = useCallback(() => setMostrarContinuarModal(false), []);
+  const handleMasTarde = useCallback(() => {
+    setMostrarContinuarModal(false);
+  }, []);
 
   const handleDescartarBorrador = useCallback(async () => {
     setMostrarContinuarModal(false);
+
     if (continuarTipo === "edit") {
       await AsyncStorage.removeItem("rutinaEditId");
     } else {
@@ -131,40 +143,6 @@ export default function MisRutinasScreen() {
     navigation.navigate("CrearRutina");
   }, [navigation]);
 
-  // ─── FAB estilo VistaEjercicio ────────────────────────────────────────
-  const [fabOpen, setFabOpen] = useState(false);
-  const fabAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fabAnim, {
-      toValue: fabOpen ? 1 : 0,
-      duration: fabOpen ? 220 : 180,
-      easing: fabOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [fabOpen, fabAnim]);
-
-  const getItemAnimStyle = (index: number) => {
-    const delayFactor = index * 0.08;
-    const opacity = fabAnim.interpolate({
-      inputRange: [0 + delayFactor, 1],
-      outputRange: [0, 1],
-      extrapolate: "clamp",
-    });
-    const translateY = fabAnim.interpolate({
-      inputRange: [0 + delayFactor, 1],
-      outputRange: [12, 0],
-      extrapolate: "clamp",
-    });
-    const scale = fabAnim.interpolate({
-      inputRange: [0 + delayFactor, 1],
-      outputRange: [0.92, 1],
-      extrapolate: "clamp",
-    });
-    return { opacity, transform: [{ translateY }, { scale }] };
-  };
-
-  // ─── Visor + Refresh ──────────────────────────────────────────────────
   const screenH = Dimensions.get("window").height;
   const slideY = useRef(new Animated.Value(screenH)).current;
   const [refreshing, setRefreshing] = useState(false);
@@ -179,19 +157,35 @@ export default function MisRutinasScreen() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { await reloadRutinas(); } finally { setRefreshing(false); }
+    try {
+      await reloadRutinas();
+    } finally {
+      setRefreshing(false);
+    }
   }, [reloadRutinas]);
 
-  // ─── Colores ──────────────────────────────────────────────────────────
   const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
-  const modalSurface = isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight;
-  const modalBorder = isDark ? tokens.color.borderDark : tokens.color.borderLight;
-  const modalTitle = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const modalText = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const surface = isDark ? tokens.color.surfaceDark : tokens.color.surfaceLight;
+  const border = isDark ? tokens.color.borderDark : tokens.color.borderLight;
+  const titleColor = isDark
+    ? tokens.color.textPrimaryDark
+    : tokens.color.textPrimaryLight;
+  const textColor = isDark
+    ? tokens.color.textSecondaryDark
+    : tokens.color.textSecondaryLight;
   const dangerColor = isDark ? tokens.color.dangerDark : tokens.color.dangerLight;
-  const dangerSurface = isDark ? tokens.color.dangerSurfaceDark : tokens.color.dangerSurfaceLight;
-  const iconColor = isDark ? "#e5e7eb" : "#111827";
-  const fabBg = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
+  const dangerSurface = isDark
+    ? tokens.color.dangerSurfaceDark
+    : tokens.color.dangerSurfaceLight;
+  const primarySoft = isDark
+    ? tokens.color.primarySoftDark
+    : tokens.color.primarySoftLight;
+
+  const rutinasCount = rutinas.length;
+  const rutinaActiva = useMemo(
+    () => rutinas.find((r: any) => String(r.id) === String(rutinaActivaId)),
+    [rutinas, rutinaActivaId]
+  );
 
   const modalInfo =
     continuarTipo === "edit"
@@ -200,7 +194,8 @@ export default function MisRutinasScreen() {
         iconColor: "#A78BFA",
         iconBg: isDark ? "rgba(167,139,250,0.12)" : "rgba(167,139,250,0.10)",
         title: "Tienes una edición sin guardar",
-        description: "Estabas modificando una rutina existente. Puedes continuar ahora o retomarlo más tarde.",
+        description:
+          "Estabas modificando una rutina existente. Puedes continuar ahora o retomarlo más tarde.",
         continuarLabel: "Seguir editando",
         descartarLabel: "Descartar cambios",
       }
@@ -209,7 +204,8 @@ export default function MisRutinasScreen() {
         iconColor: tokens.color.primary,
         iconBg: isDark ? "rgba(0,232,90,0.10)" : "rgba(0,232,90,0.08)",
         title: "Tienes una rutina sin terminar",
-        description: "Empezaste a crear una rutina nueva pero no la guardaste. Puedes terminarla ahora o retomarlo más tarde.",
+        description:
+          "Empezaste a crear una rutina nueva pero no la guardaste. Puedes terminarla ahora o retomarlo más tarde.",
         continuarLabel: "Terminar rutina",
         descartarLabel: "Descartar borrador",
       };
@@ -224,9 +220,80 @@ export default function MisRutinasScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight }]}>
+          <Text style={[styles.eyebrow, { color: textColor }]}>
+            PLANIFICACIÓN
+          </Text>
+
+          <Text style={[styles.title, { color: titleColor }]}>
             Tus rutinas
           </Text>
+
+          <Text style={[styles.subtitle, { color: textColor }]}>
+            Crea, edita y activa tus entrenamientos desde un solo lugar.
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: surface, borderColor: border },
+          ]}
+        >
+          <View style={styles.summaryTop}>
+            <View
+              style={[styles.summaryIcon, { backgroundColor: primarySoft }]}
+            >
+              <Dumbbell size={18} color={tokens.color.primary} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.summaryTitle, { color: titleColor }]}>
+                {rutinasCount === 0
+                  ? "Empieza tu biblioteca de rutinas"
+                  : `${rutinasCount} ${rutinasCount === 1 ? "rutina guardada" : "rutinas guardadas"
+                  }`}
+              </Text>
+
+              <Text style={[styles.summaryText, { color: textColor }]}>
+                {rutinaActiva
+                  ? `Rutina activa: ${rutinaActiva.nombre}`
+                  : "Todavía no tienes una rutina activa seleccionada."}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate("CrearRutina")}
+              style={[
+                styles.primaryAction,
+                { backgroundColor: tokens.color.primary },
+              ]}
+            >
+              <PenLine size={16} color="#081117" />
+              <Text style={styles.primaryActionText}>Crear rutina</Text>
+            </TouchableOpacity>
+
+            <View style={styles.secondaryActionWrap}>
+              <IaGenerate
+                onCreate={() => {
+                  reloadRutinas();
+                }}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: titleColor }]}>
+              Biblioteca de rutinas
+            </Text>
+            <Text style={[styles.sectionText, { color: textColor }]}>
+              Toca una rutina para verla, editarla o utilizarla.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.content}>
@@ -237,7 +304,7 @@ export default function MisRutinasScreen() {
           ) : (
             <MensajeVacio
               titulo="Aún no tienes una rutina"
-              descripcion="Crea tu primera rutina manual o genera una con IA según tus objetivos."
+              descripcion="Crea una rutina manual o genera una con IA para empezar a organizar tus entrenamientos."
               textoBoton="Crear mi rutina"
               rutaDestino="/crear-rutina"
               nombreImagen="rutinas"
@@ -247,72 +314,9 @@ export default function MisRutinasScreen() {
         </View>
       </ScrollView>
 
-      {/* ─── FAB estilo VistaEjercicio ─── */}
-      {!loading && (
-        <View
-          pointerEvents="box-none"
-          style={styles.fabWrapper}
-        >
-          <View style={{ alignItems: "flex-end" }}>
-            {/* Items animados */}
-            <Animated.View
-              pointerEvents={fabOpen ? "auto" : "none"}
-              style={{
-                marginBottom: 12,
-                alignItems: "flex-end",
-                opacity: fabAnim,
-                transform: [{
-                  translateY: fabAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [6, 0],
-                  }),
-                }],
-              }}
-            >
-              <View style={{ flexDirection: "column", gap: 14, alignItems: "flex-end" }}>
-                {/* Generar con IA */}
-                <Animated.View style={getItemAnimStyle(1)}>
-                  <IaGenerate
-                    onCreate={() => {
-                      reloadRutinas();
-                      setFabOpen(false);
-                    }}
-                  />
-                </Animated.View>
-
-                {/* Crear manual */}
-                <Animated.View style={getItemAnimStyle(0)}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setFabOpen(false);
-                      navigation.navigate("CrearRutina");
-                    }}
-                    activeOpacity={0.88}
-                    style={[styles.fabItem, { backgroundColor: fabBg }]}
-                  >
-                    <PenLine size={22} color={iconColor} />
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
-            </Animated.View>
-
-            {/* Toggle */}
-            <TouchableOpacity
-              onPress={() => setFabOpen((v) => !v)}
-              activeOpacity={0.9}
-              style={[styles.fabToggle, { backgroundColor: fabBg }]}
-            >
-              {fabOpen
-                ? <ChevronDown size={22} color={iconColor} />
-                : <Plus size={22} color={iconColor} />
-              }
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* ─── Visor rutina ─── */}
-      <Animated.View style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}>
+      <Animated.View
+        style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}
+      >
         <View style={styles.visorContent}>
           {rutinaSeleccionada && (
             <MostrarRutina
@@ -328,7 +332,6 @@ export default function MisRutinasScreen() {
         </View>
       </Animated.View>
 
-      {/* ─── Modal borrador pendiente ─── */}
       <Modal
         visible={mostrarContinuarModal}
         transparent
@@ -336,40 +339,77 @@ export default function MisRutinasScreen() {
         onRequestClose={handleMasTarde}
       >
         <Pressable
-          style={[StyleSheet.absoluteFill, { backgroundColor: tokens.color.overlay }]}
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: tokens.color.overlay },
+          ]}
           onPress={handleMasTarde}
         />
+
         <View style={styles.continuarModalWrap}>
-          <View style={[styles.continuarModalCard, { backgroundColor: modalSurface, borderColor: modalBorder }]}>
-            <View style={[styles.continuarIconWrap, { backgroundColor: modalInfo.iconBg }]}>
-              <Ionicons name={modalInfo.icon} size={22} color={modalInfo.iconColor} />
+          <View
+            style={[
+              styles.continuarModalCard,
+              { backgroundColor: surface, borderColor: border },
+            ]}
+          >
+            <View
+              style={[
+                styles.continuarIconWrap,
+                { backgroundColor: modalInfo.iconBg },
+              ]}
+            >
+              <Ionicons
+                name={modalInfo.icon}
+                size={22}
+                color={modalInfo.iconColor}
+              />
             </View>
-            <Text style={[styles.continuarTitle, { color: modalTitle }]}>{modalInfo.title}</Text>
-            <Text style={[styles.continuarDesc, { color: modalText }]}>{modalInfo.description}</Text>
+
+            <Text style={[styles.continuarTitle, { color: titleColor }]}>
+              {modalInfo.title}
+            </Text>
+
+            <Text style={[styles.continuarDesc, { color: textColor }]}>
+              {modalInfo.description}
+            </Text>
+
             <TouchableOpacity
               onPress={handleContinuarEdicion}
-              style={[styles.btnContinuar, { backgroundColor: tokens.color.primary }]}
+              style={[
+                styles.btnContinuar,
+                { backgroundColor: tokens.color.primary },
+              ]}
               activeOpacity={0.88}
             >
               <Ionicons name="arrow-forward" size={16} color="#080D17" />
-              <Text style={styles.btnContinuarText}>{modalInfo.continuarLabel}</Text>
+              <Text style={styles.btnContinuarText}>
+                {modalInfo.continuarLabel}
+              </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={handleMasTarde}
-              style={[styles.btnMasTarde, { borderColor: modalBorder }]}
+              style={[styles.btnMasTarde, { borderColor: border }]}
               activeOpacity={0.88}
             >
-              <Ionicons name="time-outline" size={15} color={modalText} />
-              <Text style={[styles.btnMasTardeText, { color: modalText }]}>Más tarde</Text>
+              <Ionicons name="time-outline" size={15} color={textColor} />
+              <Text style={[styles.btnMasTardeText, { color: textColor }]}>
+                Más tarde
+              </Text>
             </TouchableOpacity>
-            <View style={[styles.divider, { backgroundColor: modalBorder }]} />
+
+            <View style={[styles.divider, { backgroundColor: border }]} />
+
             <TouchableOpacity
               onPress={handleDescartarBorrador}
               style={[styles.btnDescartar, { backgroundColor: dangerSurface }]}
               activeOpacity={0.88}
             >
               <Ionicons name="trash-outline" size={15} color={dangerColor} />
-              <Text style={[styles.btnDescartarText, { color: dangerColor }]}>{modalInfo.descartarLabel}</Text>
+              <Text style={[styles.btnDescartarText, { color: dangerColor }]}>
+                {modalInfo.descartarLabel}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -380,37 +420,105 @@ export default function MisRutinasScreen() {
 
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
+
   scrollContent: {
     paddingHorizontal: tokens.spacing.md,
     paddingTop: tokens.spacing.xl,
     paddingBottom: tokens.spacing.tabBarSafe,
   },
-  header: { marginBottom: tokens.spacing.lg, alignItems: "center" },
-  title: { fontSize: 26, fontWeight: "800" },
-  content: { width: "100%" },
 
-  // ─── FAB ───────────────────────────────────────────────────────────────
-  fabWrapper: {
-    position: "absolute",
-    right: 20,
-    bottom: Platform.OS === "ios" ? 130 : 150,
-    zIndex: 20,
+  header: {
+    marginBottom: 18,
+    alignItems: "flex-start",
+    gap: 6,
   },
-  fabItem: {
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "500",
+    maxWidth: "92%",
+  },
+
+  summaryCard: {
+    borderWidth: 1,
+    borderRadius: tokens.radius.xl,
     padding: 16,
-    borderRadius: 999,
+    marginBottom: 20,
+    gap: 16,
+  },
+  summaryTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  summaryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  fabToggle: {
-    padding: 12,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  summaryText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "500",
   },
 
-  // ─── Visor ─────────────────────────────────────────────────────────────
+  quickActions: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  primaryAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  primaryActionText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#081117",
+  },
+  secondaryActionWrap: {
+    flexShrink: 1,
+  },
+
+  sectionHeader: {
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  sectionText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "500",
+  },
+
+  content: {
+    width: "100%",
+  },
+
   visorOverlay: {
     position: "absolute",
     top: 0,
@@ -420,9 +528,11 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.color.overlay,
     zIndex: 100,
   },
-  visorContent: { flex: 1, paddingTop: 50 },
+  visorContent: {
+    flex: 1,
+    paddingTop: 50,
+  },
 
-  // ─── Modal borrador ────────────────────────────────────────────────────
   continuarModalWrap: {
     flex: 1,
     justifyContent: "center",
@@ -477,8 +587,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 14,
   },
-  btnMasTardeText: { fontSize: 14, fontWeight: "600" },
-  divider: { height: 1, marginBottom: 10 },
+  btnMasTardeText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  divider: {
+    height: 1,
+    marginBottom: 10,
+  },
   btnDescartar: {
     flexDirection: "row",
     alignItems: "center",
@@ -487,5 +603,8 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 16,
   },
-  btnDescartarText: { fontSize: 14, fontWeight: "700" },
+  btnDescartarText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
 });

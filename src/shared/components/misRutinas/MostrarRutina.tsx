@@ -79,11 +79,10 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
       onRequestClose={() => !isBusy && setVer(false)}
     >
       <SafeAreaView
+        edges={["top", "bottom"]}
         style={{
           flex: 1,
           backgroundColor: bg,
-          paddingVertical: 20,
-          position: "relative",
         }}
       >
         {/* Header */}
