@@ -111,8 +111,17 @@ interface EjercicioDia {
   id?: string | number;
   orden?: number;
   completadoHoy?: boolean;
+
+  // legacy / actual
   fechasCompletadasAsignacion?: string[];
   ultimaFechaCompletado?: string | null;
+
+  // nuevos campos opcionales del backend / hidratación frontend
+  fechasPlanificadasCompletadasAsignacion?: string[];
+  ultimaFechaPlanificadaCompletada?: string | null;
+  fechasCompletadasAsignacionReal?: string[];
+  fechasCompletadasAsignacionUI?: string[];
+
   ejercicio?: EjercicioSimple;
   ejercicioCompuesto?: EjercicioCompuesto | null;
   seriesSugeridas?: number;
@@ -208,12 +217,26 @@ const toMadridYMD = (() => {
   return (d: Date) => fmt.format(d);
 })();
 
+const getFechasParaUI = (ej: EjercicioDia) => {
+  if (Array.isArray(ej.fechasCompletadasAsignacionUI)) {
+    return ej.fechasCompletadasAsignacionUI;
+  }
+
+  if (Array.isArray(ej.fechasPlanificadasCompletadasAsignacion)) {
+    return ej.fechasPlanificadasCompletadasAsignacion;
+  }
+
+  return ej.fechasCompletadasAsignacion ?? [];
+};
+
 const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
-  const fechas = ej.fechasCompletadasAsignacion ?? [];
+  const fechas = getFechasParaUI(ej);
+
   if (!selectedYMD) {
     const hoy = toMadridYMD(new Date());
     return fechas.includes(hoy);
   }
+
   return fechas.includes(selectedYMD);
 };
 

@@ -58,6 +58,15 @@ type Ejercicio = {
   id: number;
   completadoHoy?: boolean;
   fechasCompletadasAsignacion?: string[];
+  ultimaFechaCompletado?: string | null;
+
+  // nuevo payload backend
+  fechasPlanificadasCompletadasAsignacion?: string[];
+  ultimaFechaPlanificadaCompletada?: string | null;
+
+  // solo para depurar / uso interno del frontend
+  fechasCompletadasAsignacionReal?: string[];
+  fechasCompletadasAsignacionUI?: string[];
 };
 
 type RutinaDia = {
@@ -73,6 +82,10 @@ type RutinaResp = {
   fechasCompletadas?: string[];
   completadosPorFecha?: Record<string, number[]>;
   completadosPorAsignacion?: Record<string, string[]>;
+
+  // nuevo payload backend
+  completadosPlanificadosPorFecha?: Record<string, number[]>;
+  completadosPlanificadosPorAsignacion?: Record<string, string[]>;
 };
 
 // ── Utils ────────────────────────────────────────────────────────────────────
@@ -158,22 +171,84 @@ export default function Home() {
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
       if (!id) {
+        console.log("[Home] fetchRutina -> sin rutinaActivaId");
         setRutina(null);
         return;
       }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
-      if (!force && lastKeyRef.current === key) return;
+      console.log("[Home] fetchRutina -> start", {
+        force,
+        id,
+        routineRev,
+        workoutRev,
+        key,
+        lastKey: lastKeyRef.current,
+      });
+
+      if (!force && lastKeyRef.current === key) {
+        console.log("[Home] fetchRutina -> skip por misma key", { key });
+        return;
+      }
+
       lastKeyRef.current = key;
 
       const cached = rutinaCache.get(id);
-      if (cached && !force) setRutina(cached);
+      if (cached && !force) {
+        console.log("[Home] fetchRutina -> usando cache", {
+          id,
+          cachedDias: cached?.dias?.length ?? 0,
+          cachedFechasCompletadas: cached?.fechasCompletadas ?? [],
+          cachedCompletadosPorFecha: cached?.completadosPorFecha ?? {},
+          cachedCompletadosPorAsignacion: cached?.completadosPorAsignacion ?? {},
+          cachedCompletadosPlanificadosPorFecha:
+            cached?.completadosPlanificadosPorFecha ?? {},
+          cachedCompletadosPlanificadosPorAsignacion:
+            cached?.completadosPlanificadosPorAsignacion ?? {},
+        });
+        setRutina(cached);
+      } else {
+        console.log("[Home] fetchRutina -> sin cache útil", { id, force });
+      }
 
       try {
         if (!force) setLoading(true);
+
         const p = obtenerRutina(id)
           .then((data) => {
             const rutinaResp = (data ?? null) as RutinaResp | null;
+
+            console.log(
+              "[Home][fetchRutina] RAW API RESPONSE:",
+              JSON.stringify(
+                {
+                  id: rutinaResp?.id,
+                  diasCount: rutinaResp?.dias?.length,
+                  fechasCompletadas: rutinaResp?.fechasCompletadas,
+                  completadosPorFecha: rutinaResp?.completadosPorFecha,
+                  completadosPorAsignacion: rutinaResp?.completadosPorAsignacion,
+                  completadosPlanificadosPorFecha:
+                    rutinaResp?.completadosPlanificadosPorFecha,
+                  completadosPlanificadosPorAsignacion:
+                    rutinaResp?.completadosPlanificadosPorAsignacion,
+                  dias: rutinaResp?.dias?.map((d) => ({
+                    diaSemana: d.diaSemana,
+                    ejercicios: d.ejercicios?.map((e) => ({
+                      id: e.id,
+                      fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
+                      fechasPlanificadasCompletadasAsignacion:
+                        e.fechasPlanificadasCompletadasAsignacion,
+                      ultimaFechaCompletado: e.ultimaFechaCompletado,
+                      ultimaFechaPlanificadaCompletada:
+                        e.ultimaFechaPlanificadaCompletada,
+                    })),
+                  })),
+                },
+                null,
+                2
+              )
+            );
+
             setRutina(rutinaResp);
             if (rutinaResp) rutinaCache.set(id, rutinaResp);
           })
@@ -181,6 +256,7 @@ export default function Home() {
           .finally(() => {
             inflightRef.current = null;
             if (!force) setLoading(false);
+            console.log("[Home] fetchRutina -> end", { force, id });
           });
 
         inflightRef.current = p;
@@ -197,52 +273,148 @@ export default function Home() {
   }, [fetchRutina]);
 
   const onRefresh = useCallback(async () => {
+    console.log("[Home] onRefresh -> start");
     setRefreshing(true);
     try {
       await fetchRutina(true);
     } finally {
       setRefreshing(false);
+      console.log("[Home] onRefresh -> end");
     }
   }, [fetchRutina]);
 
   const devolver = useCallback((ymd: string, diaEnum: string) => {
-    setDia(normalizeEnum(diaEnum));
-    setSelectedYMD(
-      typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date())
-    );
+    const newYMD =
+      typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date());
+    const newDia = normalizeEnum(diaEnum);
+
+    console.log("[Home][devolver] CALENDAR SELECTION:", {
+      ymdRecibido: ymd,
+      ymdNormalizado: newYMD,
+      diaEnumRecibido: diaEnum,
+      diaEnumNormalizado: newDia,
+    });
+
+    setDia(newDia);
+    setSelectedYMD(newYMD);
   }, []);
 
   const totalEjercicios = useMemo(() => {
-    return rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
+    const total =
+      rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
+
+    console.log("[Home] totalEjercicios", {
+      dia,
+      total,
+    });
+
+    return total;
   }, [rutina, dia]);
 
   const completadasMap = useMemo(() => {
     const map: Record<string, boolean> = {};
+
     for (const ymd of rutina?.fechasCompletadas ?? []) map[ymd] = true;
     for (const [ymd, ids] of Object.entries(rutina?.completadosPorFecha ?? {})) {
       if (Array.isArray(ids) && ids.length > 0) map[ymd] = true;
     }
+
+    console.log("[Home][completadasMap] CALENDAR MARKS (fecha real entrenada):", {
+      fechasCompletadasRaw: rutina?.fechasCompletadas,
+      completadosPorFechaRaw: rutina?.completadosPorFecha,
+      completadosPlanificadosPorFechaRaw: rutina?.completadosPlanificadosPorFecha,
+      mapResultante: map,
+    });
+
     return map;
-  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha]);
+  }, [
+    rutina?.fechasCompletadas,
+    rutina?.completadosPorFecha,
+    rutina?.completadosPlanificadosPorFecha,
+  ]);
 
   const rutinaHidratada = useMemo(() => {
-    if (!rutina?.dias) return rutina;
+    if (!rutina?.dias) {
+      console.log("[Home] rutinaHidratada -> sin dias", {
+        dia,
+        selectedYMD,
+      });
+      return rutina;
+    }
 
     const diasH = rutina.dias.map((d) => {
-      const ejerciciosH = (d.ejercicios ?? []).map((e) => ({
-        ...e,
-        completadoHoy:
-          e.fechasCompletadasAsignacion?.includes(selectedYMD) ?? false,
-      }));
+      const ejerciciosH = (d.ejercicios ?? []).map((e) => {
+        const fechasReales = e.fechasCompletadasAsignacion ?? [];
+        const fechasPlanificadas =
+          e.fechasPlanificadasCompletadasAsignacion ?? [];
+
+        // Para la UI del día seleccionado usamos SIEMPRE la dimensión planificada
+        // si existe. Si aún no existe en backend, cae al comportamiento anterior.
+        const fechasParaUI =
+          fechasPlanificadas.length > 0 ? fechasPlanificadas : fechasReales;
+
+        const completadoHoy = fechasParaUI.includes(selectedYMD);
+
+        console.log(
+          `[Home][rutinaHidratada] EJERCICIO id=${e.id} dia=${d.diaSemana}:`,
+          {
+            selectedYMD,
+            fechasCompletadasAsignacionReal: fechasReales,
+            fechasPlanificadasCompletadasAsignacion: fechasPlanificadas,
+            fechasUsadasPorUI: fechasParaUI,
+            completadoHoy,
+            source:
+              fechasPlanificadas.length > 0 ? "planificadas" : "reales(fallback)",
+          }
+        );
+
+        return {
+          ...e,
+          completadoHoy,
+
+          // importante:
+          // dejamos la info real aparte para depurar y conservarla
+          fechasCompletadasAsignacionReal: fechasReales,
+          fechasCompletadasAsignacionUI: fechasParaUI,
+
+          // y sobrescribimos esta propiedad en la rutina hidratada para que los
+          // componentes que ya la consumen (TarjetaHome) funcionen sin tocarlos aún
+          fechasCompletadasAsignacion: fechasParaUI,
+        };
+      });
 
       const diaCompleto =
         ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
 
+      console.log(`[Home][rutinaHidratada] DIA=${d.diaSemana}:`, {
+        totalEjercicios: ejerciciosH.length,
+        completados: ejerciciosH.filter((e) => e.completadoHoy).length,
+        diaCompleto,
+        selectedYMD,
+      });
+
       return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
     });
 
+    console.log("[Home] rutinaHidratada resumen", {
+      diaSeleccionado: dia,
+      selectedYMD,
+      dias: diasH.map((d) => ({
+        diaSemana: d.diaSemana,
+        completadoHoy: d.completadoHoy,
+        ejercicios: d.ejercicios.map((e) => ({
+          id: e.id,
+          completadoHoy: e.completadoHoy,
+          fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
+          fechasCompletadasAsignacionReal: e.fechasCompletadasAsignacionReal,
+          fechasPlanificadasCompletadasAsignacion:
+            e.fechasPlanificadasCompletadasAsignacion,
+        })),
+      })),
+    });
+
     return { ...rutina, dias: diasH };
-  }, [rutina, selectedYMD]);
+  }, [rutina, selectedYMD, dia]);
 
   const progresoHoy = useMemo(() => {
     const ejercicios =
@@ -251,8 +423,28 @@ export default function Home() {
     const total = ejercicios.length;
     const completados = ejercicios.filter((e) => e.completadoHoy).length;
 
+    console.log("[Home][progresoHoy] PROGRESO:", {
+      diaActivo: dia,
+      selectedYMD,
+      total,
+      completados,
+      helperMessage:
+        total === 0
+          ? "Día de descanso"
+          : completados === 0
+            ? `${total} ejercicios para hoy`
+            : completados < total
+              ? `Te quedan ${total - completados} ejercicios`
+              : "Entrenamiento completado",
+      ejercicios: ejercicios.map((e) => ({
+        id: e.id,
+        completadoHoy: e.completadoHoy,
+        fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
+      })),
+    });
+
     return { total, completados };
-  }, [rutinaHidratada, dia]);
+  }, [rutinaHidratada, dia, selectedYMD]);
 
   const helperMessage = useMemo(() => {
     const { total, completados } = progresoHoy;
@@ -262,6 +454,34 @@ export default function Home() {
     if (completados < total) return `Te quedan ${total - completados} ejercicios`;
     return "Entrenamiento completado";
   }, [progresoHoy]);
+
+  useEffect(() => {
+    console.log("[Home] render-state", {
+      usuarioId: usuario?.id,
+      rutinaActivaId: usuario?.rutinaActivaId,
+      dia,
+      selectedYMD,
+      routineRev,
+      workoutRev,
+      loading,
+      refreshing,
+      autoGenerating,
+      totalEjercicios,
+      hasRutina: !!rutina,
+    });
+  }, [
+    usuario?.id,
+    usuario?.rutinaActivaId,
+    dia,
+    selectedYMD,
+    routineRev,
+    workoutRev,
+    loading,
+    refreshing,
+    autoGenerating,
+    totalEjercicios,
+    rutina,
+  ]);
 
   if (loading && !rutina) return <HomeSkeleton />;
 
@@ -273,16 +493,23 @@ export default function Home() {
       {autoGenerating && (
         <IaGenerateAuto
           onDone={() => {
+            console.log("[Home] IaGenerateAuto onDone");
             setAutoGenerating(false);
             if (!onboardingCompletado) marcarPendiente();
           }}
-          onError={() => setAutoGenerating(false)}
+          onError={() => {
+            console.log("[Home] IaGenerateAuto onError");
+            setAutoGenerating(false);
+          }}
         />
       )}
 
       <OnboardingModal
         visible={hydrated && pendienteMostrar && !onboardingCompletado}
-        onClose={limpiarPendiente}
+        onClose={() => {
+          console.log("[Home] OnboardingModal onClose");
+          limpiarPendiente();
+        }}
       />
 
       <SeguimientoInteligenteModal
@@ -290,9 +517,16 @@ export default function Home() {
         lockedByPlan={usuario?.planActual === "GRATUITO"}
         applying={seguimiento.applying}
         data={seguimiento.modalData}
-        onClose={seguimiento.cerrar}
-        onConfirm={seguimiento.confirmar}
+        onClose={() => {
+          console.log("[Home] SeguimientoInteligenteModal onClose");
+          seguimiento.cerrar();
+        }}
+        onConfirm={() => {
+          console.log("[Home] SeguimientoInteligenteModal onConfirm");
+          seguimiento.confirmar();
+        }}
         onGoPremium={() => {
+          console.log("[Home] SeguimientoInteligenteModal onGoPremium");
           seguimiento.cerrar();
           navigation.navigate("Premium");
         }}
@@ -361,7 +595,6 @@ export default function Home() {
 
         {hasRutinaActiva ? (
           <>
-
             <View style={styles.calendarWrapper}>
               <Calendar devolverDato={devolver} completadas={completadasMap} />
             </View>
