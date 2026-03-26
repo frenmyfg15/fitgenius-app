@@ -468,7 +468,7 @@ export default function Cuenta() {
           </Text>
         </ActionButton>
 
-        <ThemeActionRow isDark={isDark} />
+        {/* <ThemeActionRow isDark={isDark} /> */}
 
         <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
           <Lock

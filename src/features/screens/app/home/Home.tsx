@@ -7,7 +7,6 @@ import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useSyncStore } from "@/features/store/useSyncStore";
 import { obtenerRutina } from "@/features/api/rutinas.api";
 import { useRutinaCache } from "@/features/store/useRutinaCache";
-import { useOnboardingStore } from "@/features/store/useOnboardingStore";
 
 import Calendar from "@/shared/components/home/Calendar";
 import TarjetaHome from "@/shared/components/home/TarjetaHome";
@@ -130,32 +129,40 @@ export default function Home() {
   const workoutRev = useSyncStore((s) => s.workoutRev);
   const rutinaCache = useRutinaCache();
 
-  // ── Onboarding ────────────────────────────────────────────────────────
-  const onboardingCompletado = useOnboardingStore((s) => s.completado);
-  const pendienteMostrar = useOnboardingStore((s) => s.pendienteMostrar);
-  const hydrated = useOnboardingStore((s) => s.hydrated);
-  const marcarPendiente = useOnboardingStore((s) => s.marcarPendiente);
-  const limpiarPendiente = useOnboardingStore((s) => s.limpiarPendiente);
-
   // ── Auto-generación ───────────────────────────────────────────────────
   const [autoGenerating, setAutoGenerating] = useState(false);
   const autoGenTriggered = useRef(false);
 
+  const shouldAutoGenerate =
+    !!usuario &&
+    !autoGenTriggered.current &&
+    (usuario.rutinasIACreadas ?? 0) === 0;
+
   useEffect(() => {
-    if (autoGenTriggered.current) return;
-    if (!usuario) return;
-    if ((usuario.rutinasIACreadas ?? 0) > 0) return;
+    if (!shouldAutoGenerate) return;
     autoGenTriggered.current = true;
     setAutoGenerating(true);
-  }, [usuario]);
+  }, [shouldAutoGenerate]);
 
   // ── Seguimiento inteligente ───────────────────────────────────────────
   const seguimiento = useSeguimientoInteligente();
 
   useEffect(() => {
-    if (!usuario?.id || autoGenerating) return;
+    if (
+      !usuario?.id ||
+      autoGenerating ||
+      shouldAutoGenerate ||
+      usuario?.haVistoOnboarding === false
+    )
+      return;
+
     seguimiento.iniciar();
-  }, [usuario?.id, autoGenerating]);
+  }, [
+    usuario?.id,
+    autoGenerating,
+    shouldAutoGenerate,
+    usuario?.haVistoOnboarding,
+  ]);
 
   // ── Rutina ────────────────────────────────────────────────────────────
   const [rutina, setRutina] = useState<RutinaResp | null>(null);
@@ -348,8 +355,6 @@ export default function Home() {
         const fechasPlanificadas =
           e.fechasPlanificadasCompletadasAsignacion ?? [];
 
-        // Para la UI del día seleccionado usamos SIEMPRE la dimensión planificada
-        // si existe. Si aún no existe en backend, cae al comportamiento anterior.
         const fechasParaUI =
           fechasPlanificadas.length > 0 ? fechasPlanificadas : fechasReales;
 
@@ -371,14 +376,8 @@ export default function Home() {
         return {
           ...e,
           completadoHoy,
-
-          // importante:
-          // dejamos la info real aparte para depurar y conservarla
           fechasCompletadasAsignacionReal: fechasReales,
           fechasCompletadasAsignacionUI: fechasParaUI,
-
-          // y sobrescribimos esta propiedad en la rutina hidratada para que los
-          // componentes que ya la consumen (TarjetaHome) funcionen sin tocarlos aún
           fechasCompletadasAsignacion: fechasParaUI,
         };
       });
@@ -459,6 +458,7 @@ export default function Home() {
     console.log("[Home] render-state", {
       usuarioId: usuario?.id,
       rutinaActivaId: usuario?.rutinaActivaId,
+      haVistoOnboarding: usuario?.haVistoOnboarding,
       dia,
       selectedYMD,
       routineRev,
@@ -472,6 +472,7 @@ export default function Home() {
   }, [
     usuario?.id,
     usuario?.rutinaActivaId,
+    usuario?.haVistoOnboarding,
     dia,
     selectedYMD,
     routineRev,
@@ -495,7 +496,6 @@ export default function Home() {
           onDone={() => {
             console.log("[Home] IaGenerateAuto onDone");
             setAutoGenerating(false);
-            if (!onboardingCompletado) marcarPendiente();
           }}
           onError={() => {
             console.log("[Home] IaGenerateAuto onError");
@@ -505,10 +505,9 @@ export default function Home() {
       )}
 
       <OnboardingModal
-        visible={hydrated && pendienteMostrar && !onboardingCompletado}
+        visible={!!usuario && usuario.haVistoOnboarding === false}
         onClose={() => {
           console.log("[Home] OnboardingModal onClose");
-          limpiarPendiente();
         }}
       />
 

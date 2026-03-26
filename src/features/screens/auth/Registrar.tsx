@@ -105,8 +105,8 @@ export default function RegistrarScreen() {
             >
               <View
                 className={`w-full rounded-[22px] border p-7 shadow-sm ${isDark
-                    ? "border-slate-700 bg-slate-900/70"
-                    : "border-slate-200/80 bg-white"
+                  ? "border-slate-700 bg-slate-900/70"
+                  : "border-slate-200/80 bg-white"
                   } backdrop-blur`}
               >
                 <View className="mb-3 items-center">
@@ -205,7 +205,7 @@ export default function RegistrarScreen() {
 
                     <Pressable
                       disabled={loading}
-                      onPress={handleSubmit(onSubmit, onError)}
+                      onPress={handleSubmit(onSubmit as any, onError)}
                       className="mt-1 w-full overflow-hidden rounded-xl"
                       style={{
                         shadowColor: "#0f172a",

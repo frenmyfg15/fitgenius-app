@@ -199,6 +199,23 @@ export const getMe = async () => {
   }
 };
 
+// ⭐ Marcar onboarding como visto
+export const marcarOnboardingVisto = async () => {
+  try {
+    log("marcarOnboardingVisto → /usuario/onboarding/visto/");
+    const res = await api.post("/usuario/onboarding/visto/");
+    log("marcarOnboardingVisto ←", {
+      status: res.status,
+      keys: Object.keys(res.data || {}),
+    });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error); // ✅
+    const apiError = handleApiError(error, "No se pudo marcar el tutorial como visto");
+    throw apiError;
+  }
+};
+
 // 🔐 Recuperar contraseña (v1)
 
 // 1) Solicitar código

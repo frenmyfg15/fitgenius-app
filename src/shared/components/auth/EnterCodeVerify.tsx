@@ -33,14 +33,6 @@ export default function EnterCodeVerify({
   const inputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 250);
-
-    return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
     if (timeLeft <= 0) return;
 
     const timer = setInterval(() => {
@@ -104,10 +96,6 @@ export default function EnterCodeVerify({
         text2: "Revisa tu correo electrónico.",
         position: "top",
       });
-
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 150);
     } catch {
       Toast.show({
         type: "error",

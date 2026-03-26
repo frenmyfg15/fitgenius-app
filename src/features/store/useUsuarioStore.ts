@@ -41,6 +41,7 @@ export type UsuarioLogin = {
   rutinaActivaId?: number;
   planActual: "GRATUITO" | "BASICO" | "PREMIUM";
   haPagado: boolean;
+  haVistoOnboarding: boolean;
 
   caloriasMes: number;
 

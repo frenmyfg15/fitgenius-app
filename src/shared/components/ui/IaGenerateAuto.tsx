@@ -126,7 +126,7 @@ export default function IaGenerateAuto({ onDone, onError }: Props) {
     }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
-        <Modal visible transparent animationType="fade">
+        <Modal visible transparent>
             <CargaRutina />
         </Modal>
     );
