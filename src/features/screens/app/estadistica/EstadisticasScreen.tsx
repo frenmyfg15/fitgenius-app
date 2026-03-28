@@ -208,35 +208,34 @@ export default function EstadisticasScreen() {
       setError(null);
 
       try {
-        const results = await Promise.allSettled([
+        const [a, m, c] = await Promise.allSettled([
           obtenerActividadReciente(),
           obtenerDistribucionMuscular(),
           obtenerEstadisticasCalorias(),
-          obtenerAdherenciaYConsistencia(),
-          obtenerCargaInternaSemanal(),
-          obtenerDiasColorEstres(),
-          obtenerProgresoSubjetivoEjercicios(),
-          obtenerProgresoMuscular(),
         ]);
-
-        const [a, m, c, ad, ci, dce, ps, pm] = results;
 
         setActividad(a.status === "fulfilled" ? a.value : null);
         setMuscular(m.status === "fulfilled" ? m.value : null);
         setCalorias(c.status === "fulfilled" ? c.value : null);
-        setAdherencia(ad.status === "fulfilled" ? ad.value : null);
-        setCargaInterna(ci.status === "fulfilled" ? ci.value : null);
-        setDiasColorEstres(dce.status === "fulfilled" ? dce.value : null);
-        setProgresoSubjetivo(ps.status === "fulfilled" ? ps.value : null);
-        setProgresoMuscular(pm.status === "fulfilled" ? pm.value : null);
 
-        const gratisFallaron =
-          a.status === "rejected" &&
-          m.status === "rejected" &&
-          c.status === "rejected";
-
-        if (gratisFallaron) {
+        if (a.status === "rejected" && m.status === "rejected" && c.status === "rejected") {
           setError("No pudimos cargar tus estadísticas. Intenta de nuevo más tarde.");
+        }
+
+        if (isPremium) {
+          const [ad, ci, dce, ps, pm] = await Promise.allSettled([
+            obtenerAdherenciaYConsistencia(),
+            obtenerCargaInternaSemanal(),
+            obtenerDiasColorEstres(),
+            obtenerProgresoSubjetivoEjercicios(),
+            obtenerProgresoMuscular(),
+          ]);
+
+          setAdherencia(ad.status === "fulfilled" ? ad.value : null);
+          setCargaInterna(ci.status === "fulfilled" ? ci.value : null);
+          setDiasColorEstres(dce.status === "fulfilled" ? dce.value : null);
+          setProgresoSubjetivo(ps.status === "fulfilled" ? ps.value : null);
+          setProgresoMuscular(pm.status === "fulfilled" ? pm.value : null);
         }
       } catch (err) {
         console.log("[Estadisticas] loadAllStats error", err);
@@ -245,7 +244,7 @@ export default function EstadisticasScreen() {
         if (showSkeleton) setLoading(false);
       }
     },
-    []
+    [isPremium]
   );
 
   const onRefresh = useCallback(async () => {

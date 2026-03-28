@@ -32,6 +32,7 @@ import { usePersistedColorScheme } from "@/theme/usePersistedColorScheme";
 import { getMe } from "@/features/api/usuario.api";
 
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { OverlayProvider } from "@/shared/overlay/OverlayProvider";
 
 Sentry.init({
   dsn: "https://3760723ec34bd1fc51f566b9c0a633ea@o4510526940577792.ingest.de.sentry.io/4511048512962640",
@@ -94,7 +95,9 @@ function AppProviders({ children }: { children: React.ReactNode }) {
         <ToastProvider>
           <GlobalErrorModalProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              {children}
+              <OverlayProvider>
+                {children}
+              </OverlayProvider>
             </GestureHandlerRootView>
           </GlobalErrorModalProvider>
         </ToastProvider>

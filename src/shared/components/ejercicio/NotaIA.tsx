@@ -40,6 +40,12 @@ type Props = {
   repeticiones?: number | null;
   peso?: number | null; // ✅ se recibe en kg
   esCardio?: boolean;
+  // Datos para ejercicios compuestos
+  esCompuesto?: boolean;
+  nombreCompuesto?: string | null;
+  tipoCompuesto?: string | null;
+  cantidadEjercicios?: number | null;
+  descansoSeg?: number | null;
 };
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -49,6 +55,11 @@ export default function NotaIA({
   repeticiones,
   peso,
   esCardio,
+  esCompuesto,
+  nombreCompuesto,
+  tipoCompuesto,
+  cantidadEjercicios,
+  descansoSeg,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -70,9 +81,25 @@ export default function NotaIA({
     return medidaPeso === "LB" ? kgToLb(safePesoKg) : `${safePesoKg} kg`;
   }, [safePesoKg, medidaPeso]);
 
+  const safeNombreCompuesto = (nombreCompuesto ?? "").trim();
+  const safeTipoCompuesto = (tipoCompuesto ?? "").trim();
+  const safeCantidad =
+    typeof cantidadEjercicios === "number" && Number.isFinite(cantidadEjercicios)
+      ? cantidadEjercicios
+      : 0;
+  const safeDescansoSeg =
+    typeof descansoSeg === "number" && Number.isFinite(descansoSeg)
+      ? descansoSeg
+      : 0;
+
   const shouldRender = useMemo(
-    () => safeNota.length > 0 || safeSeries > 0 || safeReps > 0 || safePesoKg > 0,
-    [safeNota, safeSeries, safeReps, safePesoKg]
+    () =>
+      safeNota.length > 0 ||
+      safeSeries > 0 ||
+      safeReps > 0 ||
+      safePesoKg > 0 ||
+      Boolean(esCompuesto && (safeNombreCompuesto || safeTipoCompuesto || safeCantidad > 0)),
+    [safeNota, safeSeries, safeReps, safePesoKg, esCompuesto, safeNombreCompuesto, safeTipoCompuesto, safeCantidad]
   );
 
   if (!shouldRender) return null;
@@ -124,22 +151,53 @@ export default function NotaIA({
           </View>
         </View>
 
-        <Text
-          style={[
-            styles.nota,
-            {
-              color:
-                safeNota.length > 0
-                  ? isDark
-                    ? tokens.color.notaDark
-                    : tokens.color.notaLight
-                  : textSecondary,
-              fontStyle: safeNota.length > 0 ? "italic" : "normal",
-            },
-          ]}
-        >
-          {safeNota.length > 0 ? safeNota : "Sin nota por ahora."}
-        </Text>
+        {esCompuesto && (safeNombreCompuesto || safeTipoCompuesto) && (
+          <View style={styles.compuestoHeader}>
+            {safeNombreCompuesto ? (
+              <Text style={[styles.compuestoNombre, { color: textPrimary }]}>
+                {safeNombreCompuesto}
+              </Text>
+            ) : null}
+            {safeTipoCompuesto ? (
+              <View
+                style={[
+                  styles.tipoPill,
+                  {
+                    backgroundColor: isDark
+                      ? tokens.color.iconBgDark
+                      : tokens.color.iconBgLight,
+                    borderColor: isDark
+                      ? "rgba(34,197,94,0.25)"
+                      : "rgba(22,163,74,0.2)",
+                  },
+                ]}
+              >
+                <Text style={[styles.tipoPillText, { color: tokens.color.iconColor }]}>
+                  {safeTipoCompuesto}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {(!esCompuesto || safeNota.length > 0) && (
+          <Text
+            style={[
+              styles.nota,
+              {
+                color:
+                  safeNota.length > 0
+                    ? isDark
+                      ? tokens.color.notaDark
+                      : tokens.color.notaLight
+                    : textSecondary,
+                fontStyle: safeNota.length > 0 ? "italic" : "normal",
+              },
+            ]}
+          >
+            {safeNota.length > 0 ? safeNota : "Sin nota por ahora."}
+          </Text>
+        )}
 
         <View
           style={[
@@ -151,24 +209,45 @@ export default function NotaIA({
             },
           ]}
         >
-          <MetaItem label="Series" value={String(safeSeries)} isDark={isDark} />
-
-          {isCardio ? (
-            <MetaItem
-              label="Tiempo/serie"
-              value={safeReps > 0 ? `${safeReps} s` : "—"}
-              isDark={isDark}
-            />
+          {esCompuesto ? (
+            <>
+              {safeCantidad > 0 && (
+                <MetaItem
+                  label="Ejercicios"
+                  value={String(safeCantidad)}
+                  isDark={isDark}
+                />
+              )}
+              {safeDescansoSeg > 0 && (
+                <MetaItem
+                  label="Descanso"
+                  value={`${safeDescansoSeg} s`}
+                  isDark={isDark}
+                />
+              )}
+            </>
           ) : (
-            <MetaItem label="Reps" value={String(safeReps)} isDark={isDark} />
-          )}
+            <>
+              <MetaItem label="Series" value={String(safeSeries)} isDark={isDark} />
 
-          {pesoDisplay && (
-            <MetaItem
-              label="Peso"
-              value={pesoDisplay}
-              isDark={isDark}
-            />
+              {isCardio ? (
+                <MetaItem
+                  label="Tiempo/serie"
+                  value={safeReps > 0 ? `${safeReps} s` : "—"}
+                  isDark={isDark}
+                />
+              ) : (
+                <MetaItem label="Reps" value={String(safeReps)} isDark={isDark} />
+              )}
+
+              {pesoDisplay && (
+                <MetaItem
+                  label="Peso"
+                  value={pesoDisplay}
+                  isDark={isDark}
+                />
+              )}
+            </>
           )}
         </View>
       </View>
@@ -270,6 +349,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0.2,
+  },
+
+  compuestoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: tokens.spacing.sm,
+    marginBottom: tokens.spacing.sm,
+  },
+  compuestoNombre: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  tipoPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: tokens.radius.full,
+    borderWidth: 1,
+  },
+  tipoPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 
   nota: {

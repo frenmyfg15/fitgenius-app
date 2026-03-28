@@ -1,3 +1,5 @@
+// src/features/type/crearRutina.ts
+
 export interface EjercicioVisualInfo {
   idGif: string;
   nombre: string;
@@ -20,8 +22,6 @@ export interface EjercicioAsignadoInput {
   ejercicioInfo?: EjercicioVisualInfo;
   compuesto?: boolean;
   ejerciciosCompuestos?: EjercicioAsignadoInput[];
-
-  // 🆕 Nuevos campos para compuestos
   nombreCompuesto?: string;
   tipoCompuesto?: TipoCompuesto;
   descansoCompuesto?: number;
@@ -58,6 +58,7 @@ export type EjercicioCompuestoTemporal = {
     notaIA: string;
   };
 };
+
 // ✅ Ejercicio individual
 export interface EjercicioItem {
   compuesto?: false;
@@ -71,14 +72,15 @@ export interface EjercicioItem {
   pesoSugerido?: number;
 }
 
-// ✅ Ejercicio compuesto
+// ✅ Ejercicio compuesto — compuestoId vive SOLO en el padre
 export interface CompuestoItem {
   compuesto: true;
+  compuestoId: number;
   orden: number;
   nombreCompuesto: string;
   tipoCompuesto: TipoCompuesto;
   descansoCompuesto: number;
-  ejerciciosCompuestos: (EjercicioItem & { ejercicioCompuestoId: number })[];
+  ejerciciosCompuestos: EjercicioItem[];
 }
 
 // ✅ Unión discriminada
@@ -89,37 +91,55 @@ export type Action =
   | { type: 'SET_DESCRIPCION'; payload: string }
   | { type: 'SET_USUARIO_ID'; payload: number }
   | {
-      type: 'ADD_EJERCICIO';
-      payload: { diaSemana: DiaSemana; ejercicio: EjercicioAsignadoInput };
-    }
+    type: 'ADD_EJERCICIO';
+    payload: { diaSemana: DiaSemana; ejercicio: EjercicioAsignadoInput };
+  }
   | {
-      type: 'ADD_EJERCICIO_COMPUESTO';
-      payload: {
-        diaSemana: DiaSemana;
-        ejercicios: EjercicioAsignadoInput[];
-        descansoSeg: number;
-        nombre: string;
-        tipo: TipoCompuesto;
-        compuestoId: number;
-      };
-    }
+    type: 'ADD_EJERCICIO_COMPUESTO';
+    payload: {
+      diaSemana: DiaSemana;
+      ejercicios: EjercicioAsignadoInput[];
+      descansoSeg: number;
+      nombre: string;
+      tipo: TipoCompuesto;
+      compuestoId: number;
+    };
+  }
   | {
-      type: 'UPDATE_COMPUESTO';
-      payload: {
-        compuestoId: number;
-        nombre: string;
-        tipo: TipoCompuesto;
-        descansoSeg: number;
-      };
-    }
+    type: 'UPDATE_COMPUESTO';
+    payload: {
+      compuestoId: number;
+      nombre: string;
+      tipo: TipoCompuesto;
+      descansoSeg: number;
+    };
+  }
   | {
-      type: 'UPDATE_EJERCICIO';
-      payload: { diaSemana: DiaSemana; ejercicio: EjercicioAsignadoInput };
-    }
+    // ✅ Reemplaza el compuesto completo — hijos, nombre, tipo y descanso
+    type: 'UPDATE_COMPUESTO_COMPLETO';
+    payload: {
+      diaSemana: DiaSemana;
+      compuestoId: number;
+      nombre: string;
+      tipo: TipoCompuesto;
+      descansoSeg: number;
+      ejercicios: EjercicioAsignadoInput[];
+    };
+  }
   | {
-      type: 'REORDER_EJERCICIOS';
-      payload: { diaSemana: DiaSemana; ejercicios: EjercicioAsignadoInput[] };
-    }
-  | { type: 'REMOVE_EJERCICIO'; payload: { diaSemana: DiaSemana; orden?: number; compuestoId?: number } }
-
+    type: 'UPDATE_EJERCICIO';
+    payload: { diaSemana: DiaSemana; ejercicio: EjercicioAsignadoInput };
+  }
+  | {
+    type: 'REORDER_EJERCICIOS';
+    payload: { diaSemana: DiaSemana; ejercicios: EjercicioAsignadoInput[] };
+  }
+  | {
+    type: 'REMOVE_EJERCICIO';
+    payload: {
+      diaSemana: DiaSemana;
+      orden?: number;
+      compuestoId?: number;
+    };
+  }
   | { type: 'CLEAR' };

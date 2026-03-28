@@ -1,42 +1,56 @@
-import React, { useEffect, useMemo, useRef, useState, memo, useCallback } from "react";
-import { View, Text, StyleSheet, Image, Pressable, Platform } from "react-native";
+import React, { memo, useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Pressable,
+} from "react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
 
 /* Assets locales */
 const iconKcal = require("../../../../assets/fit/ejercicio/calorias.png");
 const iconExp = require("../../../../assets/fit/ejercicio/experiencia.png");
 const confettiAnim = require("../../../../assets/lootie/feliticitaciones.json");
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const t = {
-  accent: "#E8FF47",
-  accentDim: "rgba(232,255,71,0.12)",
-  dark: {
-    sheetBg: "rgba(12,14,20,0.97)",
-    border: "rgba(255,255,255,0.08)",
-    textPrimary: "#F5F5F5",
-    textMuted: "rgba(255,255,255,0.45)",
-    chip: "rgba(255,255,255,0.06)",
+const tokens = {
+  color: {
+    accent: "#E8FF47",
+    accentSoft: "rgba(232,255,71,0.14)",
+
+    overlayDark: "#080D17",
+    overlayLight: "#F8FAFC",
+
+    textPrimaryDark: "#F8FAFC",
+    textPrimaryLight: "#0F172A",
+
+    textSecondaryDark: "#94A3B8",
+    textSecondaryLight: "#64748B",
+
+    textMutedDark: "rgba(255,255,255,0.48)",
+    textMutedLight: "rgba(15,23,42,0.48)",
+
+    softBgDark: "rgba(255,255,255,0.05)",
+    softBgLight: "rgba(0,0,0,0.04)",
+
+    ctaBorderDark: "#22C55E",
+    ctaBorderLight: "rgba(15,23,42,0.18)",
   },
-  light: {
-    sheetBg: "rgba(255,255,255,0.97)",
-    border: "rgba(0,0,0,0.08)",
-    textPrimary: "#0A0A0A",
-    textMuted: "rgba(0,0,0,0.45)",
-    chip: "rgba(0,0,0,0.05)",
+  radius: {
+    xl: 28,
+    full: 999,
   },
-  r: { card: 24, full: 999, md: 14 },
-  sp: { xs: 6, sm: 10, md: 14, lg: 18, xl: 24 },
+  spacing: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+  },
 } as const;
 
-// ── RPE ───────────────────────────────────────────────────────────────────────
 const RPE_SCALE = [
   { v: 1, label: "Reposo" },
   { v: 2, label: "Muy ligero" },
@@ -50,7 +64,6 @@ const RPE_SCALE = [
   { v: 10, label: "Máximo" },
 ] as const;
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
 type SerieSimple = { reps: number; peso: number };
 type SerieCompuesta = {
   ejercicioId: number;
@@ -60,7 +73,6 @@ type SerieCompuesta = {
 }[];
 
 type Props = {
-  visible: boolean;
   series?: SerieSimple[];
   seriesComp?: SerieCompuesta[];
   nivelEstres?: number | null;
@@ -68,23 +80,46 @@ type Props = {
   onFinish?: () => void;
 };
 
-// ── Cálculos ──────────────────────────────────────────────────────────────────
-function calcVolumen(s: SerieSimple[]) { return s.reduce((a, x) => a + x.peso * x.reps, 0); }
-function calcVolumenComp(sc: SerieCompuesta[]) {
-  return sc.reduce((a, s) => a + s.reduce((b, c) => b + (c.pesoKg ?? 0) * (c.repeticiones ?? 0), 0), 0);
+function calcVolumen(s: SerieSimple[]) {
+  return s.reduce((a, x) => a + x.peso * x.reps, 0);
 }
+
+function calcVolumenComp(sc: SerieCompuesta[]) {
+  return sc.reduce(
+    (a, s) =>
+      a +
+      s.reduce(
+        (b, c) => b + (c.pesoKg ?? 0) * (c.repeticiones ?? 0),
+        0
+      ),
+    0
+  );
+}
+
 function calcCalorias(s: SerieSimple[]) {
   return Math.round(s.reduce((a, x) => a + x.peso * x.reps * 0.1, 0) + s.length * 3);
 }
+
 function calcCaloriasComp(sc: SerieCompuesta[]) {
   return Math.round(
-    sc.reduce((a, s) => a + s.reduce((b, c) => b + (c.pesoKg ?? 0) * (c.repeticiones ?? 0) * 0.1, 0), 0) +
-    sc.length * 5
+    sc.reduce(
+      (a, s) =>
+        a +
+        s.reduce(
+          (b, c) => b + (c.pesoKg ?? 0) * (c.repeticiones ?? 0) * 0.1,
+          0
+        ),
+      0
+    ) + sc.length * 5
   );
 }
+
 function mejorSerie(s: SerieSimple[]) {
-  return s.length ? s.reduce((b, x) => (x.peso * x.reps > b.peso * b.reps ? x : b)) : null;
+  return s.length
+    ? s.reduce((b, x) => (x.peso * x.reps > b.peso * b.reps ? x : b))
+    : null;
 }
+
 function getMotiv(n: number) {
   if (n <= 3) return "Recuperación activa";
   if (n <= 5) return "Zona aeróbica";
@@ -93,42 +128,95 @@ function getMotiv(n: number) {
   return "Esfuerzo máximo";
 }
 
-// ── UI bits ───────────────────────────────────────────────────────────────────
 const StatCard = memo(function StatCard({
-  isDark, title, value, sub, glyph, image,
-}: { isDark: boolean; title: string; value: string; sub?: string; glyph?: string; image?: any }) {
-  const tok = isDark ? t.dark : t.light;
+  isDark,
+  title,
+  value,
+  sub,
+  image,
+}: {
+  isDark: boolean;
+  title: string;
+  value: string;
+  sub?: string;
+  image?: any;
+}) {
   return (
-    <View style={[s.statCard, { backgroundColor: tok.chip, borderColor: tok.border }]}>
-      <View style={[s.statIcon, { backgroundColor: t.accentDim }]}>
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: isDark
+            ? tokens.color.softBgDark
+            : tokens.color.softBgLight,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIconWrap,
+          { backgroundColor: tokens.color.accentSoft },
+        ]}
+      >
         {image ? (
-          <Image source={image} accessibilityIgnoresInvertColors style={{ width: 22, height: 22 }} resizeMode="contain" />
+          <Image
+            source={image}
+            accessibilityIgnoresInvertColors
+            style={styles.statIconImg}
+            resizeMode="contain"
+          />
         ) : (
-          <Text style={[s.statGlyph, { color: t.accent }]}>{glyph ?? "◈"}</Text>
+          <View style={styles.statIconDot} />
         )}
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={[s.statTitle, { color: tok.textMuted }]}>{title}</Text>
-        <Text style={[s.statValue, { color: tok.textPrimary }]}>{value}</Text>
-        {!!sub && <Text style={[s.statSub, { color: tok.textMuted }]}>{sub}</Text>}
+        <Text
+          style={[
+            styles.statTitle,
+            {
+              color: isDark
+                ? tokens.color.textMutedDark
+                : tokens.color.textMutedLight,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
+        <Text
+          style={[
+            styles.statValue,
+            {
+              color: isDark
+                ? tokens.color.textPrimaryDark
+                : tokens.color.textPrimaryLight,
+            },
+          ]}
+        >
+          {value}
+        </Text>
+
+        {!!sub && (
+          <Text
+            style={[
+              styles.statSub,
+              {
+                color: isDark
+                  ? tokens.color.textSecondaryDark
+                  : tokens.color.textSecondaryLight,
+              },
+            ]}
+          >
+            {sub}
+          </Text>
+        )}
       </View>
     </View>
   );
 });
 
-const Chip = memo(function Chip({ isDark, text }: { isDark: boolean; text: string }) {
-  const tok = isDark ? t.dark : t.light;
-  return (
-    <View style={[s.chip, { backgroundColor: tok.chip, borderColor: tok.border }]}>
-      <Text style={[s.chipText, { color: tok.textPrimary }]}>{text}</Text>
-    </View>
-  );
-});
-
-// ── Principal ─────────────────────────────────────────────────────────────────
-export default function CelebracionSheet({
-  visible,
+export default function CelebracionModal({
   series = [],
   seriesComp = [],
   nivelEstres = null,
@@ -137,17 +225,12 @@ export default function CelebracionSheet({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const tok = isDark ? t.dark : t.light;
-
   const insets = useSafeAreaInsets();
-  const topInset = Math.max(insets.top, 12);
-
-  const modalRef = useRef<BottomSheetModal>(null);
-
-  // ✅ “Pantalla”: un único snap alto
-  const snapPoints = useMemo(() => ["92%"], []);
-
   const [confettiDone, setConfettiDone] = useState(false);
+
+  useEffect(() => {
+    setConfettiDone(false);
+  }, []);
 
   const data = useMemo(() => {
     const vol = esCompuesto ? calcVolumenComp(seriesComp) : calcVolumen(series);
@@ -156,13 +239,10 @@ export default function CelebracionSheet({
     const rpe = RPE_SCALE.find((r) => r.v === nivelEstres) ?? null;
     const n = esCompuesto ? seriesComp.length : series.length;
 
-    const volText = vol >= 1000 ? `${(vol / 1000).toFixed(1)} t` : `${vol.toFixed(0)} kg`;
-    const seriesText = `${n} serie${n !== 1 ? "s" : ""}`;
-
     return {
-      volText,
+      volText: vol >= 1000 ? `${(vol / 1000).toFixed(1)} t` : `${vol.toFixed(0)} kg`,
       kcalText: `${kcal} kcal`,
-      seriesText,
+      seriesText: `${n} serie${n !== 1 ? "s" : ""}`,
       bestText: best ? `${best.peso} kg × ${best.reps}` : null,
       bestSub: best ? `${(best.peso * best.reps).toFixed(0)} kg de volumen` : null,
       rpeText: rpe ? `RPE ${rpe.v} · ${rpe.label}` : null,
@@ -171,60 +251,18 @@ export default function CelebracionSheet({
     };
   }, [esCompuesto, series, seriesComp, nivelEstres]);
 
-  useEffect(() => {
-    if (visible) {
-      setConfettiDone(false);
-      modalRef.current?.present();
-    } else {
-      modalRef.current?.dismiss();
-    }
-  }, [visible]);
-
-  const close = () => modalRef.current?.dismiss();
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={0.55}
-        pressBehavior="close"
-      />
-    ),
-    []
-  );
-
   return (
-    <BottomSheetModal
-      ref={modalRef}
-      index={0}
-      snapPoints={snapPoints}
-      onDismiss={onFinish}
-      backdropComponent={renderBackdrop}
-      enablePanDownToClose
-      enableContentPanningGesture
-      enableOverDrag={false}
-      overDragResistanceFactor={0}
-      topInset={topInset}
-      backgroundStyle={{
-        backgroundColor: tok.sheetBg,
-        borderColor: tok.border,
-        borderWidth: 1,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)",
-        width: 44,
-      }}
-      // ✅ CLAVE: igual que PanelInfo
-      style={{
-        zIndex: 9999,
-        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
-      }}
-      containerStyle={{
-        zIndex: 9999,
-        ...(Platform.OS === "android" ? { elevation: 9999 } : null),
-      }}
+    <View
+      style={[
+        styles.overlay,
+        {
+          backgroundColor: isDark
+            ? tokens.color.overlayDark
+            : tokens.color.overlayLight,
+          paddingTop: insets.top + 10,
+          paddingBottom: Math.max(insets.bottom, 18),
+        },
+      ]}
     >
       {!confettiDone && (
         <LottieView
@@ -236,199 +274,195 @@ export default function CelebracionSheet({
         />
       )}
 
-      <BottomSheetScrollView
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          s.content,
-          { paddingBottom: 110 + insets.bottom }, // ✅ evita que el botón quede bajo el menú
-        ]}
-      >
-        {/* Header */}
-        <View style={s.header}>
-          <View style={[s.badge, { backgroundColor: t.accentDim, borderColor: tok.border }]}>
-            <Text style={s.badgeText}>✓</Text>
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={[s.hTitle, { color: tok.textPrimary }]}>Sesión registrada</Text>
-            <Text style={[s.hSub, { color: tok.textMuted }]}>Resumen de tu entrenamiento</Text>
-          </View>
-
-          <Pressable
-            onPress={close}
-            hitSlop={12}
-            style={[s.closeBtn, { backgroundColor: tok.chip, borderColor: tok.border }]}
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar"
+      {/* Sin ScrollView — el contenido se distribuye con flex */}
+      <View style={styles.inner}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <Text
+            style={[
+              styles.heroTitle,
+              {
+                color: isDark
+                  ? tokens.color.textPrimaryDark
+                  : tokens.color.textPrimaryLight,
+              },
+            ]}
           >
-            <Text style={[s.closeText, { color: tok.textPrimary }]}>✕</Text>
-          </Pressable>
-        </View>
+            Sesión completada
+          </Text>
 
-        {/* Chips */}
-        <View style={s.chipsRow}>
-          <Chip isDark={isDark} text={data.seriesText} />
-          {!!data.rpeText && <Chip isDark={isDark} text={data.rpeText} />}
-          <Chip isDark={isDark} text="Guardado" />
+          <Text
+            style={[
+              styles.heroSubtitle,
+              {
+                color: isDark
+                  ? tokens.color.textSecondaryDark
+                  : tokens.color.textSecondaryLight,
+              },
+            ]}
+          >
+            Tu entrenamiento se ha guardado correctamente
+          </Text>
         </View>
 
         {/* Stats */}
-        <View style={s.grid}>
-          <StatCard isDark={isDark} title="Volumen total" value={data.volText} sub={data.seriesText} glyph="◈" />
-          <StatCard isDark={isDark} title="Calorías" value={data.kcalText} sub="estimación" image={iconKcal} />
+        <View style={styles.stats}>
+          <StatCard
+            isDark={isDark}
+            title="Volumen total"
+            value={data.volText}
+            sub={data.seriesText}
+          />
+          <StatCard
+            isDark={isDark}
+            title="Calorías"
+            value={data.kcalText}
+            sub="estimación"
+            image={iconKcal}
+          />
           {data.bestText ? (
-            <StatCard isDark={isDark} title="Mejor serie" value={data.bestText} sub={data.bestSub ?? undefined} glyph="◆" />
+            <StatCard
+              isDark={isDark}
+              title="Mejor serie"
+              value={data.bestText}
+              sub={data.bestSub ?? undefined}
+            />
           ) : (
-            <StatCard isDark={isDark} title="Esfuerzo percibido" value={data.rpeText ?? "—"} sub={data.rpeSub ?? undefined} glyph="◉" />
+            <StatCard
+              isDark={isDark}
+              title="Esfuerzo percibido"
+              value={data.rpeText ?? "—"}
+              sub={data.rpeSub ?? undefined}
+            />
           )}
-          <StatCard isDark={isDark} title="Experiencia" value={data.expText} sub="Sesión completada" image={iconExp} />
+          <StatCard
+            isDark={isDark}
+            title="Experiencia"
+            value={data.expText}
+            sub="sesión completada"
+            image={iconExp}
+          />
         </View>
 
-        {/* CTA */}
-        <View style={[s.footer, { borderTopColor: tok.border }]}>
-          <Text style={[s.footerHint, { color: tok.textMuted }]}>
-            Tip: la consistencia gana. Un poco cada día suma.
-          </Text>
-
-          <Pressable
-            onPress={close}
-            style={[s.primaryBtn, { backgroundColor: t.accent }]}
-            accessibilityRole="button"
-            accessibilityLabel="Continuar"
+        {/* CTA outline monocromo */}
+        <Pressable onPress={onFinish} style={styles.ctaWrap}>
+          <View
+            style={[
+              styles.cta,
+              {
+                borderColor: isDark
+                  ? tokens.color.ctaBorderDark
+                  : tokens.color.ctaBorderLight,
+              },
+            ]}
           >
-            <Text style={s.primaryText}>Continuar</Text>
-          </Pressable>
-        </View>
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+            <Text
+              style={[
+                styles.ctaText,
+                {
+                  color: isDark
+                    ? tokens.color.textPrimaryDark
+                    : tokens.color.textPrimaryLight,
+                },
+              ]}
+            >
+              Continuar
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  content: {
-    paddingHorizontal: t.sp.xl,
-    paddingTop: t.sp.lg,
-    gap: t.sp.lg,
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999999,
+    elevation: 999999,
   },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: t.sp.md,
-  },
-  badge: {
-    width: 44,
-    height: 44,
-    borderRadius: t.r.full,
-    borderWidth: 1,
-    alignItems: "center",
+  // Ocupa todo el espacio disponible, sin scroll
+  inner: {
+    flex: 1,
+    paddingHorizontal: 24,
     justifyContent: "center",
+    gap: 24,
   },
-  badgeText: {
-    color: t.accent,
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  hTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: -0.2,
-  },
-  hSub: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: t.r.full,
-    borderWidth: 1,
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
   },
-  closeText: {
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    textAlign: "center",
+  },
+  heroSubtitle: {
+    marginTop: 8,
     fontSize: 14,
-    fontWeight: "900",
+    lineHeight: 22,
+    fontWeight: "600",
+    textAlign: "center",
   },
-
-  chipsRow: {
-    flexDirection: "row",
-    gap: t.sp.sm,
-    flexWrap: "wrap",
-  },
-  chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: t.r.full,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: "800",
-  },
-
-  grid: {
-    gap: t.sp.md,
+  stats: {
+    gap: 10,
   },
   statCard: {
-    borderRadius: t.r.md,
-    borderWidth: 1,
-    padding: t.sp.md,
+    borderRadius: 18,
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: t.sp.md,
+    gap: 14,
   },
-  statIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: t.r.full,
+  statIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: tokens.radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
-  statGlyph: {
-    fontSize: 18,
-    fontWeight: "900",
+  statIconImg: {
+    width: 22,
+    height: 22,
+  },
+  statIconDot: {
+    width: 12,
+    height: 12,
+    borderRadius: tokens.radius.full,
+    backgroundColor: tokens.color.accent,
   },
   statTitle: {
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.0,
+    letterSpacing: 1,
     textTransform: "uppercase",
   },
   statValue: {
     marginTop: 3,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "900",
     letterSpacing: -0.4,
   },
   statSub: {
-    marginTop: 3,
+    marginTop: 4,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: "600",
   },
-
-  footer: {
-    borderTopWidth: 1,
-    paddingTop: t.sp.lg,
-    gap: t.sp.md,
+  ctaWrap: {
+    // sin margen extra, el gap del inner lo gestiona
   },
-  footerHint: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  primaryBtn: {
-    height: 46,
-    borderRadius: t.r.full,
+  cta: {
+    height: 54,
+    borderRadius: tokens.radius.full,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: '#22C55E'
   },
-  primaryText: {
-    color: "#0A0A0A",
-    fontSize: 14,
+  ctaText: {
+    fontSize: 15,
     fontWeight: "900",
     letterSpacing: 0.2,
   },

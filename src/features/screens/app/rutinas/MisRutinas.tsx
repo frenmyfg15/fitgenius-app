@@ -13,12 +13,19 @@ import {
   Platform,
   Pressable,
   Modal,
+  Easing,
 } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PenLine, Dumbbell } from "lucide-react-native";
+import {
+  PenLine,
+  Dumbbell,
+  Sparkles,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react-native";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
@@ -95,6 +102,50 @@ export default function MisRutinasScreen() {
   const [mostrarContinuarModal, setMostrarContinuarModal] = useState(false);
   const [continuarTipo, setContinuarTipo] = useState<"edit" | "crear" | null>(null);
 
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fabAnim, {
+      toValue: fabOpen ? 1 : 0,
+      duration: fabOpen ? 220 : 180,
+      easing: fabOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [fabOpen, fabAnim]);
+
+  const getItemAnimStyle = (index: number) => {
+    const delayFactor = index * 0.08;
+
+    const t = fabAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 1],
+    });
+
+    const opacity = t.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [0, 1],
+      extrapolate: "clamp",
+    });
+
+    const translateY = t.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [12, 0],
+      extrapolate: "clamp",
+    });
+
+    const scale = t.interpolate({
+      inputRange: [0 + delayFactor, 1],
+      outputRange: [0.92, 1],
+      extrapolate: "clamp",
+    });
+
+    return {
+      opacity,
+      transform: [{ translateY }, { scale }],
+    };
+  };
+
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
@@ -143,6 +194,11 @@ export default function MisRutinasScreen() {
     navigation.navigate("CrearRutina");
   }, [navigation]);
 
+  const handleCrearRutina = useCallback(() => {
+    setFabOpen(false);
+    navigation.navigate("CrearRutina");
+  }, [navigation]);
+
   const screenH = Dimensions.get("window").height;
   const slideY = useRef(new Animated.Value(screenH)).current;
   const [refreshing, setRefreshing] = useState(false);
@@ -184,6 +240,16 @@ export default function MisRutinasScreen() {
   const rutinasCount = rutinas.length;
   const rutinaActiva = useMemo(
     () => rutinas.find((r: any) => String(r.id) === String(rutinaActivaId)),
+    [rutinas, rutinaActivaId]
+  );
+
+  const rutinasSorted = useMemo(
+    () =>
+      [...rutinas].sort((a: any, b: any) => {
+        const aActiva = String(a.id) === String(rutinaActivaId) ? -1 : 0;
+        const bActiva = String(b.id) === String(rutinaActivaId) ? -1 : 0;
+        return aActiva - bActiva;
+      }),
     [rutinas, rutinaActivaId]
   );
 
@@ -233,74 +299,11 @@ export default function MisRutinasScreen() {
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: surface, borderColor: border },
-          ]}
-        >
-          <View style={styles.summaryTop}>
-            <View
-              style={[styles.summaryIcon, { backgroundColor: primarySoft }]}
-            >
-              <Dumbbell size={18} color={tokens.color.primary} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.summaryTitle, { color: titleColor }]}>
-                {rutinasCount === 0
-                  ? "Empieza tu biblioteca de rutinas"
-                  : `${rutinasCount} ${rutinasCount === 1 ? "rutina guardada" : "rutinas guardadas"
-                  }`}
-              </Text>
-
-              <Text style={[styles.summaryText, { color: textColor }]}>
-                {rutinaActiva
-                  ? `Rutina activa: ${rutinaActiva.nombre}`
-                  : "Todavía no tienes una rutina activa seleccionada."}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate("CrearRutina")}
-              style={[
-                styles.primaryAction,
-                { backgroundColor: tokens.color.primary },
-              ]}
-            >
-              <PenLine size={16} color="#081117" />
-              <Text style={styles.primaryActionText}>Crear rutina</Text>
-            </TouchableOpacity>
-
-            <View style={styles.secondaryActionWrap}>
-              <IaGenerate
-                onCreate={() => {
-                  reloadRutinas();
-                }}
-              />
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={[styles.sectionTitle, { color: titleColor }]}>
-              Biblioteca de rutinas
-            </Text>
-            <Text style={[styles.sectionText, { color: textColor }]}>
-              Toca una rutina para verla, editarla o utilizarla.
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.content}>
           {loading ? (
             <MisRutinasSkeleton />
           ) : rutinas.length > 0 ? (
-            <MisRutinas rutinas={rutinas as Rutina[]} mostrar={mostrar} />
+            <MisRutinas rutinas={rutinasSorted as Rutina[]} mostrar={mostrar} />
           ) : (
             <MensajeVacio
               titulo="Aún no tienes una rutina"
@@ -313,6 +316,89 @@ export default function MisRutinasScreen() {
           )}
         </View>
       </ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.fabWrap,
+          { bottom: Platform.OS === "ios" ? 118 : 132 },
+        ]}
+      >
+        <View style={styles.fabInner}>
+          <Animated.View
+            pointerEvents={fabOpen ? "auto" : "none"}
+            style={{
+              marginBottom: 12,
+              alignItems: "flex-end",
+              opacity: fabAnim,
+              transform: [
+                {
+                  translateY: fabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [6, 0],
+                  }),
+                },
+              ],
+            }}
+          >
+            <View style={styles.fabOptions}>
+              <Animated.View style={getItemAnimStyle(1)}>
+                <TouchableOpacity
+                  onPress={handleCrearRutina}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.fabAction,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.10)"
+                        : "rgba(0,0,0,0.08)",
+                    },
+                  ]}
+                >
+                  <PenLine size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+                </TouchableOpacity>
+              </Animated.View>
+
+              <Animated.View style={getItemAnimStyle(0)}>
+                <View
+                  style={[
+                    styles.iaFabSlot,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.10)"
+                        : "rgba(0,0,0,0.08)",
+                    },
+                  ]}
+                >
+                  <IaGenerate
+                    onCreate={() => {
+                      setFabOpen(false);
+                      reloadRutinas();
+                    }}
+                  />
+                </View>
+              </Animated.View>
+            </View>
+          </Animated.View>
+
+          <TouchableOpacity
+            onPress={() => setFabOpen((v) => !v)}
+            activeOpacity={0.9}
+            style={[
+              styles.fabMain,
+              {
+                backgroundColor: isDark ? "#1a2538" : "#111827",
+              },
+            ]}
+          >
+            {fabOpen ? (
+              <ChevronDown size={22} color="#e5e7eb" />
+            ) : (
+              <ChevronUp size={22} color="#e5e7eb" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Animated.View
         style={[styles.visorOverlay, { transform: [{ translateY: slideY }] }]}
@@ -424,7 +510,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: tokens.spacing.md,
     paddingTop: tokens.spacing.xl,
-    paddingBottom: tokens.spacing.tabBarSafe,
+    paddingBottom: 150,
   },
 
   header: {
@@ -478,45 +564,40 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  quickActions: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-  },
-  primaryAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
-  },
-  primaryActionText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#081117",
-  },
-  secondaryActionWrap: {
-    flexShrink: 1,
-  },
-
-  sectionHeader: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  sectionText: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "500",
-  },
-
   content: {
     width: "100%",
+  },
+
+  fabWrap: {
+    position: "absolute",
+    right: 20,
+    zIndex: 30
+  },
+  fabInner: {
+    alignItems: "flex-end",
+  },
+  fabOptions: {
+    gap: 14,
+    alignItems: "flex-end",
+  },
+  fabAction: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iaFabSlot: {
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  fabMain: {
+    width: 50,
+    height: 50,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
   },
 
   visorOverlay: {

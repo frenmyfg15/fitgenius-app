@@ -153,24 +153,40 @@ function CardRutina({ rutina, activa, onPress, isDark }: { rutina: Rutina; activ
     </Pressable>
   );
 
+  if (activa) {
+    return (
+      <View className="flex justify-center w-full max-w-[360px]">
+        <LinearGradient colors={marcoGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}>
+          {isDark ? (
+            <LinearGradient
+              colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: 16, borderWidth: 1, borderColor: cardBorderDark, overflow: "hidden" }}
+            >
+              {Inner}
+            </LinearGradient>
+          ) : (
+            <View className="rounded-2xl" style={{ backgroundColor: "#ffffff", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+              {Inner}
+            </View>
+          )}
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
-    <View className="flex justify-center w-full max-w-[360px]">
-      <LinearGradient colors={marcoGradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 16, padding: 1, overflow: "hidden" }}>
-        {isDark ? (
-          <LinearGradient
-            colors={[cardBgDarkA, cardBgDarkB, cardBgDarkA]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 16, borderWidth: 1, borderColor: cardBorderDark, overflow: "hidden" }}
-          >
-            {Inner}
-          </LinearGradient>
-        ) : (
-          <View className="rounded-2xl" style={{ backgroundColor: "#ffffff", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
-            {Inner}
-          </View>
-        )}
-      </LinearGradient>
+    <View className="flex justify-center w-full max-w-[360px]" style={{ borderRadius: 16, overflow: "hidden" }}>
+      {isDark ? (
+        <View style={{ borderRadius: 16, borderWidth: 1, borderColor: cardBorderDark, overflow: "hidden" }}>
+          {Inner}
+        </View>
+      ) : (
+        <View style={{ borderRadius: 16, borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", backgroundColor: "#ffffff", overflow: "hidden" }}>
+          {Inner}
+        </View>
+      )}
     </View>
   );
 }

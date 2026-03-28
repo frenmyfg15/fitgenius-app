@@ -83,7 +83,8 @@ export default function CaloriasQuemadasCard({ total, promedio, detalle }: Props
     const L: string[] = [];
     const V: number[] = [];
     for (const d of detalle ?? []) {
-      const dt = new Date(d.fecha);
+      const [fy, fm, fd] = d.fecha.slice(0, 10).split("-").map(Number);
+      const dt = new Date(fy, fm - 1, fd);
       const nombre = dt
         .toLocaleDateString("es-ES", { weekday: "short" })
         .replace(/\.$/, "");

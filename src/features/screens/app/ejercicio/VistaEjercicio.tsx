@@ -10,7 +10,6 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  ScrollView,
   Animated,
   Easing,
 } from "react-native";
@@ -54,6 +53,7 @@ import CoachFeedbackModal from "@/shared/components/ejercicio/CoachFeedbackModal
 import ExerciseQuestionModal from "@/shared/components/ejercicio/ExerciseQuestionModal";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import AlertaConfirmacion from "@/shared/components/ui/AlertaConfirmacion";
+import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
 
 /* ---------------- Vista (sólo UI) ---------------- */
 export default function VistaEjercicio() {
@@ -80,9 +80,9 @@ export default function VistaEjercicio() {
   const ignoreExitGuardRef = useRef(false);
   const initialSimpleRef = useRef("");
   const initialCompRef = useRef("");
+  const { present, dismiss } = useOverlayPresenter();
 
-  // ✅ Animación FAB (acciones)
-  const fabAnim = useRef(new Animated.Value(0)).current; // 0 cerrado, 1 abierto
+  const fabAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fabAnim, {
@@ -158,7 +158,7 @@ export default function VistaEjercicio() {
     mostrarCoach,
     ocultarCoach,
     coachAutoDisabled,
-    setCoachAutoDisabledPersist
+    setCoachAutoDisabledPersist,
   } = useVistaEjercicioState({
     slug,
     asignadoId,
@@ -244,22 +244,28 @@ export default function VistaEjercicio() {
     setSeriesComp((prev) => prev.filter((_, i) => i !== sIdx));
   }, []);
 
-  const guardarSesionReal = useCallback(() => {
+  const guardarSesionReal = useCallback(async () => {
     if (esCompuesto) {
-      return guardarSeriesCompuesto(seriesComp);
+      return await guardarSeriesCompuesto(seriesComp);
     }
-    return guardarSeries();
+    return await guardarSeries();
   }, [esCompuesto, guardarSeriesCompuesto, guardarSeries, seriesComp]);
 
-  const handleGuardar = useCallback(() => {
+  const handleGuardar = useCallback(async () => {
     if (nivelEstres == null) {
       setEstresModalVisible(true);
       return;
     }
-    setFestejo(true);
-  }, [nivelEstres, setFestejo]);
 
-  const handleConfirmNivelEstres = useCallback(() => {
+    const ok = await guardarSesionReal();
+    if (!ok) return;
+
+    ignoreExitGuardRef.current = true;
+    setHasSaved(true);
+    setFestejo(true);
+  }, [nivelEstres, guardarSesionReal]);
+
+  const handleConfirmNivelEstres = useCallback(async () => {
     if (nivelEstres == null) {
       Toast.show({
         type: "info",
@@ -268,9 +274,29 @@ export default function VistaEjercicio() {
       });
       return;
     }
+
     setEstresModalVisible(false);
+
+    const ok = await guardarSesionReal();
+    if (!ok) return;
+
+    ignoreExitGuardRef.current = true;
+    setHasSaved(true);
+    present(
+      <CelebracionModal
+        series={esCompuesto ? [] : series}
+        seriesComp={esCompuesto ? seriesComp : []}
+        nivelEstres={nivelEstres}
+        esCompuesto={esCompuesto}
+        onFinish={() => {
+          dismiss();
+          setFestejo(false);
+          navigation.goBack();
+        }}
+      />
+    );
     setFestejo(true);
-  }, [nivelEstres, setFestejo]);
+  }, [nivelEstres, guardarSesionReal]);
 
   const handleGoToPayment = useCallback(() => {
     navigation.navigate("Perfil", {
@@ -294,12 +320,11 @@ export default function VistaEjercicio() {
     mostrarCoach();
   }, [isPremium, handleGoToPayment, mostrarCoach]);
 
-  // ── snapshots para saber si tocó algo ──────────────────────────────
   const simpleSnapshot = useMemo(() => {
     return JSON.stringify(
       (series ?? []).map((s: any) => ({
-        repeticiones: s?.repeticiones ?? "",
-        pesoKg: s?.pesoKg ?? "",
+        repeticiones: s?.reps ?? "",
+        pesoKg: s?.peso ?? "",
         tiempoSeg: s?.tiempoSeg ?? "",
       }))
     );
@@ -311,7 +336,7 @@ export default function VistaEjercicio() {
         serie.map((r) => ({
           ejercicioId: r?.ejercicioId,
           repeticiones: r?.repeticiones ?? "",
-          pesoKg: r?.pesoKg ?? ""
+          pesoKg: r?.pesoKg ?? "",
         }))
       )
     );
@@ -319,6 +344,7 @@ export default function VistaEjercicio() {
 
   useEffect(() => {
     setHasSaved(false);
+    ignoreExitGuardRef.current = false;
     initialSimpleRef.current = "";
     initialCompRef.current = "";
   }, [slug, asignadoId, ejercicio?.id, ejercicio?.ejercicioCompuestoId]);
@@ -350,7 +376,7 @@ export default function VistaEjercicio() {
   }, [ejercicio, hasSaved, esCompuesto, simpleSnapshot, compSnapshot]);
 
   const debeAdvertirSalida =
-    !!esSiguiente && !hasSaved && !guardando;
+    !!esSiguiente && hayCambiosPendientes && !hasSaved && !guardando;
 
   usePreventRemove(debeAdvertirSalida, ({ data }) => {
     if (ignoreExitGuardRef.current) return;
@@ -358,7 +384,6 @@ export default function VistaEjercicio() {
     exitActionRef.current = () => navigation.dispatch(data.action);
     setConfirmExitVisible(true);
   });
-
 
   if (!ejercicio) {
     return (
@@ -438,20 +463,27 @@ export default function VistaEjercicio() {
           }
           series={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.series
+              ? undefined
               : ejercicio.ejercicioAsignado?.seriesSugeridas
           }
           repeticiones={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.repeticiones
+              ? undefined
               : ejercicio.ejercicioAsignado?.repeticionesSugeridas
           }
           peso={
             esCompuesto
-              ? ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.[0]?.pesoSugerido
+              ? undefined
               : ejercicio.ejercicioAsignado?.pesoSugerido
           }
           esCardio={esCardio}
+          esCompuesto={esCompuesto}
+          nombreCompuesto={ejercicio.ejercicioCompuesto?.nombre}
+          tipoCompuesto={ejercicio.ejercicioCompuesto?.tipoCompuesto}
+          cantidadEjercicios={
+            ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.length
+          }
+          descansoSeg={ejercicio.ejercicioAsignado?.descansoSeg}
         />
 
         {esCompuesto ? (
@@ -470,61 +502,102 @@ export default function VistaEjercicio() {
           />
         )}
 
-        <View className="w-full max-w-md mt-3 flex-row gap-3 items-center">
-          <TouchableOpacity
-            onPress={esCompuesto ? addSerieComp : agregar}
-            disabled={guardando}
-            className={
-              "p-2 rounded-full shadow-md items-center justify-center " +
-              (isDark ? "bg-white/10" : "bg-zinc-800")
-            }
-            activeOpacity={0.85}
-          >
-            <PlusCircle size={20} color={isDark ? "#e5e7eb" : "#fff"} />
-          </TouchableOpacity>
+        <View className="w-full max-w-md mt-4 gap-3">
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={esCompuesto ? addSerieComp : agregar}
+              disabled={guardando}
+              activeOpacity={0.88}
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#111827",
+                opacity: guardando ? 0.45 : 1,
+              }}
+            >
+              <PlusCircle size={18} color={isDark ? "#e5e7eb" : "#fff"} />
+              <Text
+                style={{
+                  color: isDark ? "#e5e7eb" : "#fff",
+                  fontSize: 14,
+                  fontWeight: "700",
+                }}
+              >
+                Añadir serie
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => {
-              if (esCompuesto) {
-                if (seriesComp.length > 1) removeSerieComp(seriesComp.length - 1);
-              } else {
-                quitar();
-              }
-            }}
-            disabled={
-              guardando ||
-              (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
-            }
-            className={
-              "p-2 rounded-full shadow-md items-center justify-center " +
-              (isDark ? "bg-white/10" : "bg-zinc-800")
-            }
-            style={{
-              opacity:
+            <TouchableOpacity
+              onPress={() => {
+                if (esCompuesto) {
+                  if (seriesComp.length > 1) removeSerieComp(seriesComp.length - 1);
+                } else {
+                  quitar();
+                }
+              }}
+              disabled={
                 guardando ||
-                  (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
-                  ? 0.6
-                  : 1,
-            }}
-            activeOpacity={0.85}
-          >
-            <MinusCircle size={20} color={isDark ? "#e5e7eb" : "#fff"} />
-          </TouchableOpacity>
+                (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
+              }
+              activeOpacity={0.88}
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#111827",
+                opacity:
+                  guardando ||
+                    (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
+                    ? 0.45
+                    : 1,
+              }}
+            >
+              <MinusCircle size={18} color={isDark ? "#e5e7eb" : "#fff"} />
+              <Text
+                style={{
+                  color: isDark ? "#e5e7eb" : "#fff",
+                  fontSize: 14,
+                  fontWeight: "700",
+                }}
+              >
+                Quitar serie
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             onPress={handleGuardar}
             disabled={guardando}
-            className="p-2 rounded-full items-center justify-center shadow-md"
+            activeOpacity={0.9}
+            className="w-full flex-row items-center justify-center gap-2 rounded-2xl px-4 py-4 shadow-md"
             style={{
               backgroundColor: "#22c55e",
-              opacity: guardando ? 0.6 : 1,
+              opacity: guardando ? 0.7 : 1,
             }}
-            activeOpacity={0.9}
           >
             {guardando ? (
-              <Loader2 size={18} color="#fff" className="animate-spin" />
+              <>
+                <Loader2 size={18} color="#fff" className="animate-spin" />
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 15,
+                    fontWeight: "800",
+                  }}
+                >
+                  Guardando...
+                </Text>
+              </>
             ) : (
-              <Check size={20} color="#fff" />
+              <>
+                <Check size={20} color="#fff" />
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 15,
+                    fontWeight: "800",
+                  }}
+                >
+                  Guardar sesión
+                </Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -631,16 +704,14 @@ export default function VistaEjercicio() {
             activeOpacity={0.9}
             style={{
               opacity: guardando ? 0.6 : 1,
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.10)"
-                : "rgba(0,0,0,0.10)",
+              backgroundColor: isDark ? "#1a2538" : "#111827",
             }}
             className={"p-3 rounded-full items-center justify-center mr-1 "}
           >
             {fabOpen ? (
-              <ChevronDown size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+              <ChevronDown size={22} color="#e5e7eb" />
             ) : (
-              <ChevronUp size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+              <ChevronUp size={22} color="#e5e7eb" />
             )}
           </TouchableOpacity>
         </View>
@@ -682,23 +753,6 @@ export default function VistaEjercicio() {
           visible={descansando}
           tiempo={tiempoRestante || 0}
           onFinalizar={finalizarDescanso}
-        />
-      )}
-
-      {festejo && (
-        <CelebracionModal
-          visible={festejo}
-          series={esCompuesto ? [] : series}
-          seriesComp={esCompuesto ? seriesComp : []}
-          nivelEstres={nivelEstres}
-          esCompuesto={esCompuesto}
-          onFinish={async () => {
-            await guardarSesionReal();
-            ignoreExitGuardRef.current = true;
-            setHasSaved(true);
-            setFestejo(false);
-            navigation.goBack();
-          }}
         />
       )}
 

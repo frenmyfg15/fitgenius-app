@@ -1,3 +1,4 @@
+// src/shared/components/rutinas-manuales/DiaRutinaView.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,7 +26,7 @@ type Props = {
   selectedOrden?: number | null;
 };
 
-/** Key estable (NO usar orden) */
+/** Key estable — usa ejercicioCompuestoId del padre para compuestos */
 function getStableKey(item: Item): string {
   const anyItem = item as any;
 
@@ -33,9 +34,14 @@ function getStableKey(item: Item): string {
 
   const esCompuesto = "compuesto" in anyItem && !!anyItem.compuesto;
   if (esCompuesto) {
+    // ✅ ID del padre — estable ante reordenamientos y ediciones
+    const compuestoId = anyItem.ejercicioCompuestoId ?? anyItem.compuestoId;
+    if (compuestoId != null) return `cmp:${String(compuestoId)}`;
+
+    // Fallback defensivo: nunca debería llegar aquí con datos nuevos
     const ejercicios = (anyItem as CompuestoItem).ejerciciosCompuestos ?? [];
     const ids = ejercicios
-      .map((e: any) => e?.ejercicioId ?? e?.ejercicioInfo?.id ?? "x")
+      .map((e: any) => e?.ejercicioId ?? "x")
       .join("|");
     return `cmp:${ids}`;
   }
@@ -203,12 +209,18 @@ export default function DiaRutinaView({
       const anyItem = item as any;
       const esCompuesto = "compuesto" in anyItem && !!anyItem.compuesto;
 
+      const cmp = esCompuesto ? (item as CompuestoItem) : null;
       const ejerciciosDelItem = (esCompuesto
-        ? (item as CompuestoItem).ejerciciosCompuestos
+        ? cmp!.ejerciciosCompuestos
         : [item as EjercicioItem]) as EjercicioAsignadoInput[];
 
       const principal = ejerciciosDelItem[0];
       const imageSize = esCompuesto ? 60 : 110;
+
+      // ✅ Muestra el nombre real del compuesto — con fallback defensivo
+      const tituloItem = esCompuesto
+        ? (cmp!.nombreCompuesto?.trim() || `Compuesto (${ejerciciosDelItem.length})`)
+        : principal?.ejercicioInfo?.nombre;
 
       return (
         <View
@@ -288,9 +300,7 @@ export default function DiaRutinaView({
                     color: textPrimary,
                   }}
                 >
-                  {esCompuesto
-                    ? `Compuesto (${ejerciciosDelItem.length})`
-                    : principal.ejercicioInfo?.nombre}
+                  {tituloItem}
                 </Text>
 
                 <View
@@ -301,15 +311,31 @@ export default function DiaRutinaView({
                     gap: 8,
                   }}
                 >
-                  <Chip isDark={isDark}>
-                    Series: {principal.seriesSugeridas ?? "-"}
-                  </Chip>
-                  <Chip isDark={isDark}>
-                    Reps: {principal.repeticionesSugeridas ?? "-"}
-                  </Chip>
-                  <Chip isDark={isDark}>
-                    Peso: {formatWeight(principal.pesoSugerido)}
-                  </Chip>
+                  {esCompuesto ? (
+                    <>
+                      <Chip isDark={isDark}>
+                        {cmp!.tipoCompuesto ?? "-"}
+                      </Chip>
+                      <Chip isDark={isDark}>
+                        Descanso: {cmp!.descansoCompuesto ?? 0}s
+                      </Chip>
+                      <Chip isDark={isDark}>
+                        {ejerciciosDelItem.length} ejercicios
+                      </Chip>
+                    </>
+                  ) : (
+                    <>
+                      <Chip isDark={isDark}>
+                        Series: {principal?.seriesSugeridas ?? "-"}
+                      </Chip>
+                      <Chip isDark={isDark}>
+                        Reps: {principal?.repeticionesSugeridas ?? "-"}
+                      </Chip>
+                      <Chip isDark={isDark}>
+                        Peso: {formatWeight(principal?.pesoSugerido)}
+                      </Chip>
+                    </>
+                  )}
                 </View>
               </View>
             </Pressable>

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+// src/shared/hooks/useCrearRutinaState.ts
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Dimensions } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -19,6 +20,8 @@ import type {
   EjercicioAsignadoInput,
   EjercicioCompuestoTemporal,
   Item,
+  CompuestoItem,
+  EjercicioItem,
 } from "@/features/type/crearRutina";
 import { useRutinaReducer } from "@/shared/hooks/useRutinaReducer";
 
@@ -32,26 +35,30 @@ const DIAS: DiaSemana[] = [
   "DOMINGO",
 ];
 
+const MIN_EJERCICIOS_COMPUESTO = 2;
+
 const getValidId = (raw: unknown): number | undefined => {
   if (raw == null) return undefined;
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : undefined;
 };
 
+type EjercicioInitialValues = Partial<
+  Pick<
+    EjercicioAsignadoInput,
+    | "seriesSugeridas"
+    | "repeticionesSugeridas"
+    | "pesoSugerido"
+    | "descansoSeg"
+    | "notaIA"
+  >
+>;
+
 type EjercicioSeleccionadoState = {
   id: number;
   info: EjercicioVisualInfo;
   orden: number;
-  initialValues?: Partial<
-    Pick<
-      EjercicioAsignadoInput,
-      | "seriesSugeridas"
-      | "repeticionesSugeridas"
-      | "pesoSugerido"
-      | "descansoSeg"
-      | "notaIA"
-    >
-  >;
+  initialValues?: EjercicioInitialValues;
 };
 
 export function useCrearRutinaState() {
@@ -74,7 +81,10 @@ export function useCrearRutinaState() {
   const [ejercicioSeleccionado, setEjercicioSeleccionado] =
     useState<EjercicioSeleccionadoState | null>(null);
 
+  // ✅ modoCompuesto se mantiene true hasta que ControlesCompuesto
+  // haya podido hacer dismiss — se controla con compuestoConfirmado
   const [modoCompuesto, setModoCompuesto] = useState(false);
+  const [compuestoConfirmado, setCompuestoConfirmado] = useState(false);
   const [compuestoTemporal, setCompuestoTemporal] = useState<EjercicioCompuestoTemporal[]>([]);
   const [ejercicioEnCompuestoActual, setEjercicioEnCompuestoActual] = useState<{
     id: number;
@@ -143,20 +153,45 @@ export function useCrearRutinaState() {
 
   const iniciarCompuesto = () => {
     setModoCompuesto(true);
+    setCompuestoConfirmado(false);
     setMostrarBuscador(true);
   };
 
   const confirmarCompuesto = () => {
-    if (compuestoTemporal.length === 0) {
+    // ✅ Validación mínimo 2 ejercicios
+    if (compuestoTemporal.length < MIN_EJERCICIOS_COMPUESTO) {
       Toast.show({
         type: "info",
-        text1: "Compuesto vacío",
-        text2: "Añade al menos 1 ejercicio antes de confirmar.",
+        text1: "Ejercicios insuficientes",
+        text2: `Añade al menos ${MIN_EJERCICIOS_COMPUESTO} ejercicios para crear un compuesto.`,
       });
       return;
     }
     setMostrarFormularioCompuesto(true);
   };
+
+  // ✅ Llamado desde CrearRutinaScreen cuando FormularioCompuesto confirma
+  // Marca el compuesto como confirmado para que ControlesCompuesto
+  // pueda hacer dismiss antes de desmontarse
+  const finalizarCompuesto = useCallback(() => {
+    setCompuestoConfirmado(true);
+    setMostrarFormularioCompuesto(false);
+  }, []);
+
+  // ✅ Llamado desde ControlesCompuesto.onCancelar — limpia todo
+  const cancelarModoCompuesto = useCallback(() => {
+    setModoCompuesto(false);
+    setCompuestoConfirmado(false);
+    setCompuestoTemporal([]);
+  }, []);
+
+  // ✅ Llamado cuando ControlesCompuesto termina su dismiss
+  // (compuesto.length === 0 → useEffect interno → dismiss → aquí)
+  const cerrarModoCompuesto = useCallback(() => {
+    setModoCompuesto(false);
+    setCompuestoConfirmado(false);
+    setCompuestoTemporal([]);
+  }, []);
 
   // ─── Guardar rutina ───────────────────────────────────────────────────────────
 
@@ -244,27 +279,30 @@ export function useCrearRutinaState() {
     if (!haySeleccion) return;
     const ej = ejerciciosDia[selectedIndex!];
 
-    if ("compuesto" in ej && ej.compuesto) {
+    if ("compuesto" in ej && ej.compuesto === true) {
+      const cmp = ej as CompuestoItem;
+      const compuestoId = (cmp as any).ejercicioCompuestoId as number;
       setEditarCompuesto({
-        compuestoId: ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
-        orden: ej.orden,
-        ejercicios: ej.ejerciciosCompuestos!,
-        nombre: ej.nombreCompuesto!,
-        tipo: ej.tipoCompuesto!,
-        descansoSeg: ej.descansoCompuesto ?? 0,
+        compuestoId,
+        orden: cmp.orden,
+        ejercicios: cmp.ejerciciosCompuestos as any,
+        nombre: cmp.nombreCompuesto,
+        tipo: cmp.tipoCompuesto,
+        descansoSeg: cmp.descansoCompuesto ?? 0,
       });
     } else {
+      const ejItem = ej as EjercicioItem;
       setEditarCompuesto(null);
       setEjercicioSeleccionado({
-        id: ej.ejercicioId!,
-        info: ej.ejercicioInfo!,
-        orden: ej.orden,
+        id: ejItem.ejercicioId,
+        info: ejItem.ejercicioInfo,
+        orden: ejItem.orden,
         initialValues: {
-          seriesSugeridas: ej.seriesSugeridas,
-          repeticionesSugeridas: ej.repeticionesSugeridas,
-          pesoSugerido: ej.pesoSugerido,
-          descansoSeg: ej.descansoSeg,
-          notaIA: ej.notaIA,
+          seriesSugeridas: ejItem.seriesSugeridas,
+          repeticionesSugeridas: ejItem.repeticionesSugeridas,
+          pesoSugerido: ejItem.pesoSugerido,
+          descansoSeg: ejItem.descansoSeg,
+          notaIA: ejItem.notaIA,
         },
       });
       setEditandoEjercicio(true);
@@ -275,12 +313,13 @@ export function useCrearRutinaState() {
     if (!haySeleccion) return;
     const ej = ejerciciosDia[selectedIndex!];
 
-    if ("compuesto" in ej && ej.compuesto) {
+    if ("compuesto" in ej && ej.compuesto === true) {
+      const compuestoId = (ej as any).ejercicioCompuestoId as number;
       dispatch({
         type: "REMOVE_EJERCICIO",
         payload: {
           diaSemana: diaSelect,
-          compuestoId: ej.ejerciciosCompuestos?.[0]?.ejercicioCompuestoId!,
+          compuestoId,
         },
       });
     } else {
@@ -301,7 +340,10 @@ export function useCrearRutinaState() {
     ];
     dispatch({
       type: "REORDER_EJERCICIOS",
-      payload: { diaSemana: diaSelect, ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })) },
+      payload: {
+        diaSemana: diaSelect,
+        ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })),
+      },
     });
     setSelectedIndex(selectedIndex! - 1);
   };
@@ -315,7 +357,10 @@ export function useCrearRutinaState() {
     ];
     dispatch({
       type: "REORDER_EJERCICIOS",
-      payload: { diaSemana: diaSelect, ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })) },
+      payload: {
+        diaSemana: diaSelect,
+        ejercicios: nueva.map((e, i) => ({ ...e, orden: i + 1 })),
+      },
     });
     setSelectedIndex(selectedIndex! + 1);
   };
@@ -354,6 +399,7 @@ export function useCrearRutinaState() {
     setEjercicioSeleccionado,
 
     modoCompuesto,
+    compuestoConfirmado,
     setModoCompuesto,
     compuestoTemporal,
     setCompuestoTemporal,
@@ -370,6 +416,9 @@ export function useCrearRutinaState() {
 
     iniciarCompuesto,
     confirmarCompuesto,
+    finalizarCompuesto,
+    cancelarModoCompuesto,
+    cerrarModoCompuesto,
     handleCrearRutina,
     handleCancelarEdicion,
     handleEditarSeleccion,

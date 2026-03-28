@@ -290,7 +290,7 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
       } else {
         c = "verde";
       }
-      map.set(new Date(d.fecha).toISOString().slice(0, 10), c);
+      map.set(d.fecha.slice(0, 10), c);
     }
     return map;
   }, [detalles]);
@@ -298,7 +298,11 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
   const refDate = useMemo(() => {
     if (!detalles.length) return new Date();
     const valid = detalles
-      .map((d) => (d.fecha ? new Date(d.fecha) : null))
+      .map((d) => {
+        if (!d.fecha) return null;
+        const [fy, fm, fd] = d.fecha.slice(0, 10).split("-").map(Number);
+        return new Date(fy, fm - 1, fd);
+      })
       .filter((d): d is Date => !!d && !Number.isNaN(d.getTime()));
     return valid.length ? valid.reduce((a, b) => (b > a ? b : a)) : new Date();
   }, [detalles]);

@@ -142,20 +142,61 @@ function rutinaReducer(state: State, action: Action): State {
         ...state,
         dias: state.dias.map((dia) => ({
           ...dia,
-          ejercicios: dia.ejercicios.map((ej: any) =>
-            "compuesto" in ej &&
-              ej.ejerciciosCompuestos?.some(
-                (ec: any) => ec.ejercicioCompuestoId === compuestoId
-              )
-              ? {
+          ejercicios: dia.ejercicios.map((ej: any) => {
+            if (
+              "compuesto" in ej &&
+              ej.compuesto === true &&
+              ej.ejercicioCompuestoId === compuestoId
+            ) {
+              return {
                 ...ej,
                 nombreCompuesto: nombre,
                 tipoCompuesto: tipo,
                 descansoCompuesto: descansoSeg,
-              }
-              : ej
-          ),
+              };
+            }
+            return ej;
+          }),
         })),
+      };
+    }
+
+    case "UPDATE_COMPUESTO_COMPLETO": {
+      const { diaSemana, compuestoId, nombre, tipo, descansoSeg, ejercicios } =
+        action.payload;
+
+      return {
+        ...state,
+        dias: state.dias.map((dia) => {
+          if (dia.diaSemana !== diaSemana) return dia;
+
+          return {
+            ...dia,
+            ejercicios: dia.ejercicios.map((ej: any) => {
+              if (
+                "compuesto" in ej &&
+                ej.compuesto === true &&
+                ej.ejercicioCompuestoId === compuestoId
+              ) {
+                // ✅ Reemplaza hijos con orden normalizado + actualiza metadata
+                const hijosNormalizados = ejercicios.map((e, i) => ({
+                  ...(e as any),
+                  orden: i + 1,
+                  ejercicioCompuestoId: compuestoId,
+                }));
+
+                return {
+                  ...ej,
+                  nombreCompuesto: nombre,
+                  tipoCompuesto: tipo,
+                  descansoCompuesto: descansoSeg,
+                  ejerciciosCompuestos: hijosNormalizados,
+                };
+              }
+              return ej;
+            }),
+          };
+        }),
       };
     }
 
@@ -196,12 +237,10 @@ function rutinaReducer(state: State, action: Action): State {
         const original = dia.ejercicios ?? [];
         let filtered = original;
 
-        if (compuestoId) {
+        if (compuestoId !== undefined) {
           filtered = original.filter((ej: any) => {
             if (!("compuesto" in ej) || !ej.compuesto) return true;
-            const ecs = ej.ejerciciosCompuestos;
-            if (!Array.isArray(ecs) || ecs.length === 0) return true;
-            return ecs[0].ejercicioCompuestoId !== compuestoId;
+            return ej.ejercicioCompuestoId !== compuestoId;
           });
         } else if (typeof orden === "number") {
           filtered = original.filter((ej: any) => ej.orden !== orden);
@@ -235,11 +274,11 @@ function rutinaReducer(state: State, action: Action): State {
       const compuesto = {
         orden: maxOrden + 1,
         compuesto: true,
+        ejercicioCompuestoId: compuestoId,
         ejerciciosCompuestos: ejercicios,
         nombreCompuesto: nombre,
         tipoCompuesto: tipo,
         descansoCompuesto: descansoSeg,
-        ejercicioCompuestoId: compuestoId,
       } as any;
 
       if (diaIndex === -1) {

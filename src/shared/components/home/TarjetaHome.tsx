@@ -132,6 +132,7 @@ interface EjercicioCompuesto {
   id: number;
   nombre: string;
   tipoCompuesto: string;
+  ejerciciosComponentes?: any[];
 }
 
 interface EjercicioDia {
@@ -213,7 +214,10 @@ const formatPesoDisplay = (
 };
 
 const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
-  if (i.ejercicioCompuesto) return `${i.descansoSeg ?? 0} s descanso`;
+  if (i.ejercicioCompuesto) {
+    const count = i.ejercicioCompuesto.ejerciciosComponentes?.length ?? 0;
+    return `${count} ejercicios`;
+  }
   const sets = i.seriesSugeridas ?? "—";
   const reps = i.repeticionesSugeridas ?? "—";
   const peso =
@@ -458,7 +462,8 @@ const HeroEjercicio = memo(function HeroEjercicio({
 
   const statPills = useMemo(() => {
     if (isCompuesto) {
-      return [{ label: "Descanso", value: `${ejercicio.descansoSeg ?? 0}s` }];
+      const count = ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.length ?? 0;
+      return [{ label: "Ejercicios", value: String(count) }];
     }
     const pills: { label: string; value: string }[] = [];
     if (ejercicio.seriesSugeridas != null)

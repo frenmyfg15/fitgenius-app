@@ -137,9 +137,11 @@ export default function FormularioEjercicio({
   const placeholderColor = isDark ? "#64748b" : "#94a3b8";
 
   const schema = z.object({
-    seriesSugeridas: z
-      .number({ required_error: "Ingresa el número de series" })
-      .min(1, "Debe ser al menos 1"),
+    seriesSugeridas: esParteDeCompuesto
+      ? z.number().min(1, "Debe ser al menos 1").optional()
+      : z
+        .number({ required_error: "Ingresa el número de series" })
+        .min(1, "Debe ser al menos 1"),
     repeticionesSugeridas: z
       .number({ required_error: "Ingresa las repeticiones" })
       .min(1, "Debe ser al menos 1"),
@@ -188,7 +190,7 @@ export default function FormularioEjercicio({
     onConfirm({
       ejercicioId,
       orden: orden ?? initialValues?.orden ?? 0,
-      seriesSugeridas: parsed.data.seriesSugeridas,
+      seriesSugeridas: parsed.data.seriesSugeridas ?? 0,
       repeticionesSugeridas: parsed.data.repeticionesSugeridas,
       pesoSugerido: pesoSugeridoKg,
       descansoSeg: esParteDeCompuesto ? 0 : (parsed.data.descansoSeg ?? 0),
@@ -293,13 +295,13 @@ export default function FormularioEjercicio({
 
             <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
               <Field
-                label="Series"
+                label={esParteDeCompuesto ? "Series (opcional)" : "Series"}
                 value={seriesSugeridas}
                 onChangeText={(t) => {
                   setSeries(t.replace(/[^\d]/g, ""));
                   if (t !== "") clearError("seriesSugeridas");
                 }}
-                placeholder="Ej: 3"
+                placeholder={esParteDeCompuesto ? "Opcional" : "Ej: 3"}
                 error={errors.seriesSugeridas}
                 surface={surface}
                 textPrimary={textPrimary}

@@ -1,4 +1,4 @@
-// src/shared/components/rutina/FormularioCompuesto.tsx
+// src/shared/components/rutinas-manuales/FormularioCompuesto.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -46,12 +46,15 @@ export default function FormularioCompuesto({
   const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  // ✅ Distingue cierre por confirmación vs cancelación
+  const confirmedRef = useRef(false);
 
   const snapPoints = useMemo(() => ["100%"], []);
   const topInset = Math.max(insets.top, 12);
 
   useEffect(() => {
     if (visible) {
+      confirmedRef.current = false;
       const id = requestAnimationFrame(() => {
         bottomSheetModalRef.current?.present();
       });
@@ -81,9 +84,20 @@ export default function FormularioCompuesto({
 
   const canSubmit = nombre.trim().length > 0;
 
+  // ✅ X cancela explícitamente
   const closeSheet = useCallback(() => {
+    confirmedRef.current = false;
     bottomSheetModalRef.current?.dismiss();
   }, []);
+
+  // ✅ onDismiss distingue confirmación vs cancelación
+  const handleDismiss = useCallback(() => {
+    if (confirmedRef.current) {
+      confirmedRef.current = false;
+      return; // fue confirmación — el padre ya cerró con visible=false
+    }
+    onCancel();
+  }, [onCancel]);
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -104,7 +118,7 @@ export default function FormularioCompuesto({
       index={1}
       snapPoints={snapPoints}
       backdropComponent={renderBackdrop}
-      onDismiss={onCancel}
+      onDismiss={handleDismiss}
       enablePanDownToClose
       enableContentPanningGesture={false}
       enableOverDrag={false}
@@ -279,6 +293,8 @@ export default function FormularioCompuesto({
               <Pressable
                 onPress={() => {
                   if (!canSubmit) return;
+                  // ✅ Marca confirmación ANTES de dismiss
+                  confirmedRef.current = true;
                   onConfirm(nombre.trim(), tipo, descanso);
                   bottomSheetModalRef.current?.dismiss();
                 }}

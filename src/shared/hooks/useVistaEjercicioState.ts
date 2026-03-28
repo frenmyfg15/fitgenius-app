@@ -62,9 +62,8 @@ export function useVistaEjercicioState(params: Params) {
   const [coachVisible, setCoachVisible] = useState(false);
 
   const [coachAutoDisabled, setCoachAutoDisabled] = useState(false);
-  const [coachPrefLoaded, setCoachPrefLoaded] = useState(false); // ✅ nuevo flag
+  const [coachPrefLoaded, setCoachPrefLoaded] = useState(false);
   const didAutoShowRef = useRef<string | null>(null);
-
 
   const experienciaPlus = 1.25;
   const calorias = useRef(0);
@@ -84,10 +83,13 @@ export function useVistaEjercicioState(params: Params) {
   }, []);
 
   const getCompuestoId = useCallback((e: any): number | null => {
-    return toPositiveInt(e?.ejercicioCompuestoId) ?? toPositiveInt(e?.ejercicioCompuesto?.id) ?? null;
+    return (
+      toPositiveInt(e?.ejercicioCompuestoId) ??
+      toPositiveInt(e?.ejercicioCompuesto?.id) ??
+      null
+    );
   }, []);
 
-  // ✅ Leer preferencia de AsyncStorage y marcar como cargado al finalizar
   useEffect(() => {
     (async () => {
       try {
@@ -158,13 +160,14 @@ export function useVistaEjercicioState(params: Params) {
       }
 
       const simpleId =
-        Number.isFinite(Number(ejercicio?.ejercicioId)) && Number(ejercicio?.ejercicioId) > 0
-          ? Number(ejercicio.ejercicioId)
-          : Number.isFinite(Number(ejercicio?.ejercicio?.id)) && Number(ejercicio?.ejercicio?.id) > 0
-            ? Number(ejercicio.ejercicio.id)
-            : Number.isFinite(Number(ejercicio?.id)) && Number(ejercicio?.id) > 0
-              ? Number(ejercicio.id)
+        Number.isFinite(Number(data?.ejercicioId)) && Number(data?.ejercicioId) > 0
+          ? Number(data.ejercicioId)
+          : Number.isFinite(Number(data?.ejercicio?.id)) && Number(data?.ejercicio?.id) > 0
+            ? Number(data.ejercicio.id)
+            : Number.isFinite(Number(data?.id)) && Number(data?.id) > 0
+              ? Number(data.id)
               : undefined;
+
       if (!simpleId) {
         setStorageKey(null);
         return;
@@ -180,7 +183,7 @@ export function useVistaEjercicioState(params: Params) {
         if (Array.isArray(parsed)) setSeries(parsed);
       } catch { }
     },
-    [getSimpleEjercicioId, getCompuestoId]
+    [getCompuestoId]
   );
 
   useEffect(() => {
@@ -251,7 +254,6 @@ export function useVistaEjercicioState(params: Params) {
     setCoachVisible(false);
   }, []);
 
-  // ✅ Esperar a que cargue la preferencia antes de auto-mostrar
   useEffect(() => {
     if (!coachPrefLoaded) return;
 
@@ -271,7 +273,7 @@ export function useVistaEjercicioState(params: Params) {
     didAutoShowRef.current = key;
     mostrarCoach();
   }, [
-    coachPrefLoaded, // ✅ dependencia clave
+    coachPrefLoaded,
     usuario?.haPagado,
     coachAutoDisabled,
     ejercicio,
@@ -280,15 +282,15 @@ export function useVistaEjercicioState(params: Params) {
     mostrarCoach,
   ]);
 
-  const guardarSeries = async () => {
-    if (guardando) return;
-    if (!usuario?.id) return;
+  const guardarSeries = async (): Promise<boolean> => {
+    if (guardando) return false;
+    if (!usuario?.id) return false;
 
     const simpleId = getSimpleEjercicioId(ejercicio);
-    if (!simpleId) return;
+    if (!simpleId) return false;
 
     const ejercicioAsignadoId = asignadoId ? Number(asignadoId) : undefined;
-    if (!ejercicioAsignadoId || !Number.isFinite(ejercicioAsignadoId)) return;
+    if (!ejercicioAsignadoId || !Number.isFinite(ejercicioAsignadoId)) return false;
 
     const payload = {
       usuarioId: usuario.id,
@@ -308,7 +310,8 @@ export function useVistaEjercicioState(params: Params) {
       setUsuario({
         ...(usuario as UsuarioLogin),
         experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
-        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
+        caloriasMes:
+          Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
       } as UsuarioLogin);
 
       if (storageKey) await AsyncStorage.removeItem(storageKey);
@@ -320,6 +323,8 @@ export function useVistaEjercicioState(params: Params) {
         setCoachVisible(true);
         fetchCoach();
       }
+
+      return true;
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -329,6 +334,7 @@ export function useVistaEjercicioState(params: Params) {
           text1: "No se pudo guardar la sesión",
         });
       }
+      return false;
     } finally {
       setGuardando(false);
     }
@@ -341,12 +347,12 @@ export function useVistaEjercicioState(params: Params) {
       repeticiones?: number;
       duracionSegundos?: number;
     }[][]
-  ) => {
-    if (guardando) return;
-    if (!usuario?.id) return;
+  ): Promise<boolean> => {
+    if (guardando) return false;
+    if (!usuario?.id) return false;
 
     const compuestoId = getCompuestoId(ejercicio);
-    if (!compuestoId) return;
+    if (!compuestoId) return false;
 
     const payload = {
       usuarioId: usuario.id,
@@ -365,7 +371,8 @@ export function useVistaEjercicioState(params: Params) {
       setUsuario({
         ...(usuario as UsuarioLogin),
         experiencia: Number(usuario.experiencia ?? 0) + Number(experienciaPlus),
-        caloriasMes: Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
+        caloriasMes:
+          Number((usuario as any).caloriasMes ?? 0) + Number(caloriasPlus),
       } as UsuarioLogin);
 
       if (storageKey) await AsyncStorage.removeItem(storageKey);
@@ -377,6 +384,8 @@ export function useVistaEjercicioState(params: Params) {
         setCoachVisible(true);
         fetchCoach();
       }
+
+      return true;
     } catch (error: any) {
       if (error?.errorCode === "PREMIUM_REQUIRED") {
         setPremiumModalVisible(true);
@@ -386,6 +395,7 @@ export function useVistaEjercicioState(params: Params) {
           text1: "No se pudo guardar la sesión",
         });
       }
+      return false;
     } finally {
       setGuardando(false);
     }

@@ -1,4 +1,4 @@
-// src/shared/components/rutina/ControlesCompuesto.tsx
+// src/shared/components/rutinas-manuales/ControlesCompuesto.tsx
 import React, { useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
@@ -25,6 +25,8 @@ type Props = {
   onConfirmar: () => void;
   onAnadir?: () => void;
   disabled?: boolean;
+  confirmado?: boolean;
+  onDismissed?: () => void;
 };
 
 const ControlesCompuesto: React.FC<Props> = ({
@@ -33,6 +35,8 @@ const ControlesCompuesto: React.FC<Props> = ({
   onConfirmar,
   onAnadir,
   disabled = false,
+  confirmado = false,
+  onDismissed,
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -46,7 +50,6 @@ const ControlesCompuesto: React.FC<Props> = ({
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const accentColor = isDark ? "#10b981" : "#059669";
 
-  // ✅ Solo cancelar si el usuario lo pidió explícitamente (X / gesto / backdrop)
   const shouldCancelRef = useRef(false);
 
   const renderBackdrop = useCallback(
@@ -69,30 +72,39 @@ const ControlesCompuesto: React.FC<Props> = ({
       });
       return () => cancelAnimationFrame(id);
     } else {
-      // ⚠️ Dismiss programático (por desmontaje/cambio de flujo) NO debe cancelar el compuesto
       shouldCancelRef.current = false;
       bottomSheetModalRef.current?.dismiss();
     }
   }, [compuesto?.length]);
 
+  // ✅ Cuando el padre confirma → dismiss sin marcar shouldCancelRef
+  useEffect(() => {
+    if (!confirmado) return;
+    shouldCancelRef.current = false;
+    bottomSheetModalRef.current?.dismiss();
+  }, [confirmado]);
+
   const close = useCallback(() => {
-    // el usuario está cerrando el sheet => cancelar compuesto
     shouldCancelRef.current = true;
     bottomSheetModalRef.current?.dismiss();
   }, []);
 
+  // ✅ confirmado es la fuente de verdad para distinguir
+  // cierre por confirmación vs cierre por usuario
   const handleDismiss = useCallback(() => {
-    if (disabled) return;
+    if (confirmado) {
+      // fue confirmación programática — nunca cancelar
+      onDismissed?.();
+      return;
+    }
     if (shouldCancelRef.current) {
       shouldCancelRef.current = false;
       onCancelar();
       return;
     }
-    // dismiss programático: no hacemos nada
-    shouldCancelRef.current = false;
-  }, [onCancelar]);
-
-  if (!compuesto || compuesto.length === 0) return null;
+    // dismiss programático sin confirmación (ej: lista vaciada)
+    onDismissed?.();
+  }, [onCancelar, onDismissed, confirmado]);
 
   return (
     <BottomSheetModal
@@ -101,10 +113,9 @@ const ControlesCompuesto: React.FC<Props> = ({
       snapPoints={snapPoints}
       enablePanDownToClose
       onDismiss={handleDismiss}
-      onChange={(index) => {
-        // Si el usuario lo baja para cerrar (index -1), cuenta como cancelación
-        if (index === -1) shouldCancelRef.current = true;
-      }}
+      // ✅ onChange eliminado — era la fuente del bug
+      // se marcaba shouldCancelRef=true con cualquier index=-1
+      // incluyendo dismisses programáticos
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: cardBg }}
       handleIndicatorStyle={{
@@ -134,7 +145,6 @@ const ControlesCompuesto: React.FC<Props> = ({
             <Text style={styles.sectionLabel}>EJECUCIÓN CONSECUTIVA</Text>
           </View>
 
-          {/* ✅ X ahora cancela explícitamente */}
           <Pressable onPress={close} style={styles.closeBtn} hitSlop={10}>
             <X size={20} color={textSecondary} />
           </Pressable>
