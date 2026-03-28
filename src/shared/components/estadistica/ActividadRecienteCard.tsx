@@ -80,20 +80,22 @@ export default function ActividadRecienteCard({
   const normalized = useMemo(() => {
     const map = new Map<string, number>();
     for (const d of detallePorDia ?? []) {
-      const k = new Date(d.fecha).toISOString().slice(0, 10);
+      const k = d.fecha.slice(0, 10);
       map.set(k, (d.sesiones ?? 0) + (map.get(k) ?? 0));
     }
     const days: { nombreDia: string; sesiones: number }[] = [];
     const now = new Date();
+    const nowY = now.getUTCFullYear();
+    const nowM = now.getUTCMonth();
+    const nowD = now.getUTCDate();
     for (let i = 6; i >= 0; i--) {
-      const dt = new Date(now);
-      dt.setDate(now.getDate() - i);
+      const dt = new Date(Date.UTC(nowY, nowM, nowD - i, 12, 0, 0));
       const iso = dt.toISOString().slice(0, 10);
       const nombre = dt
-        .toLocaleDateString("es-ES", { weekday: "short" })
+        .toLocaleDateString("es-ES", { weekday: "short", timeZone: "UTC" })
         .replace(/\.$/, "");
       days.push({
-        nombreDia: nombre.charAt(0).toUpperCase() + nombre.slice(1),
+        nombreDia: (nombre.charAt(0).toUpperCase() + nombre.slice(1)).substring(0, 3),
         sesiones: map.get(iso) ?? 0,
       });
     }

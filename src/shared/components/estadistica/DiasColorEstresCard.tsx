@@ -301,23 +301,22 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
       .map((d) => {
         if (!d.fecha) return null;
         const [fy, fm, fd] = d.fecha.slice(0, 10).split("-").map(Number);
-        return new Date(fy, fm - 1, fd);
+        return new Date(Date.UTC(fy, fm - 1, fd));
       })
       .filter((d): d is Date => !!d && !Number.isNaN(d.getTime()));
     return valid.length ? valid.reduce((a, b) => (b > a ? b : a)) : new Date();
   }, [detalles]);
 
-  const year = refDate.getFullYear();
-  const month = refDate.getMonth();
-  const firstOfMonth = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startOffset = (firstOfMonth.getDay() - 1 + 7) % 7;
+  const year = refDate.getUTCFullYear();
+  const month = refDate.getUTCMonth();
+  const firstOfMonth = new Date(Date.UTC(year, month, 1));
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const startOffset = (firstOfMonth.getUTCDay() - 1 + 7) % 7;
 
   const cells: { key: string; dayNumber: number | null; color: "verde" | "ambar" | "rojo" | null }[] = [];
   for (let i = 0; i < startOffset; i++) cells.push({ key: `empty-${i}`, dayNumber: null, color: null });
   for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month, day);
-    const key = d.toISOString().slice(0, 10);
+    const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     cells.push({ key, dayNumber: day, color: dayMap.get(key) ?? null });
   }
 
@@ -327,7 +326,7 @@ function CalendarHeatmap({ isDark, detalles }: { isDark: boolean; detalles: Deta
   const getTColor = (c: "verde" | "ambar" | "rojo" | null) =>
     c ? "#F9FAFB" : isDark ? "#CBD5F5" : "#4B5563";
 
-  const monthName = refDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const monthName = new Date(Date.UTC(year, month, 1)).toLocaleDateString("es-ES", { month: "long", year: "numeric", timeZone: "UTC" });
   const weekdayLabels = ["L", "M", "X", "J", "V", "S", "D"];
   const cellSize = 32;
 
