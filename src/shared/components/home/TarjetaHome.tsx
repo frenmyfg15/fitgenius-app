@@ -227,16 +227,6 @@ const formateaDetalles = (i: EjercicioDia, medidaPeso: MedidaPeso = "kg") => {
   return `${sets} series · ${reps} reps · ${peso}`;
 };
 
-const toMadridYMD = (() => {
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return (d: Date) => fmt.format(d);
-})();
-
 const getFechasParaUI = (ej: EjercicioDia) => {
   if (Array.isArray(ej.fechasCompletadasAsignacionUI)) return ej.fechasCompletadasAsignacionUI;
   if (Array.isArray(ej.fechasPlanificadasCompletadasAsignacion)) return ej.fechasPlanificadasCompletadasAsignacion;
@@ -246,7 +236,7 @@ const getFechasParaUI = (ej: EjercicioDia) => {
 const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
   const fechas = getFechasParaUI(ej);
   if (!selectedYMD) {
-    const hoy = toMadridYMD(new Date());
+    const hoy = new Date().toISOString().slice(0, 10); // UTC, consistente con backend
     return fechas.includes(hoy);
   }
   return fechas.includes(selectedYMD);

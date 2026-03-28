@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { CardField, confirmSetupIntent, useStripe } from "@stripe/stripe-react-native";
+import { CardField, useStripe } from "@stripe/stripe-react-native";
 import Toast from "react-native-toast-message";
 
 import {

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type TabKey = "terminos" | "privacidad";
 
-const APP_NAME = "fitgenius";
+const APP_NAME = "FitGenius";
 const RESPONSABLE = "Frenmy Manuel García Flete";
 const CONTACTO_EMAIL = "soporte@fitgenius.app";
 const JURISDICCION = "España";
@@ -32,7 +32,7 @@ function Card({
       }
       style={{
         shadowColor: "#0f172a",
-        shadowOpacity: isDark ? 0.22 : 0.10,
+        shadowOpacity: isDark ? 0.22 : 0.1,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 8 },
         elevation: 6,
@@ -154,8 +154,6 @@ function TabPill({
           ? isDark
             ? "bg-white/10 border-white/15"
             : "bg-neutral-100 border-neutral-200"
-          : isDark
-          ? "bg-transparent border-transparent"
           : "bg-transparent border-transparent")
       }
       accessibilityRole="button"
@@ -177,8 +175,7 @@ export default function LegalScreen() {
   const [tab, setTab] = useState<TabKey>("terminos");
 
   const updatedAt = useMemo(() => {
-    // Puedes actualizar manualmente esta fecha cuando publiques cambios
-    return "15 de diciembre de 2025";
+    return "28 de marzo de 2026";
   }, []);
 
   const mailto = () => {
@@ -196,7 +193,6 @@ export default function LegalScreen() {
       className={isDark ? "bg-[#050814]" : "bg-neutral-100"}
     >
       <View className={"flex-1 " + (isDark ? "bg-[#050814]" : "bg-neutral-100")}>
-        {/* Header (sin "Actualizado") */}
         <LinearGradient
           colors={
             isDark
@@ -213,7 +209,6 @@ export default function LegalScreen() {
               Términos, condiciones y privacidad de {APP_NAME}.
             </Text>
 
-            {/* Tabs */}
             <View
               className={
                 "mt-4 p-1 flex-row rounded-2xl border " +
@@ -249,15 +244,15 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Términos y Condiciones"
-                  subtitle={`Aplicables a ${APP_NAME}. Al usar la app aceptas estos términos.`}
+                  subtitle={`Condiciones de uso aplicables a ${APP_NAME}.`}
                 />
                 <Paragraph>
-                  Estos Términos y Condiciones regulan el acceso y uso de la aplicación móvil {APP_NAME} (en adelante, la
-                  “App”), ofrecida por {RESPONSABLE} (en adelante, el “Responsable”).
+                  Al registrarte, acceder o utilizar {APP_NAME}, aceptas estos Términos y Condiciones. Si no estás de
+                  acuerdo con ellos, no debes utilizar la App.
                 </Paragraph>
                 <Paragraph>
-                  Si no estás de acuerdo con estos términos, por favor no uses la App. Algunos apartados pueden referirse a
-                  funciones que aún estén en desarrollo; en ese caso, se aplicarán cuando estén disponibles.
+                  {APP_NAME} es una aplicación de fitness que permite generar rutinas personalizadas, registrar sesiones
+                  y recibir recomendaciones automáticas, incluyendo funciones basadas en inteligencia artificial.
                 </Paragraph>
               </Card>
 
@@ -265,69 +260,124 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<Text className={(isDark ? "text-white" : "text-slate-900") + " text-base font-extrabold"}>14+</Text>}
                   title="Edad mínima"
-                  subtitle="Uso permitido solo para mayores de 14 años."
+                  subtitle="Uso exclusivo para mayores de 14 años."
                 />
                 <Paragraph>
-                  La App está dirigida a usuarios de 14 años o más. Si tienes menos de 14 años, no debes usar la App ni
-                  proporcionar datos personales.
+                  La App está dirigida únicamente a personas de 14 años o más. Si tienes menos de 14 años, no debes
+                  crear una cuenta ni utilizar el servicio.
                 </Paragraph>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Uso responsable y salud"
-                  subtitle="La App no sustituye a profesionales."
+                  title="Cuenta de usuario"
+                  subtitle="Registro obligatorio por email o Google."
                 />
-                <Paragraph>
-                  {APP_NAME} ofrece rutinas y sugerencias de entrenamiento generadas de forma automática (incluyendo
-                  recomendaciones basadas en sesiones previas). Estas sugerencias son orientativas.
-                </Paragraph>
-                <Bullet>
-                  La App <Text className="font-semibold">no</Text> presta servicios médicos, no realiza diagnósticos y no
-                  sustituye a un entrenador personal, fisioterapeuta o profesional sanitario.
-                </Bullet>
-                <Bullet>
-                  Antes de iniciar o modificar tu actividad física, especialmente si tienes limitaciones, lesiones o
-                  condiciones médicas, consulta con un profesional.
-                </Bullet>
-                <Bullet>
-                  Eres responsable de evaluar tu estado físico, ejecutar los ejercicios con técnica adecuada y detenerte si
-                  sientes dolor, mareo o cualquier síntoma adverso.
-                </Bullet>
+                <Bullet>Para utilizar la App es obligatorio crear una cuenta.</Bullet>
+                <Bullet>Puedes registrarte mediante email y contraseña o usando tu cuenta de Google.</Bullet>
+                <Bullet>Debes facilitar información veraz, actualizada y mantener seguras tus credenciales.</Bullet>
+                <Bullet>Eres responsable de toda actividad realizada desde tu cuenta.</Bullet>
+                <Bullet>Puedes eliminar tu cuenta desde el perfil en cualquier momento.</Bullet>
               </Card>
 
               <Card>
                 <SectionTitle
-                  icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Cuenta y seguridad"
-                  subtitle="Registro por email/contraseña o Google."
+                  icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Salud y uso responsable"
+                  subtitle="La App no sustituye asesoramiento profesional."
                 />
-                <Bullet>Para usar ciertas funciones debes crear una cuenta.</Bullet>
-                <Bullet>Debes proporcionar información veraz y mantener la confidencialidad de tus credenciales.</Bullet>
+                <Paragraph>
+                  {APP_NAME} no es un servicio médico ni sustituye a un médico, fisioterapeuta, entrenador personal u
+                  otro profesional cualificado.
+                </Paragraph>
                 <Bullet>
-                  Puedes eliminar tu cuenta desde el perfil. La eliminación es definitiva e irreversible, incluyendo tus
-                  datos asociados (salvo obligaciones legales aplicables).
+                  Las rutinas, sugerencias y respuestas del chat tienen carácter orientativo.
+                </Bullet>
+                <Bullet>
+                  Eres responsable de tu estado físico, de cómo realizas los ejercicios y de adaptar la intensidad a tu
+                  situación personal.
+                </Bullet>
+                <Bullet>
+                  Antes de iniciar o modificar una rutina, especialmente si tienes limitaciones físicas o condiciones
+                  médicas, deberías consultar con un profesional.
+                </Bullet>
+                <Bullet>
+                  Debes detener la actividad si notas dolor, mareo, malestar o cualquier síntoma adverso.
                 </Bullet>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<Text className={(isDark ? "text-white" : "text-slate-900") + " text-base font-extrabold"}>€</Text>}
-                  title="Versiones y pagos"
-                  subtitle="Gratis con anuncios y versión de pago."
+                  title="Suscripciones y pagos"
+                  subtitle="Planes mensuales o anuales gestionados con Stripe."
                 />
+                <Bullet>{APP_NAME} ofrece suscripciones de pago mensuales o anuales.</Bullet>
+                <Bullet>Los pagos y la gestión técnica de la suscripción se realizan mediante Stripe.</Bullet>
+                <Bullet>La suscripción puede renovarse automáticamente salvo cancelación previa.</Bullet>
+                <Bullet>Puedes cancelar desde tu perfil en cualquier momento.</Bullet>
+                <Bullet>Si cancelas, mantendrás el acceso hasta el final del periodo ya pagado.</Bullet>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Reembolsos y desistimiento"
+                  subtitle="Contenido digital con acceso inmediato."
+                />
+                <Paragraph>
+                  Con carácter general, no se realizan reembolsos por las suscripciones contratadas.
+                </Paragraph>
+                <Paragraph>
+                  Al activar la suscripción y empezar a utilizar el servicio, aceptas expresamente el acceso inmediato
+                  al contenido digital y la pérdida del derecho de desistimiento en la medida permitida por la ley.
+                </Paragraph>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Uso permitido"
+                  subtitle="Uso personal, legal y no comercial."
+                />
+                <Bullet>La App solo puede utilizarse para fines personales y lícitos.</Bullet>
+                <Bullet>No puedes copiar, modificar, distribuir o explotar la App sin autorización.</Bullet>
+                <Bullet>No puedes intentar acceder a sistemas o datos no autorizados.</Bullet>
+                <Bullet>No puedes realizar ingeniería inversa, suplantaciones o actividades fraudulentas.</Bullet>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Contenido introducido por el usuario"
+                  subtitle="Rutinas personalizadas, nombres y notas."
+                />
+                <Paragraph>
+                  Puedes crear rutinas personalizadas con las herramientas de la App, asignarles nombre y añadir notas.
+                  Eres responsable del contenido que introduzcas y de que no infrinja derechos de terceros ni la
+                  normativa aplicable.
+                </Paragraph>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Funciones de inteligencia artificial"
+                  subtitle="Generación de rutinas y respuestas a dudas."
+                />
+                <Paragraph>
+                  La App utiliza inteligencia artificial para generar rutinas y responder preguntas concretas dentro del
+                  chat interno.
+                </Paragraph>
                 <Bullet>
-                  La App puede ofrecer una versión gratuita que muestra anuncios y una versión de pago (sin anuncios u otras
-                  ventajas).
+                  Las respuestas son automatizadas y pueden contener errores o no ajustarse totalmente a tu situación.
                 </Bullet>
                 <Bullet>
-                  Los precios, características y disponibilidad pueden cambiar. Cualquier cambio relevante se comunicará
-                  dentro de la App o por los canales disponibles.
+                  El chat tiene carácter temporal y no está pensado como historial persistente dentro de la App.
                 </Bullet>
                 <Bullet>
-                  La compra de la versión de pago se gestiona mediante la tienda correspondiente (Google Play / App Store) y
-                  está sujeta a sus políticas de facturación y reembolsos.
+                  Las respuestas deben entenderse como orientación general y no como asesoramiento profesional.
                 </Bullet>
               </Card>
 
@@ -335,30 +385,32 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Propiedad intelectual"
-                  subtitle="Contenido y marca."
+                  subtitle="Diseño, marca, textos, código y contenido."
                 />
                 <Paragraph>
-                  La App, su interfaz, diseño, textos, logotipos, y contenido propio están protegidos por derechos de
-                  propiedad intelectual. No se permite copiar, modificar, distribuir o explotar la App sin autorización.
+                  La App, su diseño, estructura, textos, funcionalidades, logotipos, software y demás elementos propios
+                  están protegidos por derechos de propiedad intelectual. No se concede ninguna licencia de uso más allá
+                  de la necesaria para utilizar el servicio conforme a estos términos.
                 </Paragraph>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Limitación de responsabilidad"
+                  title="Disponibilidad y limitación de responsabilidad"
                   subtitle="Uso bajo tu propio riesgo."
                 />
                 <Bullet>
-                  El Responsable no garantiza que la App esté libre de errores o interrupciones, aunque se aplican medidas
-                  razonables para su correcto funcionamiento.
+                  No se garantiza que la App esté siempre disponible, libre de errores o sin interrupciones.
                 </Bullet>
                 <Bullet>
-                  En la medida permitida por la ley, el Responsable no será responsable por lesiones, daños o pérdidas
-                  derivadas del uso de rutinas, sugerencias o información mostrada en la App.
+                  En la medida permitida por la ley, el Responsable no será responsable de lesiones, daños, pérdidas o
+                  perjuicios derivados del uso de la App, de las rutinas sugeridas o de la imposibilidad de usar el
+                  servicio.
                 </Bullet>
                 <Bullet>
-                  Nada en estos términos limita derechos irrenunciables del consumidor conforme a la normativa aplicable.
+                  Nada de lo anterior limita los derechos irrenunciables que correspondan a los consumidores conforme a
+                  la legislación aplicable.
                 </Bullet>
               </Card>
 
@@ -366,22 +418,21 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<Mail size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Contacto"
-                  subtitle="Soporte y consultas legales."
+                  subtitle="Consultas sobre el servicio o estos términos."
                 />
-                <Paragraph>Para consultas relacionadas con estos términos o con el uso de la App, puedes contactarnos en:</Paragraph>
+                <Paragraph>Puedes contactar con el responsable del servicio en:</Paragraph>
                 <LinkRow label={CONTACTO_EMAIL} onPress={mailto} />
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Ley aplicable y jurisdicción"
-                  subtitle={`${JURISDICCION} · Uso internacional.`}
+                  title="Legislación aplicable"
+                  subtitle={`${JURISDICCION} · Servicio dirigido a usuarios en España.`}
                 />
                 <Paragraph>
-                  Estos términos se rigen por la legislación de {JURISDICCION}. Si eres consumidor, podrán aplicarse
-                  disposiciones obligatorias del país donde residas. En caso de disputa, las partes se someterán a los
-                  tribunales que correspondan conforme a la normativa aplicable.
+                  Estos términos se rigen por la legislación española. En caso de conflicto, serán competentes los
+                  juzgados y tribunales que correspondan conforme a la normativa de consumidores y usuarios aplicable.
                 </Paragraph>
               </Card>
             </View>
@@ -394,8 +445,8 @@ export default function LegalScreen() {
                   subtitle={`Cómo tratamos tus datos en ${APP_NAME}.`}
                 />
                 <Paragraph>
-                  Esta Política describe qué datos recopilamos, para qué los usamos y los derechos que tienes. {APP_NAME} se
-                  diseña para ser transparente y respetar tu privacidad.
+                  Esta política explica qué datos recopilamos, para qué los usamos, con qué base legal los tratamos y
+                  qué derechos tienes como usuario.
                 </Paragraph>
                 <Paragraph>
                   Responsable del tratamiento: {RESPONSABLE} · Contacto: {CONTACTO_EMAIL}.
@@ -404,81 +455,133 @@ export default function LegalScreen() {
 
               <Card>
                 <SectionTitle
+                  icon={<Text className={(isDark ? "text-white" : "text-slate-900") + " text-base font-extrabold"}>14+</Text>}
+                  title="Edad mínima"
+                  subtitle="Servicio reservado a usuarios de 14 años o más."
+                />
+                <Paragraph>
+                  {APP_NAME} no está dirigida a menores de 14 años. Si no tienes esa edad, no debes utilizar la App ni
+                  facilitarnos datos personales.
+                </Paragraph>
+              </Card>
+
+              <Card>
+                <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Datos que recopilamos"
-                  subtitle="Datos de cuenta y entrenamiento."
+                  subtitle="Cuenta, perfil, entrenamiento y suscripción."
                 />
-                <Bullet>Identificación y cuenta: nombre, email.</Bullet>
-                <Bullet>Perfil: edad, altura, peso actual y peso objetivo.</Bullet>
-                <Bullet>Preferencias: objetivos fitness y nivel de experiencia.</Bullet>
+                <Bullet>Datos de cuenta: email, contraseña o datos básicos de acceso con Google.</Bullet>
+                <Bullet>Datos de perfil: edad, sexo, altura, peso y objetivo físico.</Bullet>
+                <Bullet>Preferencias: lugar de entrenamiento, como casa o gimnasio.</Bullet>
+                <Bullet>Datos de entrenamiento: rutinas creadas, sesiones guardadas, nombres y notas.</Bullet>
                 <Bullet>
-                  Limitaciones físicas: si decides proporcionarlas, pueden considerarse datos relacionados con la salud.
-                  Solo se usan para adaptar rutinas y recomendaciones.
+                  Limitaciones físicas: si decides indicarlas, pueden considerarse datos relativos a la salud.
                 </Bullet>
-                <Bullet>Historial: sesiones, rutinas creadas o realizadas, ajustes y progreso.</Bullet>
+                <Bullet>Datos de suscripción: plan, estado, renovaciones, cancelaciones y referencias técnicas de pago.</Bullet>
+                <Bullet>Datos técnicos mínimos para seguridad, diagnóstico de errores y estabilidad del servicio.</Bullet>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Cómo usamos tus datos"
-                  subtitle="Finalidades del tratamiento."
+                  title="Finalidades del tratamiento"
+                  subtitle="Para prestar y mejorar el servicio."
                 />
                 <Bullet>Crear y gestionar tu cuenta.</Bullet>
-                <Bullet>Generar rutinas (IA o manual) basadas en tus datos y ejercicios disponibles.</Bullet>
-                <Bullet>Ofrecer un “coach” algorítmico con sugerencias basadas en sesiones previas.</Bullet>
-                <Bullet>Responder dudas sobre ejercicios o rutinas dentro de la App.</Bullet>
-                <Bullet>Mejorar estabilidad y corregir errores (monitoreo de fallos).</Bullet>
+                <Bullet>Autenticar el acceso mediante email/contraseña o Google.</Bullet>
+                <Bullet>Generar rutinas personalizadas según tu perfil y preferencias.</Bullet>
+                <Bullet>Guardar sesiones e historial para seguimiento de tu progreso.</Bullet>
+                <Bullet>Permitirte crear rutinas personalizadas, nombres y notas.</Bullet>
+                <Bullet>Responder preguntas concretas mediante el chat interno con IA.</Bullet>
+                <Bullet>Gestionar suscripciones, renovaciones, cancelaciones y acceso premium.</Bullet>
+                <Bullet>Detectar errores, mantener la seguridad y mejorar el rendimiento de la App.</Bullet>
+                <Bullet>Cumplir obligaciones legales que resulten aplicables.</Bullet>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Base legal"
-                  subtitle="RGPD / normativa aplicable."
+                  subtitle="RGPD y normativa española."
                 />
                 <Bullet>
-                  Ejecución del contrato: para prestar el servicio que solicitas al usar la App (cuenta, rutinas, historial).
+                  Ejecución del contrato: para crear tu cuenta, prestarte el servicio, generar rutinas, guardar
+                  sesiones y gestionar tu suscripción.
                 </Bullet>
                 <Bullet>
-                  Interés legítimo: seguridad, prevención de fraude, y mejora de la App mediante reportes de errores.
+                  Interés legítimo: para seguridad, prevención del fraude, monitorización técnica y mejora del servicio.
                 </Bullet>
                 <Bullet>
-                  Consentimiento: cuando sea necesario (por ejemplo, permisos del dispositivo o personalizaciones no esenciales).
+                  Cumplimiento de obligaciones legales: cuando sea necesario por razones fiscales, administrativas o de
+                  seguridad.
+                </Bullet>
+                <Bullet>
+                  Consentimiento explícito: para los datos que puedan considerarse relativos a la salud, cuando decidas
+                  introducirlos en la App.
                 </Bullet>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Proveedores y terceros"
-                  subtitle="Alojamiento, login y anuncios."
+                  title="Datos relativos a la salud"
+                  subtitle="Tratamiento limitado a personalización."
                 />
-                <Bullet>Los datos se almacenan en servidores de terceros (proveedores cloud) con medidas de seguridad razonables.</Bullet>
-                <Bullet>
-                  Inicio de sesión con Google: si eliges esta opción, Google procesa datos necesarios para autenticarte según
-                  sus propias políticas.
-                </Bullet>
-                <Bullet>
-                  Anuncios: la versión gratuita puede mostrar publicidad. Los proveedores de anuncios pueden usar identificadores
-                  técnicos para entregar anuncios y prevenir fraude (según configuración y permisos del dispositivo).
-                </Bullet>
                 <Paragraph>
-                  En el momento de publicación, los proveedores específicos pueden variar. Cuando corresponda, se indicarán
-                  dentro de la App o en una sección de “Proveedores” actualizada.
+                  Algunas limitaciones físicas u otra información que introduzcas para adaptar entrenamientos pueden
+                  considerarse datos relativos a la salud.
+                </Paragraph>
+                <Paragraph>
+                  Estos datos se usan únicamente para personalizar rutinas, sugerencias y recomendaciones dentro de la
+                  App. Te recomendamos no introducir información médica innecesaria en campos libres o notas.
+                </Paragraph>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Proveedores y terceros"
+                  subtitle="Infraestructura, pagos, IA y monitorización."
+                />
+                <Bullet>Railway: infraestructura y alojamiento técnico del servicio.</Bullet>
+                <Bullet>Stripe: pagos y gestión de suscripciones.</Bullet>
+                <Bullet>OpenAI: funciones de inteligencia artificial para rutinas y chat interno.</Bullet>
+                <Bullet>Sentry: monitorización de errores y estabilidad técnica.</Bullet>
+                <Bullet>Google: autenticación si decides iniciar sesión con Google.</Bullet>
+                <Paragraph>
+                  No vendemos tus datos personales ni los cedemos a terceros con fines comerciales.
                 </Paragraph>
               </Card>
 
               <Card>
                 <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
-                  title="Cookies / sesión"
-                  subtitle="Tecnología esencial."
+                  title="IA y chat interno"
+                  subtitle="Consultas temporales y respuestas automáticas."
                 />
                 <Paragraph>
-                  {APP_NAME} puede usar tokens o mecanismos equivalentes a “cookies” para mantener tu sesión iniciada y
-                  recordar tu autenticación. No se usan para fines no esenciales fuera de lo descrito en esta política.
+                  {APP_NAME} utiliza IA para generar rutinas y responder preguntas concretas, como dudas sobre cómo
+                  realizar un ejercicio.
                 </Paragraph>
+                <Bullet>El chat interno es temporal y no se guarda como historial persistente dentro de la App.</Bullet>
+                <Bullet>
+                  El contenido enviado puede ser procesado técnicamente por el proveedor de IA para generar la respuesta.
+                </Bullet>
+                <Bullet>
+                  Evita introducir datos innecesariamente sensibles o excesivos en tus consultas.
+                </Bullet>
+              </Card>
+
+              <Card>
+                <SectionTitle
+                  icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
+                  title="Emails del servicio"
+                  subtitle="Solo comunicaciones necesarias."
+                />
+                <Bullet>Podemos enviarte códigos de verificación para confirmar tu email.</Bullet>
+                <Bullet>Podemos enviarte mensajes para recuperación de contraseña.</Bullet>
+                <Bullet>No usamos tu email para marketing según la configuración actual del servicio.</Bullet>
               </Card>
 
               <Card>
@@ -487,10 +590,15 @@ export default function LegalScreen() {
                   title="Conservación y eliminación"
                   subtitle="Control total desde tu perfil."
                 />
+                <Paragraph>
+                  Conservamos tus datos mientras tu cuenta permanezca activa y mientras sean necesarios para prestarte
+                  el servicio.
+                </Paragraph>
+                <Bullet>Puedes eliminar tu cuenta desde el perfil de la App.</Bullet>
+                <Bullet>La eliminación es permanente e irreversible.</Bullet>
                 <Bullet>
-                  Puedes eliminar tu cuenta desde el perfil. La eliminación es definitiva e irreversible, incluyendo todos
-                  tus datos asociados, salvo conservación obligatoria por ley o por motivos de seguridad (por ejemplo, registros
-                  mínimos antifraude durante un tiempo razonable).
+                  Tras eliminar la cuenta, se borran los datos asociados, salvo aquellos que deban conservarse
+                  temporalmente por obligación legal o necesidad técnica justificada.
                 </Bullet>
               </Card>
 
@@ -498,16 +606,17 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<FileText size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Tus derechos"
-                  subtitle="Acceso, rectificación, supresión, etc."
+                  subtitle="Acceso, rectificación, supresión y más."
                 />
                 <Bullet>Acceder a tus datos personales.</Bullet>
-                <Bullet>Rectificar datos inexactos.</Bullet>
-                <Bullet>Solicitar la supresión (cuando corresponda).</Bullet>
-                <Bullet>Limitar u oponerte a ciertos tratamientos (según base legal).</Bullet>
-                <Bullet>Portabilidad (cuando aplique).</Bullet>
+                <Bullet>Rectificar datos inexactos o incompletos.</Bullet>
+                <Bullet>Solicitar la supresión de tus datos cuando proceda.</Bullet>
+                <Bullet>Oponerte al tratamiento o solicitar su limitación en ciertos supuestos.</Bullet>
+                <Bullet>Solicitar la portabilidad de tus datos cuando resulte aplicable.</Bullet>
+                <Bullet>Retirar el consentimiento cuando el tratamiento se base en él.</Bullet>
                 <Paragraph>
-                  Para ejercer tus derechos, contáctanos en {CONTACTO_EMAIL}. También puedes presentar una reclamación ante la
-                  autoridad de control competente (por ejemplo, en España, la AEPD).
+                  Para ejercer tus derechos, escríbenos a {CONTACTO_EMAIL}. También puedes presentar una reclamación
+                  ante la Agencia Española de Protección de Datos.
                 </Paragraph>
               </Card>
 
@@ -515,7 +624,7 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<Mail size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Contacto"
-                  subtitle="Privacidad y datos."
+                  subtitle="Privacidad y protección de datos."
                 />
                 <LinkRow label={CONTACTO_EMAIL} onPress={mailto} />
               </Card>
@@ -524,17 +633,17 @@ export default function LegalScreen() {
                 <SectionTitle
                   icon={<Shield size={18} color={isDark ? "#E2E8F0" : "#0F172A"} />}
                   title="Cambios en esta política"
-                  subtitle="Actualizaciones razonables."
+                  subtitle="Actualizaciones legales o funcionales."
                 />
                 <Paragraph>
-                  Podemos actualizar esta Política para reflejar mejoras o cambios legales. Te avisaremos dentro de la App si
-                  el cambio es relevante. La fecha de “Actualizado” indica la última revisión.
+                  Podemos actualizar esta Política de Privacidad para reflejar cambios legales, técnicos o funcionales
+                  del servicio. Cuando el cambio sea relevante, lo comunicaremos dentro de la App o por otros medios
+                  adecuados.
                 </Paragraph>
               </Card>
             </View>
           )}
 
-          {/* Footer final (Aquí va “Actualizado”) */}
           <View className="mt-6 pb-2">
             <View
               className={

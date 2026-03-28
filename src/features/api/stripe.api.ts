@@ -7,10 +7,8 @@ export type PremiumPlan = "monthly" | "yearly";
 export type CreatePremiumSubscriptionResponse = {
   clientSecret: string;
   customerId: string;
-  paymentIntentId: string | null;
-  intentType: "payment";
-  status: string;
-  subscriptionId: string;
+  setupIntentId: string;
+  intentType: "setup";
   plan: PremiumPlan;
   priceId: string;
 };
