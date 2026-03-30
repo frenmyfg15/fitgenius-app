@@ -48,10 +48,14 @@ type AuthStack = {
   Privacidad: undefined;
 };
 
+/* ---------------- Constante de versión legal ---------------- */
+const LEGAL_VERSION = "2026-03-28";
+
 /* ---------------- Helpers de merge/validación ---------------- */
 function construirUsuarioPayload(
   form: Pick<FormUsuario, "nombre" | "apellido" | "correo" | "contrasena">,
-  wizard: Partial<Usuario> | null | undefined
+  wizard: Partial<Usuario> | null | undefined,
+  acceptedAt?: string
 ): Usuario | null {
   if (!wizard) return null;
 
@@ -89,6 +93,8 @@ function construirUsuarioPayload(
     return null;
   }
 
+  const now = acceptedAt ?? new Date().toISOString();
+
   const payload: Usuario = {
     nombre: form.nombre as Usuario["nombre"],
     apellido: form.apellido as Usuario["apellido"],
@@ -110,6 +116,11 @@ function construirUsuarioPayload(
     dias: (wizard.dias ?? []) as Usuario["dias"],
     duracion: wizard.duracion as Usuario["duracion"],
     limitaciones: (wizard.limitaciones ?? []) as Usuario["limitaciones"],
+    createdAt: now,
+    termsAcceptedAt: now,
+    privacyAcceptedAt: now,
+    termsVersion: LEGAL_VERSION,
+    privacyVersion: LEGAL_VERSION,
   };
 
   return payload;
@@ -191,6 +202,7 @@ export function useRegistrar() {
   }, []);
 
   const onSubmit = (formUsuario: FormUsuario) => {
+    const acceptedAt = new Date().toISOString();
     const payload = construirUsuarioPayload(
       {
         nombre: formUsuario.nombre,
@@ -198,7 +210,8 @@ export function useRegistrar() {
         correo: formUsuario.correo,
         contrasena: formUsuario.contrasena,
       },
-      wizardUsuario as Partial<Usuario>
+      wizardUsuario as Partial<Usuario>,
+      acceptedAt
     );
 
     if (!payload) return;
@@ -222,9 +235,19 @@ export function useRegistrar() {
       return;
     }
 
+    const now = new Date().toISOString();
+    const datosConLegal = {
+      ...wizardUsuario,
+      createdAt: now,
+      termsAcceptedAt: now,
+      privacyAcceptedAt: now,
+      termsVersion: LEGAL_VERSION,
+      privacyVersion: LEGAL_VERSION,
+    };
+
     setLoading(true);
     try {
-      const res = await registrarUsuarioConGoogle(token, wizardUsuario);
+      const res = await registrarUsuarioConGoogle(token, datosConLegal);
 
       setUsuario(res.usuario);
       await resetRegistroState();

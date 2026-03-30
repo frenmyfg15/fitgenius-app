@@ -55,6 +55,11 @@ export type Usuario = {
     dias: Dias[] | []
     duracion: Duracion
     limitaciones: Limitaciones[] | []
+    createdAt?: string
+    termsAcceptedAt?: string
+    privacyAcceptedAt?: string
+    termsVersion?: string
+    privacyVersion?: string
 }
 
 export type DatosActualizables = Pick<
