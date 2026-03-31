@@ -17,6 +17,8 @@ import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
 import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
+import AnalisisDiarioModal from "@/shared/components/home/AnalisisDiarioModal";
+import AnalisisSemanalModal from "@/shared/components/home/AnalisisSemanalModal";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 
@@ -127,7 +129,14 @@ export default function Home() {
   const { usuario } = useUsuarioStore();
   const routineRev = useSyncStore((s) => s.routineRev);
   const workoutRev = useSyncStore((s) => s.workoutRev);
+  const analisisDiarioPendiente = useSyncStore((s) => s.analisisDiarioPendiente);
+  const setAnalisisDiarioPendiente = useSyncStore((s) => s.setAnalisisDiarioPendiente);
+  const analisisSemanalPendiente = useSyncStore((s) => s.analisisSemanalPendiente);
+  const setAnalisisSemanalPendiente = useSyncStore((s) => s.setAnalisisSemanalPendiente);
   const rutinaCache = useRutinaCache();
+
+  const [analisisDiarioVisible, setAnalisisDiarioVisible] = useState(false);
+  const [analisisSemanalVisible, setAnalisisSemanalVisible] = useState(false);
 
   // ── Auto-generación ───────────────────────────────────────────────────
   const [autoGenerating, setAutoGenerating] = useState(false);
@@ -163,6 +172,22 @@ export default function Home() {
     shouldAutoGenerate,
     usuario?.haVistoOnboarding,
   ]);
+
+  // ── Análisis diario ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!analisisDiarioPendiente) return;
+    setAnalisisDiarioPendiente(false);
+    setAnalisisDiarioVisible(true);
+  }, [analisisDiarioPendiente]);
+
+  // ── Análisis semanal ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!analisisSemanalPendiente) return;
+    setAnalisisSemanalPendiente(false);
+    // Pequeño delay para no solapar con el modal diario si ambos se disparan
+    const t = setTimeout(() => setAnalisisSemanalVisible(true), 600);
+    return () => clearTimeout(t);
+  }, [analisisSemanalPendiente]);
 
   // ── Rutina ────────────────────────────────────────────────────────────
   const [rutina, setRutina] = useState<RutinaResp | null>(null);
@@ -528,6 +553,22 @@ export default function Home() {
           console.log("[Home] SeguimientoInteligenteModal onGoPremium");
           seguimiento.cerrar();
           navigation.navigate("Premium");
+        }}
+      />
+
+      <AnalisisDiarioModal
+        visible={analisisDiarioVisible}
+        onClose={() => {
+          console.log("[Home] AnalisisDiarioModal onClose");
+          setAnalisisDiarioVisible(false);
+        }}
+      />
+
+      <AnalisisSemanalModal
+        visible={analisisSemanalVisible}
+        onClose={() => {
+          console.log("[Home] AnalisisSemanalModal onClose");
+          setAnalisisSemanalVisible(false);
         }}
       />
 

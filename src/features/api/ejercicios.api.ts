@@ -90,9 +90,11 @@ export const guardarSesionEjercicio = async (
     log("guardarSesionEjercicio ← ok", {
       status: res.status,
       keys: Object.keys(sesion || {}),
+      diaCompleto: sesion?.diaCompleto,
+      semanaCompleta: sesion?.semanaCompleta,
     });
 
-    return sesion;
+    return sesion as typeof sesion & { diaCompleto?: boolean; semanaCompleta?: boolean };
   } catch (error: any) {
     checkAuthTokenInvalid(error); // ✅ (antes del AD_REQUIRED)
 
@@ -251,9 +253,11 @@ export const guardarSesionCompuesta = async (
     log("guardarSesionCompuesta ← ok", {
       status: res.status,
       keys: Object.keys(sesionCompuesta || {}),
+      diaCompleto: sesionCompuesta?.diaCompleto,
+      semanaCompleta: sesionCompuesta?.semanaCompleta,
     });
 
-    return sesionCompuesta;
+    return sesionCompuesta as typeof sesionCompuesta & { diaCompleto?: boolean; semanaCompleta?: boolean };
   } catch (error: any) {
     checkAuthTokenInvalid(error); // ✅ (antes del AD_REQUIRED)
 

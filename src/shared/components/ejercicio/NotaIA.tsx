@@ -1,10 +1,19 @@
 // File: src/shared/components/ejercicio/NotaIA.tsx
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Lightbulb } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  Vibration,
+  View,
+} from "react-native";
+import { Lightbulb, RefreshCw } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { kgToLb } from "@/shared/utils/kgToLb";
+import type { ObjetivoSesion } from "@/features/api/coach.api";
+import { actualizarPrescripcion } from "@/features/api/rutinas.api";
 
 // ── Tokens (mismo sistema compartido) ────────────────────────────────────────
 const tokens = {
@@ -28,17 +37,26 @@ const tokens = {
 
     notaDark: "#CBD5E1",
     notaLight: "#1E293B",
+
+    accentGreen: "#22C55E",
+    accentGreenBg: "rgba(34,197,94,0.12)",
+    accentGreenBorder: "rgba(34,197,94,0.35)",
+
+    updateBg: "rgba(34,197,94,0.08)",
+    updateBorder: "rgba(34,197,94,0.25)",
+    oldValueColor: "#F97316",
+    oldValueBg: "rgba(249,115,22,0.10)",
   },
   radius: { lg: 16, full: 999 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
 } as const;
 
-// ── Tipos — API pública sin cambios ───────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type Props = {
   notaIA?: string | null;
   series?: number | null;
   repeticiones?: number | null;
-  peso?: number | null; // ✅ se recibe en kg
+  peso?: number | null; // en kg
   esCardio?: boolean;
   // Datos para ejercicios compuestos
   esCompuesto?: boolean;
@@ -46,7 +64,35 @@ type Props = {
   tipoCompuesto?: string | null;
   cantidadEjercicios?: number | null;
   descansoSeg?: number | null;
+  // Nueva prescripción del coach
+  coachObjetivo?: ObjetivoSesion | null;
+  asignadoId?: number | null;
+  onActualizar?: (updated: {
+    seriesSugeridas?: number | null;
+    repeticionesSugeridas?: number | null;
+    pesoSugerido?: number | null;
+  }) => void;
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const PESO_DIFF_THRESHOLD = 0.05; // 5%
+
+function hasDiff(
+  series: number,
+  reps: number,
+  pesoKg: number,
+  objetivo: ObjetivoSesion
+): boolean {
+  if (objetivo.series && objetivo.series !== series) return true;
+  if (objetivo.repeticiones && objetivo.repeticiones !== reps) return true;
+  if (
+    objetivo.pesoKg != null &&
+    pesoKg > 0 &&
+    Math.abs(objetivo.pesoKg - pesoKg) / Math.max(pesoKg, 0.001) > PESO_DIFF_THRESHOLD
+  )
+    return true;
+  return false;
+}
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function NotaIA({
@@ -60,6 +106,9 @@ export default function NotaIA({
   tipoCompuesto,
   cantidadEjercicios,
   descansoSeg,
+  coachObjetivo,
+  asignadoId,
+  onActualizar,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -102,14 +151,112 @@ export default function NotaIA({
     [safeNota, safeSeries, safeReps, safePesoKg, esCompuesto, safeNombreCompuesto, safeTipoCompuesto, safeCantidad]
   );
 
+  // ── Lógica de actualización ────────────────────────────────────────────────
+  const needsUpdate = useMemo(() => {
+    if (esCompuesto || !coachObjetivo || !asignadoId) return false;
+    return hasDiff(safeSeries, safeReps, safePesoKg, coachObjetivo);
+  }, [esCompuesto, coachObjetivo, asignadoId, safeSeries, safeReps, safePesoKg]);
+
+  const [updated, setUpdated] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Reset "updated" state if the underlying data changes
+  useEffect(() => {
+    setUpdated(false);
+  }, [safeSeries, safeReps, safePesoKg]);
+
+  // ── Animación de pulso ─────────────────────────────────────────────────────
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (!needsUpdate || updated) {
+      loopRef.current?.stop();
+      pulseAnim.setValue(1);
+      glowAnim.setValue(0);
+      return;
+    }
+
+    loopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulseAnim, {
+            toValue: 1.04,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+    loopRef.current.start();
+
+    return () => {
+      loopRef.current?.stop();
+    };
+  }, [needsUpdate, updated]);
+
+  const handleActualizar = useCallback(async () => {
+    if (!coachObjetivo || !asignadoId || saving) return;
+
+    Vibration.vibrate([0, 40, 60, 40]);
+
+    loopRef.current?.stop();
+    pulseAnim.setValue(1);
+
+    setSaving(true);
+    try {
+      await actualizarPrescripcion(asignadoId, {
+        seriesSugeridas: coachObjetivo.series ?? undefined,
+        repeticionesSugeridas: coachObjetivo.repeticiones ?? undefined,
+        pesoSugerido: coachObjetivo.pesoKg ?? undefined,
+      });
+      setUpdated(true);
+      onActualizar?.({
+        seriesSugeridas: coachObjetivo.series,
+        repeticionesSugeridas: coachObjetivo.repeticiones,
+        pesoSugerido: coachObjetivo.pesoKg,
+      });
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setSaving(false);
+    }
+  }, [coachObjetivo, asignadoId, saving, onActualizar]);
+
   if (!shouldRender) return null;
 
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
+  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
+  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
+  const showUpdate = needsUpdate && !updated && coachObjetivo != null;
+
+  // Format coach suggestion values for display
+  const nuevoSeriesDisplay = coachObjetivo?.series ?? safeSeries;
+  const nuevoRepsDisplay = coachObjetivo?.repeticiones ?? safeReps;
+  const nuevoPesoKg = coachObjetivo?.pesoKg ?? safePesoKg;
+  const nuevoPesoDisplay =
+    nuevoPesoKg > 0
+      ? medidaPeso === "LB"
+        ? kgToLb(nuevoPesoKg)
+        : `${nuevoPesoKg} kg`
+      : null;
 
   return (
     <View
@@ -121,12 +268,8 @@ export default function NotaIA({
         style={[
           styles.card,
           {
-            backgroundColor: isDark
-              ? tokens.color.cardBgDark
-              : tokens.color.cardBgLight,
-            borderColor: isDark
-              ? tokens.color.cardBorderDark
-              : tokens.color.cardBorderLight,
+            backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
+            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
           },
         ]}
       >
@@ -212,18 +355,10 @@ export default function NotaIA({
           {esCompuesto ? (
             <>
               {safeCantidad > 0 && (
-                <MetaItem
-                  label="Ejercicios"
-                  value={String(safeCantidad)}
-                  isDark={isDark}
-                />
+                <MetaItem label="Ejercicios" value={String(safeCantidad)} isDark={isDark} />
               )}
               {safeDescansoSeg > 0 && (
-                <MetaItem
-                  label="Descanso"
-                  value={`${safeDescansoSeg} s`}
-                  isDark={isDark}
-                />
+                <MetaItem label="Descanso" value={`${safeDescansoSeg} s`} isDark={isDark} />
               )}
             </>
           ) : (
@@ -241,15 +376,152 @@ export default function NotaIA({
               )}
 
               {pesoDisplay && (
-                <MetaItem
-                  label="Peso"
-                  value={pesoDisplay}
-                  isDark={isDark}
-                />
+                <MetaItem label="Peso" value={pesoDisplay} isDark={isDark} />
               )}
             </>
           )}
         </View>
+
+        {/* ── Bloque de actualización de prescripción ─────────────────────── */}
+        {showUpdate && (
+          <View
+            style={[
+              styles.updateBlock,
+              {
+                backgroundColor: isDark
+                  ? tokens.color.updateBg
+                  : "rgba(34,197,94,0.05)",
+                borderColor: tokens.color.updateBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.updateLabel, { color: tokens.color.accentGreen }]}>
+              NUEVA PRESCRIPCIÓN DEL COACH
+            </Text>
+
+            <View style={styles.compareRow}>
+              {/* Valores anteriores */}
+              <View style={styles.compareCol}>
+                <Text style={[styles.compareColLabel, { color: textSecondary }]}>
+                  ACTUAL
+                </Text>
+                <View style={styles.compareValues}>
+                  <ValuePill
+                    label="Series"
+                    value={String(safeSeries)}
+                    color={tokens.color.oldValueColor}
+                    bg={tokens.color.oldValueBg}
+                  />
+                  {!isCardio ? (
+                    <ValuePill
+                      label="Reps"
+                      value={String(safeReps)}
+                      color={tokens.color.oldValueColor}
+                      bg={tokens.color.oldValueBg}
+                    />
+                  ) : null}
+                  {pesoDisplay ? (
+                    <ValuePill
+                      label="Peso"
+                      value={pesoDisplay}
+                      color={tokens.color.oldValueColor}
+                      bg={tokens.color.oldValueBg}
+                    />
+                  ) : null}
+                </View>
+              </View>
+
+              <Text style={[styles.compareArrow, { color: tokens.color.accentGreen }]}>
+                →
+              </Text>
+
+              {/* Nuevos valores */}
+              <View style={styles.compareCol}>
+                <Text style={[styles.compareColLabel, { color: textSecondary }]}>
+                  NUEVO
+                </Text>
+                <View style={styles.compareValues}>
+                  <ValuePill
+                    label="Series"
+                    value={String(nuevoSeriesDisplay)}
+                    color={tokens.color.accentGreen}
+                    bg={tokens.color.accentGreenBg}
+                  />
+                  {!isCardio ? (
+                    <ValuePill
+                      label="Reps"
+                      value={String(nuevoRepsDisplay)}
+                      color={tokens.color.accentGreen}
+                      bg={tokens.color.accentGreenBg}
+                    />
+                  ) : null}
+                  {nuevoPesoDisplay ? (
+                    <ValuePill
+                      label="Peso"
+                      value={nuevoPesoDisplay}
+                      color={tokens.color.accentGreen}
+                      bg={tokens.color.accentGreenBg}
+                    />
+                  ) : null}
+                </View>
+              </View>
+            </View>
+
+            {/* Botón animado */}
+            <Animated.View
+              style={[
+                styles.btnWrapper,
+                { transform: [{ scale: pulseAnim }] },
+              ]}
+            >
+              <Animated.View
+                style={[
+                  styles.btnGlow,
+                  {
+                    opacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 0.45],
+                    }),
+                    backgroundColor: tokens.color.accentGreen,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={handleActualizar}
+                disabled={saving}
+                style={({ pressed }) => [
+                  styles.updateBtn,
+                  {
+                    backgroundColor: tokens.color.accentGreen,
+                    opacity: pressed || saving ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <RefreshCw size={16} color="#fff" strokeWidth={2.5} />
+                <Text style={styles.updateBtnText}>
+                  {saving ? "Actualizando..." : "Actualizar prescripción"}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        )}
+
+        {/* Confirmación tras actualizar */}
+        {updated && (
+          <View
+            style={[
+              styles.updatedBadge,
+              {
+                backgroundColor: tokens.color.accentGreenBg,
+                borderColor: tokens.color.accentGreenBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.updatedBadgeText, { color: tokens.color.accentGreen }]}>
+              ✓ Prescripción actualizada por el coach
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -291,6 +563,26 @@ function MetaItem({
       >
         {value ?? "—"}
       </Text>
+    </View>
+  );
+}
+
+// ── ValuePill ─────────────────────────────────────────────────────────────────
+function ValuePill({
+  label,
+  value,
+  color,
+  bg,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  bg: string;
+}) {
+  return (
+    <View style={[styles.valuePill, { backgroundColor: bg }]}>
+      <Text style={[styles.valuePillNum, { color }]}>{value}</Text>
+      <Text style={[styles.valuePillLabel, { color }]}>{label}</Text>
     </View>
   );
 }
@@ -399,6 +691,102 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   metaValue: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // ── Update block ────────────────────────────────────────────────────────────
+  updateBlock: {
+    marginTop: tokens.spacing.md,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: tokens.spacing.md,
+    gap: 12,
+  },
+  updateLabel: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+  compareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  compareCol: {
+    flex: 1,
+    gap: 6,
+  },
+  compareColLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  compareValues: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  compareArrow: {
+    fontSize: 20,
+    fontWeight: "900",
+    paddingHorizontal: 2,
+  },
+
+  valuePill: {
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    minWidth: 54,
+  },
+  valuePillNum: {
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+  valuePillLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    marginTop: 1,
+    opacity: 0.75,
+  },
+
+  btnWrapper: {
+    position: "relative",
+    alignSelf: "stretch",
+  },
+  btnGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    transform: [{ scaleX: 1.1 }, { scaleY: 1.5 }],
+  },
+  updateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 48,
+    borderRadius: 999,
+    paddingHorizontal: tokens.spacing.lg,
+  },
+  updateBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.2,
+  },
+
+  updatedBadge: {
+    marginTop: tokens.spacing.sm,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  updatedBadgeText: {
     fontSize: 12,
     fontWeight: "700",
   },

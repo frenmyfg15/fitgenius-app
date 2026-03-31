@@ -294,3 +294,36 @@ export const replaceEjercicioAsignado = async (
     return handleApiError(error, "Error al reemplazar el ejercicio");
   }
 };
+
+export type ActualizarPrescripcionPayload = {
+  seriesSugeridas?: number | null;
+  repeticionesSugeridas?: number | null;
+  pesoSugerido?: number | null;
+};
+
+export const actualizarPrescripcion = async (
+  asignadoId: number,
+  payload: ActualizarPrescripcionPayload
+) => {
+  try {
+    log("actualizarPrescripcion →", { asignadoId, payload });
+
+    const res = await api.patch(
+      `/rutinas/ejercicio-asignado/${asignadoId}/prescripcion`,
+      payload
+    );
+
+    log("actualizarPrescripcion ← ok", {
+      status: res.status,
+      keys: Object.keys(res.data || {}),
+    });
+
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    log("actualizarPrescripcion ← error", error);
+
+    checkAuthTokenInvalid(error);
+
+    return handleApiError(error, "Error al actualizar la prescripción");
+  }
+};

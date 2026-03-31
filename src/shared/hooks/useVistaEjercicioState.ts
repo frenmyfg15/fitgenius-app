@@ -29,6 +29,24 @@ type Serie = { reps: number; peso: number };
 
 const COACH_AUTO_DISABLED_KEY = "coach:autoDisabled:v1";
 
+// Devuelve la clave ISO de la semana actual: "YYYY-WNN"
+function getSemanaISO(): string {
+  const now = new Date();
+  const diaSemana = now.getUTCDay();
+  const diffLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const lunes = new Date(now);
+  lunes.setUTCDate(now.getUTCDate() + diffLunes);
+  lunes.setUTCHours(0, 0, 0, 0);
+  const año = lunes.getUTCFullYear();
+  const inicioAño = new Date(Date.UTC(año, 0, 1));
+  const semana = Math.ceil(
+    ((lunes.getTime() - inicioAño.getTime()) / 86400000 + inicioAño.getUTCDay() + 1) / 7
+  );
+  return `${año}-W${String(semana).padStart(2, "0")}`;
+}
+
+const ANALISIS_SEMANAL_KEY_PREFIX = "analisis-semanal:mostrado:";
+
 const toPositiveInt = (v: any): number | null => {
   const n = Number(v);
   if (!Number.isFinite(n)) return null;
@@ -302,7 +320,7 @@ export function useVistaEjercicioState(params: Params) {
 
     try {
       setGuardando(true);
-      await guardarSesionEjercicio(payload);
+      const sesion = await guardarSesionEjercicio(payload);
 
       const caloriasPlus = calcularCalorias(series);
       calorias.current = caloriasPlus;
@@ -317,6 +335,21 @@ export function useVistaEjercicioState(params: Params) {
       if (storageKey) await AsyncStorage.removeItem(storageKey);
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
+
+      if (sesion?.diaCompleto) {
+        useSyncStore.getState().setAnalisisDiarioPendiente(true);
+      }
+
+      if (sesion?.semanaCompleta) {
+        const semanaKey = ANALISIS_SEMANAL_KEY_PREFIX + getSemanaISO();
+        try {
+          const yaVisto = await AsyncStorage.getItem(semanaKey);
+          if (!yaVisto) {
+            await AsyncStorage.setItem(semanaKey, "1");
+            useSyncStore.getState().setAnalisisSemanalPendiente(true);
+          }
+        } catch { }
+      }
 
       setCoachData(null);
       if (!coachAutoDisabled && Boolean(usuario?.haPagado)) {
@@ -363,7 +396,7 @@ export function useVistaEjercicioState(params: Params) {
 
     try {
       setGuardando(true);
-      await guardarSesionCompuesta(payload);
+      const sesionComp = await guardarSesionCompuesta(payload);
 
       const caloriasPlus = calcularCaloriasCompuesto(seriesComp as any);
       calorias.current = caloriasPlus;
@@ -378,6 +411,21 @@ export function useVistaEjercicioState(params: Params) {
       if (storageKey) await AsyncStorage.removeItem(storageKey);
       cacheDel(slug);
       useSyncStore.getState().bumpWorkoutRev();
+
+      if (sesionComp?.diaCompleto) {
+        useSyncStore.getState().setAnalisisDiarioPendiente(true);
+      }
+
+      if (sesionComp?.semanaCompleta) {
+        const semanaKey = ANALISIS_SEMANAL_KEY_PREFIX + getSemanaISO();
+        try {
+          const yaVisto = await AsyncStorage.getItem(semanaKey);
+          if (!yaVisto) {
+            await AsyncStorage.setItem(semanaKey, "1");
+            useSyncStore.getState().setAnalisisSemanalPendiente(true);
+          }
+        } catch { }
+      }
 
       setCoachData(null);
       if (!coachAutoDisabled && Boolean(usuario?.haPagado)) {

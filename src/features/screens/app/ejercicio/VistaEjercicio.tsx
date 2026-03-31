@@ -214,6 +214,24 @@ export default function VistaEjercicio() {
 
   const [estresModalVisible, setEstresModalVisible] = useState(false);
 
+  // Override local prescription after coach update (without refetching the exercise)
+  const [prescripcionOverride, setPrescripcionOverride] = useState<{
+    seriesSugeridas?: number | null;
+    repeticionesSugeridas?: number | null;
+    pesoSugerido?: number | null;
+  } | null>(null);
+
+  const handlePrescripcionActualizada = useCallback(
+    (updated: {
+      seriesSugeridas?: number | null;
+      repeticionesSugeridas?: number | null;
+      pesoSugerido?: number | null;
+    }) => {
+      setPrescripcionOverride(updated);
+    },
+    []
+  );
+
   const onChangeComp = useCallback(
     (sIdx: number, cIdx: number, patch: Partial<RegistroPayload>) => {
       setSeriesComp((prev) => {
@@ -288,6 +306,7 @@ export default function VistaEjercicio() {
         seriesComp={esCompuesto ? seriesComp : []}
         nivelEstres={nivelEstres}
         esCompuesto={esCompuesto}
+        coachData={coachData?.data}
         onFinish={() => {
           dismiss();
           setFestejo(false);
@@ -464,17 +483,17 @@ export default function VistaEjercicio() {
           series={
             esCompuesto
               ? undefined
-              : ejercicio.ejercicioAsignado?.seriesSugeridas
+              : (prescripcionOverride?.seriesSugeridas ?? ejercicio.ejercicioAsignado?.seriesSugeridas)
           }
           repeticiones={
             esCompuesto
               ? undefined
-              : ejercicio.ejercicioAsignado?.repeticionesSugeridas
+              : (prescripcionOverride?.repeticionesSugeridas ?? ejercicio.ejercicioAsignado?.repeticionesSugeridas)
           }
           peso={
             esCompuesto
               ? undefined
-              : ejercicio.ejercicioAsignado?.pesoSugerido
+              : (prescripcionOverride?.pesoSugerido ?? ejercicio.ejercicioAsignado?.pesoSugerido)
           }
           esCardio={esCardio}
           esCompuesto={esCompuesto}
@@ -484,6 +503,9 @@ export default function VistaEjercicio() {
             ejercicio.ejercicioCompuesto?.ejerciciosComponentes?.length
           }
           descansoSeg={ejercicio.ejercicioAsignado?.descansoSeg}
+          coachObjetivo={!esCompuesto ? coachData?.data?.objetivoSesion : null}
+          asignadoId={asignadoId ? Number(asignadoId) : null}
+          onActualizar={handlePrescripcionActualizada}
         />
 
         {esCompuesto ? (
