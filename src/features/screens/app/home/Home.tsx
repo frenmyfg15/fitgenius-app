@@ -13,12 +13,14 @@ import TarjetaHome from "@/shared/components/home/TarjetaHome";
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
+import CoachHistorialSection from "@/shared/components/home/CoachHistorialSection";
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
 import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
 import AnalisisDiarioModal from "@/shared/components/home/AnalisisDiarioModal";
 import AnalisisSemanalModal from "@/shared/components/home/AnalisisSemanalModal";
+import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 
@@ -135,8 +137,8 @@ export default function Home() {
   const setAnalisisSemanalPendiente = useSyncStore((s) => s.setAnalisisSemanalPendiente);
   const rutinaCache = useRutinaCache();
 
-  const [analisisDiarioVisible, setAnalisisDiarioVisible] = useState(false);
-  const [analisisSemanalVisible, setAnalisisSemanalVisible] = useState(false);
+  const diarioOverlay = useOverlayPresenter();
+  const semanalOverlay = useOverlayPresenter();
 
   // ── Auto-generación ───────────────────────────────────────────────────
   const [autoGenerating, setAutoGenerating] = useState(false);
@@ -177,7 +179,9 @@ export default function Home() {
   useEffect(() => {
     if (!analisisDiarioPendiente) return;
     setAnalisisDiarioPendiente(false);
-    setAnalisisDiarioVisible(true);
+    diarioOverlay.present(
+      <AnalisisDiarioModal visible onClose={() => diarioOverlay.dismiss()} onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
+    );
   }, [analisisDiarioPendiente]);
 
   // ── Análisis semanal ──────────────────────────────────────────────────
@@ -185,7 +189,11 @@ export default function Home() {
     if (!analisisSemanalPendiente) return;
     setAnalisisSemanalPendiente(false);
     // Pequeño delay para no solapar con el modal diario si ambos se disparan
-    const t = setTimeout(() => setAnalisisSemanalVisible(true), 600);
+    const t = setTimeout(() => {
+      semanalOverlay.present(
+        <AnalisisSemanalModal visible onClose={() => semanalOverlay.dismiss()} onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
+      );
+    }, 600);
     return () => clearTimeout(t);
   }, [analisisSemanalPendiente]);
 
@@ -556,21 +564,6 @@ export default function Home() {
         }}
       />
 
-      <AnalisisDiarioModal
-        visible={analisisDiarioVisible}
-        onClose={() => {
-          console.log("[Home] AnalisisDiarioModal onClose");
-          setAnalisisDiarioVisible(false);
-        }}
-      />
-
-      <AnalisisSemanalModal
-        visible={analisisSemanalVisible}
-        onClose={() => {
-          console.log("[Home] AnalisisSemanalModal onClose");
-          setAnalisisSemanalVisible(false);
-        }}
-      />
 
       <ScrollView
         style={[styles.scroll, { backgroundColor: bg }]}
@@ -638,19 +631,7 @@ export default function Home() {
             <View style={styles.calendarWrapper}>
               <Calendar devolverDato={devolver} completadas={completadasMap} />
             </View>
-
-            <Text
-              style={[
-                styles.helperText,
-                {
-                  color: isDark
-                    ? tokens.color.textSecondaryDark
-                    : tokens.color.textSecondaryLight,
-                },
-              ]}
-            >
-              {helperMessage}
-            </Text>
+            <CoachHistorialSection onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
 
             <View style={styles.cardWrapper}>
               <TarjetaHome

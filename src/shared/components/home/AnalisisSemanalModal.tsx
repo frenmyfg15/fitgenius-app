@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Lock } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { obtenerAnalisisSemanal } from "@/features/api/coach.api";
@@ -17,6 +19,11 @@ import type {
   DiaSemanaInfo,
   GrupoMuscularSemana,
 } from "@/features/api/coach.api";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { useAnalisisStore } from "@/features/store/useAnalisisStore";
+import { getSemanaISO } from "@/shared/utils/getSemanaISO";
+
+const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -167,18 +174,92 @@ function GrupoBar({
   );
 }
 
+// ── AnalisisSemanalSkeleton ───────────────────────────────────────────────────
+
+function AnalisisSemanalSkeleton({ isDark }: { isDark: boolean }) {
+  const base = isDark ? "rgba(148,163,184,0.14)" : "#E5E7EB";
+  const border = isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB";
+  const card = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+
+  return (
+    <View style={{ gap: 12, opacity: 0.65 }}>
+      {/* mood badge */}
+      <View style={{ width: 140, height: 28, borderRadius: 999, backgroundColor: base }} />
+      {/* saludo */}
+      <View style={{ gap: 6 }}>
+        <View style={{ width: "80%", height: 22, borderRadius: 8, backgroundColor: base }} />
+        <View style={{ width: "55%", height: 22, borderRadius: 8, backgroundColor: base }} />
+      </View>
+      {/* adherencia card */}
+      <View style={{ borderRadius: 18, borderWidth: 1, borderColor: border, backgroundColor: card, padding: 16, gap: 10 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ width: 80, height: 10, borderRadius: 5, backgroundColor: base }} />
+          <View style={{ width: 44, height: 20, borderRadius: 5, backgroundColor: base }} />
+        </View>
+        <View style={{ width: 160, height: 12, borderRadius: 5, backgroundColor: base }} />
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <View key={i} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: base }} />
+          ))}
+        </View>
+      </View>
+      {/* stats grid */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={{ flex: 1, minWidth: 72, borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: card, padding: 12, alignItems: "center", gap: 5 }}>
+            <View style={{ width: 40, height: 16, borderRadius: 5, backgroundColor: base }} />
+            <View style={{ width: 50, height: 9, borderRadius: 5, backgroundColor: base }} />
+          </View>
+        ))}
+      </View>
+      {/* grupos musculares */}
+      <View style={{ borderRadius: 18, borderWidth: 1, borderColor: border, backgroundColor: card, padding: 16, gap: 10 }}>
+        <View style={{ width: 140, height: 10, borderRadius: 5, backgroundColor: base }} />
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ width: 100, height: 12, borderRadius: 5, backgroundColor: base }} />
+            <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: base }} />
+            <View style={{ width: 40, height: 11, borderRadius: 5, backgroundColor: base }} />
+          </View>
+        ))}
+      </View>
+      {/* puntos */}
+      {[0, 1].map((i) => (
+        <View key={i} style={{ borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: card, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: base }} />
+          <View style={{ flex: 1, gap: 5 }}>
+            <View style={{ height: 13, borderRadius: 5, backgroundColor: base }} />
+            <View style={{ width: "70%", height: 13, borderRadius: 5, backgroundColor: base }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ── AnalisisSemanalModal ──────────────────────────────────────────────────────
 
 export type Props = {
   visible: boolean;
   onClose: () => void;
+  onGoPremium?: () => void;
+  semana?: string;
 };
 
-export default function AnalisisSemanalModal({ visible, onClose }: Props) {
+export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, semana }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const t = isDark ? C.dark : C.light;
+
+  const usuario = useUsuarioStore((s) => s.usuario);
+  const locked = !(usuario?.planActual === "PREMIUM" && (usuario?.haPagado ?? false));
+
+  const semanaKey = semana ?? getSemanaISO();
+  const isHistorico = semanaKey !== getSemanaISO();
+
+  const guardarSemanal = useAnalisisStore((s) => s.guardarSemanal);
+  const historico = useAnalisisStore((s) => s.semanal[semanaKey]);
 
   const [data, setData] = useState<AnalisisSemanalData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -210,6 +291,15 @@ export default function AnalisisSemanalModal({ visible, onClose }: Props) {
       }),
     ]).start();
 
+    if (locked) return;
+
+    // Histórico: cargar del store sin llamar a la API
+    if (isHistorico) {
+      if (historico) setData(historico);
+      else setError(true);
+      return;
+    }
+
     if (hasLoaded.current) return;
     hasLoaded.current = true;
 
@@ -220,6 +310,7 @@ export default function AnalisisSemanalModal({ visible, onClose }: Props) {
         const result = await obtenerAnalisisSemanal();
         if (result) {
           setData(result);
+          guardarSemanal(semanaKey, result);
         } else {
           setError(true);
         }
@@ -232,6 +323,88 @@ export default function AnalisisSemanalModal({ visible, onClose }: Props) {
   }, [visible]);
 
   if (!visible) return null;
+
+  if (locked) {
+    return (
+      <Animated.View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor: t.bg,
+            opacity: opacityAnim,
+            paddingTop: insets.top + 8,
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.eyebrow, { color: t.textMuted }]}>RESUMEN DE LA SEMANA</Text>
+            <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Debrief semanal</Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            style={[styles.closeBtn, { backgroundColor: t.pill, borderColor: t.border }]}
+            hitSlop={12}
+          >
+            <Text style={[styles.closeBtnText, { color: t.textSecondary }]}>✕</Text>
+          </Pressable>
+        </View>
+
+        <Animated.View style={[styles.contentWrapper, { transform: [{ translateY: slideAnim }] }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <AnalisisSemanalSkeleton isDark={isDark} />
+
+            <LinearGradient
+              colors={GRADIENT as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.lockFrame}
+            >
+              <Pressable
+                onPress={() => {
+                  onClose();
+                  onGoPremium?.();
+                }}
+                style={[
+                  styles.lockCard,
+                  {
+                    backgroundColor: isDark ? "rgba(15,23,42,0.88)" : "rgba(240,253,250,0.95)",
+                    borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(15,118,110,0.18)",
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Hazte Premium para ver el análisis semanal"
+              >
+                <View
+                  style={[
+                    styles.lockIconWrap,
+                    {
+                      backgroundColor: isDark ? "rgba(15,23,42,1)" : "#FFFFFF",
+                      borderColor: isDark ? "rgba(148,163,184,0.50)" : "rgba(16,185,129,0.35)",
+                    },
+                  ]}
+                >
+                  <Lock size={18} color={isDark ? "#A7F3D0" : "#047857"} strokeWidth={2} />
+                </View>
+                <View style={styles.lockTextWrap}>
+                  <Text style={[styles.lockTitle, { color: isDark ? "#F1F5F9" : "#065F46" }]}>
+                    Debrief semanal Premium
+                  </Text>
+                  <Text style={[styles.lockDesc, { color: isDark ? "#9CA3AF" : "#047857" }]}>
+                    Hazte Premium para acceder al análisis completo de tu semana con métricas y recomendaciones personalizadas.
+                  </Text>
+                </View>
+                <Text style={[styles.lockMore, { color: isDark ? "#A7F3D0" : "#047857" }]}>
+                  Ver más
+                </Text>
+              </Pressable>
+            </LinearGradient>
+          </ScrollView>
+        </Animated.View>
+      </Animated.View>
+    );
+  }
 
   const mood = data?.mood ?? "SEMANA_SOLIDA";
   const moodCfg = MOOD_CONFIG[mood];
@@ -729,5 +902,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     letterSpacing: 0.2,
+  },
+
+  lockFrame: {
+    borderRadius: 16,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+  lockCard: {
+    borderRadius: 15,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  lockIconWrap: {
+    height: 36,
+    width: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  lockTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lockTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+  },
+  lockDesc: {
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+  lockMore: {
+    marginLeft: 10,
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

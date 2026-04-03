@@ -9,7 +9,6 @@ import {
   Pressable,
   Animated,
   Easing,
-  Dimensions,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,15 +27,16 @@ import {
   X,
   Dumbbell,
   CheckCircle2,
-  LayoutList,
 } from "lucide-react-native";
+import LottieView from "lottie-react-native";
 
 import MensajeVacio from "../ui/MensajeVacio";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import ReplaceEjercicioAsignadoFlow from "@/shared/components/rutina/ReplaceEjercicioAsignadoFlow";
 import { kgToLb } from "@/shared/utils/kgToLb";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+/* ── Assets ─────────────────────────────────────────────────────────────────── */
+const confettiAnim = require("../../../../assets/lootie/feliticitaciones.json");
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
@@ -166,7 +166,7 @@ interface Rutina {
 
 type Props = { rutina?: Rutina | null; dia?: string; selectedYMD?: string };
 
-// ── Assets ───────────────────────────────────────────────────────────────────
+// ── Assets locales ────────────────────────────────────────────────────────────
 const brazos = require("../../../../assets/fit/rutina/brazos.webp");
 const cardio = require("../../../../assets/fit/rutina/cardio.webp");
 const core = require("../../../../assets/fit/rutina/core.webp");
@@ -236,7 +236,7 @@ const getFechasParaUI = (ej: EjercicioDia) => {
 const isCompletedOnDate = (ej: EjercicioDia, selectedYMD?: string) => {
   const fechas = getFechasParaUI(ej);
   if (!selectedYMD) {
-    const hoy = new Date().toISOString().slice(0, 10); // UTC, consistente con backend
+    const hoy = new Date().toISOString().slice(0, 10);
     return fechas.includes(hoy);
   }
   return fechas.includes(selectedYMD);
@@ -248,12 +248,22 @@ const routeForEjercicio = (e: EjercicioDia) => {
   if (e.ejercicioCompuesto?.id) {
     return {
       routeName: "VistaEjercicio",
-      params: { id: String(e.ejercicioCompuesto.id), ...(asignadoId && { asignadoId }), nombre, ejercicio: e },
+      params: {
+        id: String(e.ejercicioCompuesto.id),
+        ...(asignadoId && { asignadoId }),
+        nombre,
+        ejercicio: e,
+      },
     };
   }
   return {
     routeName: "VistaEjercicio",
-    params: { slug: encodeURIComponent(nombre), ...(asignadoId && { asignadoId }), nombre, ejercicio: e },
+    params: {
+      slug: encodeURIComponent(nombre),
+      ...(asignadoId && { asignadoId }),
+      nombre,
+      ejercicio: e,
+    },
   };
 };
 
@@ -429,6 +439,7 @@ const HeroEjercicio = memo(function HeroEjercicio({
       : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -456,14 +467,21 @@ const HeroEjercicio = memo(function HeroEjercicio({
       return [{ label: "Ejercicios", value: String(count) }];
     }
     const pills: { label: string; value: string }[] = [];
-    if (ejercicio.seriesSugeridas != null)
+    if (ejercicio.seriesSugeridas != null) {
       pills.push({ label: "Series", value: String(ejercicio.seriesSugeridas) });
-    if (ejercicio.repeticionesSugeridas != null)
+    }
+    if (ejercicio.repeticionesSugeridas != null) {
       pills.push({ label: "Reps", value: String(ejercicio.repeticionesSugeridas) });
-    if (ejercicio.pesoSugerido != null)
-      pills.push({ label: "Peso", value: formatPesoDisplay(ejercicio.pesoSugerido, medidaPeso) });
-    if (ejercicio.descansoSeg != null)
+    }
+    if (ejercicio.pesoSugerido != null) {
+      pills.push({
+        label: "Peso",
+        value: formatPesoDisplay(ejercicio.pesoSugerido, medidaPeso),
+      });
+    }
+    if (ejercicio.descansoSeg != null) {
       pills.push({ label: "Descanso", value: `${ejercicio.descansoSeg}s` });
+    }
     return pills.slice(0, 3);
   }, [ejercicio, medidaPeso, isCompuesto]);
 
@@ -897,6 +915,7 @@ const TarjetaEjercicioCompacta = memo(function TarjetaEjercicioCompacta({
               {tagSuperior || "—"}
             </Text>
           </View>
+
           <Text
             numberOfLines={1}
             style={[
@@ -906,6 +925,7 @@ const TarjetaEjercicioCompacta = memo(function TarjetaEjercicioCompacta({
           >
             {nombre}
           </Text>
+
           <Text
             numberOfLines={1}
             style={[
@@ -1276,6 +1296,188 @@ const sheetStyles = StyleSheet.create({
   },
 });
 
+// ── AllDoneView ───────────────────────────────────────────────────────────────
+const AllDoneView = memo(function AllDoneView({ isDark }: { isDark: boolean }) {
+  const [confettiDone, setConfettiDone] = useState(false);
+
+  useEffect(() => {
+    setConfettiDone(false);
+  }, []);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 450,
+        delay: 120,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 450,
+        delay: 120,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 70,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, scaleAnim]);
+
+  return (
+    <View style={allDoneStyles.wrapper}>
+      {!confettiDone && (
+        <LottieView
+          source={confettiAnim}
+          autoPlay
+          loop={false}
+          onAnimationFinish={() => setConfettiDone(true)}
+          style={allDoneStyles.confetti}
+        />
+      )}
+
+      <Animated.View
+        style={[
+          allDoneStyles.cardOuter,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={
+            isDark
+              ? ["rgba(34,197,94,0.18)", "rgba(15,24,41,0.98)"]
+              : ["rgba(34,197,94,0.10)", "rgba(255,255,255,0.98)"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            allDoneStyles.card,
+            {
+              borderColor: isDark
+                ? "rgba(34,197,94,0.28)"
+                : "rgba(34,197,94,0.20)",
+              backgroundColor: isDark ? "#0F1829" : "#FFFFFF",
+            },
+          ]}
+        >
+          <View
+            style={[
+              allDoneStyles.iconWrap,
+              {
+                backgroundColor: isDark
+                  ? "rgba(34,197,94,0.12)"
+                  : "rgba(34,197,94,0.10)",
+                borderColor: isDark
+                  ? "rgba(34,197,94,0.28)"
+                  : "rgba(34,197,94,0.22)",
+              },
+            ]}
+          >
+            <CheckCircle2
+              size={30}
+              color={tokens.color.checkColor}
+              strokeWidth={2.6}
+            />
+          </View>
+
+          <View style={allDoneStyles.textBlock}>
+            <Text
+              style={[
+                allDoneStyles.title,
+                { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
+              ]}
+            >
+              Día completado
+            </Text>
+
+            <Text
+              style={[
+                allDoneStyles.subtitle,
+                {
+                  color: isDark
+                    ? "rgba(241,245,249,0.72)"
+                    : "rgba(15,23,42,0.68)",
+                },
+              ]}
+            >
+              Terminaste todos tus ejercicios de hoy. Gran trabajo, sigue así.
+            </Text>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+    </View>
+  );
+});
+
+const allDoneStyles = StyleSheet.create({
+  wrapper: {
+    width: "100%",
+    overflow: "hidden",
+    borderRadius: tokens.radius.xl,
+  },
+  confetti: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  cardOuter: {
+    width: "100%",
+  },
+  card: {
+    width: "100%",
+    minHeight: 132,
+    borderRadius: tokens.radius.xl,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  iconWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  textBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    lineHeight: 26,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: "500",
+    lineHeight: 19,
+  },
+});
+
 // ── TarjetaHome ──────────────────────────────────────────────────────────────
 export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
   const navigation = useNavigation();
@@ -1318,6 +1520,14 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
     [navigation]
   );
 
+  const navigateFromSheet = useCallback(
+    (routeName: string, params?: Record<string, any>) => {
+      setSheetVisible(false);
+      (navigation as any).navigate(routeName, params);
+    },
+    [navigation]
+  );
+
   const handlePressPrimerPendiente = useCallback(() => {
     if (!primerPendiente) return;
     const { routeName, params } = routeForEjercicio(primerPendiente);
@@ -1347,104 +1557,63 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
 
   return (
     <View style={rootStyles.container}>
-      <ProgressBar
-        completados={completados.length}
-        total={ejercicios.length}
-        isDark={isDark}
-      />
+      <View style={rootStyles.content}>
+        {!allDone && (
+          <ProgressBar
+            completados={completados.length}
+            total={ejercicios.length}
+            isDark={isDark}
+          />
+        )}
 
-      {primerPendiente ? (
-        canReplacePrimer ? (
-          <Swipeable
-            renderRightActions={() => (
-              <ReplaceSwipeAction
-                rutinaId={Number(rutinaId)}
-                diaRutinaId={Number(diaRutinaId)}
-                asignadoId={Number(primerPendiente!.id)}
+        {primerPendiente ? (
+          canReplacePrimer ? (
+            <Swipeable
+              renderRightActions={() => (
+                <ReplaceSwipeAction
+                  rutinaId={Number(rutinaId)}
+                  diaRutinaId={Number(diaRutinaId)}
+                  asignadoId={Number(primerPendiente!.id)}
+                />
+              )}
+              overshootRight={false}
+              rightThreshold={32}
+              friction={2}
+            >
+              <HeroEjercicio
+                ejercicio={primerPendiente}
+                medidaPeso={medidaPeso}
+                onPress={handlePressPrimerPendiente}
+                isDark={isDark}
               />
-            )}
-            overshootRight={false}
-            rightThreshold={32}
-            friction={2}
-          >
+            </Swipeable>
+          ) : (
             <HeroEjercicio
               ejercicio={primerPendiente}
               medidaPeso={medidaPeso}
               onPress={handlePressPrimerPendiente}
               isDark={isDark}
             />
-          </Swipeable>
-        ) : (
-          <HeroEjercicio
-            ejercicio={primerPendiente}
-            medidaPeso={medidaPeso}
-            onPress={handlePressPrimerPendiente}
-            isDark={isDark}
-          />
-        )
-      ) : allDone ? (
-        <LinearGradient
-          colors={GRADIENT as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={rootStyles.allDoneGradient}
-        >
-          <View
-            style={[
-              rootStyles.allDoneCard,
-              { backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight },
-            ]}
-          >
-            <CheckCircle2 size={36} color={tokens.color.checkColor} strokeWidth={2} />
-            <Text
-              style={[
-                rootStyles.allDoneTitle,
-                { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
-              ]}
-            >
-              ¡Sesión completada!
-            </Text>
-            <Text style={rootStyles.allDoneSub}>
-              Has terminado todos los ejercicios de hoy. ¡Gran trabajo!
-            </Text>
-          </View>
-        </LinearGradient>
-      ) : null}
+          )
+        ) : allDone ? (
+          <AllDoneView isDark={isDark} />
+        ) : null}
+      </View>
 
       {ejercicios.length > 0 && (
         <Pressable
           onPress={() => setSheetVisible(true)}
-          style={({ pressed }) => [
-            rootStyles.verTodoBtn,
-            {
-              backgroundColor: isDark
-                ? pressed
-                  ? "rgba(255,255,255,0.09)"
-                  : "rgba(255,255,255,0.05)"
-                : pressed
-                  ? "rgba(0,0,0,0.08)"
-                  : "rgba(0,0,0,0.04)",
-              borderColor: isDark
-                ? "rgba(255,255,255,0.09)"
-                : "rgba(0,0,0,0.08)",
-            },
-          ]}
           accessibilityRole="button"
-          accessibilityLabel="Ver todos los ejercicios"
+          accessibilityLabel="Abrir ejercicios"
+          style={rootStyles.floatingBtn}
         >
-          <LayoutList size={14} color={isDark ? "#64748B" : "#94A3B8"} strokeWidth={2} />
-          <Text
-            style={[
-              rootStyles.verTodoText,
-              { color: isDark ? "#64748B" : "#94A3B8" },
-            ]}
-          >
-            Ver todos los ejercicios
-          </Text>
-          <View style={rootStyles.verTodoBadge}>
-            <Text style={rootStyles.verTodoBadgeText}>{ejercicios.length}</Text>
-          </View>
-          <ChevronRight size={13} color={isDark ? "#334155" : "#CBD5E1"} strokeWidth={2.5} />
+          <Text style={rootStyles.floatingText}>Ejercicios</Text>
+          <ChevronRight
+            size={16}
+            color="#111111"
+            strokeWidth={2.8}
+            style={{ transform: [{ rotate: "-90deg" }] }}
+          />
         </Pressable>
       )}
 
@@ -1457,7 +1626,7 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
         rutinaId={rutinaId}
         diaRutinaId={diaRutinaId}
         isDark={isDark}
-        onPressNavegar={navigate}
+        onPressNavegar={navigateFromSheet}
       />
     </View>
   );
@@ -1465,55 +1634,45 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
 
 const rootStyles = StyleSheet.create({
   container: {
+    position: "relative",
     width: "100%",
     paddingHorizontal: tokens.spacing.sm,
+    paddingBottom: 72,
+  },
+  content: {
+    width: "100%",
     gap: tokens.spacing.lg,
   },
-  allDoneGradient: {
-    borderRadius: tokens.radius.xl,
-    padding: 2,
-  },
-  allDoneCard: {
-    borderRadius: tokens.radius.xl - 2,
-    paddingVertical: tokens.spacing.xl * 1.5,
-    paddingHorizontal: tokens.spacing.xl,
-    alignItems: "center",
-    gap: tokens.spacing.md,
-  },
-  allDoneTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: -0.2,
-  },
-  allDoneSub: {
-    fontSize: 13,
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 19,
-  },
-  verTodoBtn: {
+  floatingBtn: {
+    position: "absolute",
+    right: tokens.spacing.sm,
+    bottom: 0,
+
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.sm,
-    borderRadius: tokens.radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 11,
-    paddingHorizontal: tokens.spacing.md,
+    justifyContent: "space-between",
+    gap: 10,
+
+    height: 46,
+    paddingHorizontal: 16,
+
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.08)",
+    borderRadius: 999,
+
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
+
+    zIndex: 20,
   },
-  verTodoText: {
+  floatingText: {
     fontSize: 13,
-    fontWeight: "600",
-    flex: 1,
-  },
-  verTodoBadge: {
-    backgroundColor: "rgba(34,197,94,0.12)",
-    borderRadius: tokens.radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  verTodoBadgeText: {
-    fontSize: 11,
     fontWeight: "700",
-    color: tokens.color.checkColor,
+    letterSpacing: 0.2,
+    color: "#111111",
   },
 });

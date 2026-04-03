@@ -8,10 +8,16 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Lock } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { obtenerAnalisisDiario } from "@/features/api/coach.api";
 import type { AnalisisDiarioData, MoodDiario } from "@/features/api/coach.api";
+import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { useAnalisisStore } from "@/features/store/useAnalisisStore";
+
+const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -119,18 +125,74 @@ function PuntoCard({
   );
 }
 
+// ── AnalisisDiarioSkeleton ────────────────────────────────────────────────────
+
+function AnalisisDiarioSkeleton({ isDark }: { isDark: boolean }) {
+  const base = isDark ? "rgba(148,163,184,0.14)" : "#E5E7EB";
+  const border = isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB";
+  const card = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+
+  return (
+    <View style={{ gap: 14, opacity: 0.65 }}>
+      <View style={{ width: 130, height: 28, borderRadius: 999, backgroundColor: base }} />
+      <View style={{ gap: 6 }}>
+        <View style={{ width: "85%", height: 22, borderRadius: 8, backgroundColor: base }} />
+        <View style={{ width: "60%", height: 22, borderRadius: 8, backgroundColor: base }} />
+      </View>
+      <View style={{ borderRadius: 18, borderWidth: 1, borderColor: border, backgroundColor: card, padding: 16, gap: 8 }}>
+        <View style={{ width: 70, height: 10, borderRadius: 5, backgroundColor: base }} />
+        <View style={{ width: "100%", height: 13, borderRadius: 5, backgroundColor: base }} />
+        <View style={{ width: "100%", height: 13, borderRadius: 5, backgroundColor: base }} />
+        <View style={{ width: "70%", height: 13, borderRadius: 5, backgroundColor: base }} />
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={{ flex: 1, borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: card, padding: 10, alignItems: "center", gap: 6 }}>
+            <View style={{ width: 40, height: 18, borderRadius: 5, backgroundColor: base }} />
+            <View style={{ width: 50, height: 10, borderRadius: 5, backgroundColor: base }} />
+          </View>
+        ))}
+      </View>
+      {[0, 1].map((i) => (
+        <View key={i} style={{ borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: card, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: base }} />
+          <View style={{ flex: 1, gap: 5 }}>
+            <View style={{ height: 13, borderRadius: 5, backgroundColor: base }} />
+            <View style={{ width: "70%", height: 13, borderRadius: 5, backgroundColor: base }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ── AnalisisDiarioModal ───────────────────────────────────────────────────────
 
 export type Props = {
   visible: boolean;
   onClose: () => void;
+  onGoPremium?: () => void;
+  fecha?: string;
 };
 
-export default function AnalisisDiarioModal({ visible, onClose }: Props) {
+function getTodayISO() {
+  return new Date().toISOString().split("T")[0];
+}
+
+export default function AnalisisDiarioModal({ visible, onClose, onGoPremium, fecha }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const t = isDark ? C.dark : C.light;
+
+  const usuario = useUsuarioStore((s) => s.usuario);
+  const locked = !(usuario?.planActual === "PREMIUM" && (usuario?.haPagado ?? false));
+
+  const fechaKey = fecha ?? getTodayISO();
+  const isHistorico = fechaKey !== getTodayISO();
+
+  const guardarDiario = useAnalisisStore((s) => s.guardarDiario);
+  const historico = useAnalisisStore((s) => s.diario[fechaKey]);
 
   const [data, setData] = useState<AnalisisDiarioData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -162,6 +224,15 @@ export default function AnalisisDiarioModal({ visible, onClose }: Props) {
       }),
     ]).start();
 
+    if (locked) return;
+
+    // Histórico: cargar del store sin llamar a la API
+    if (isHistorico) {
+      if (historico) setData(historico);
+      else setError(true);
+      return;
+    }
+
     if (hasLoaded.current) return;
     hasLoaded.current = true;
 
@@ -172,6 +243,7 @@ export default function AnalisisDiarioModal({ visible, onClose }: Props) {
         const result = await obtenerAnalisisDiario();
         if (result) {
           setData(result);
+          guardarDiario(fechaKey, result);
         } else {
           setError(true);
         }
@@ -184,6 +256,88 @@ export default function AnalisisDiarioModal({ visible, onClose }: Props) {
   }, [visible]);
 
   if (!visible) return null;
+
+  if (locked) {
+    return (
+      <Animated.View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor: t.bg,
+            opacity: opacityAnim,
+            paddingTop: insets.top + 8,
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.eyebrow, { color: t.textMuted }]}>RESUMEN DEL DÍA</Text>
+            <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Tu coach habla</Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            style={[styles.closeBtn, { backgroundColor: t.pill, borderColor: t.border }]}
+            hitSlop={12}
+          >
+            <Text style={[styles.closeBtnText, { color: t.textSecondary }]}>✕</Text>
+          </Pressable>
+        </View>
+
+        <Animated.View style={[styles.contentWrapper, { transform: [{ translateY: slideAnim }] }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <AnalisisDiarioSkeleton isDark={isDark} />
+
+            <LinearGradient
+              colors={GRADIENT as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.lockFrame}
+            >
+              <Pressable
+                onPress={() => {
+                  onClose();
+                  onGoPremium?.();
+                }}
+                style={[
+                  styles.lockCard,
+                  {
+                    backgroundColor: isDark ? "rgba(15,23,42,0.88)" : "rgba(240,253,250,0.95)",
+                    borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(15,118,110,0.18)",
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Hazte Premium para ver el análisis diario"
+              >
+                <View
+                  style={[
+                    styles.lockIconWrap,
+                    {
+                      backgroundColor: isDark ? "rgba(15,23,42,1)" : "#FFFFFF",
+                      borderColor: isDark ? "rgba(148,163,184,0.50)" : "rgba(16,185,129,0.35)",
+                    },
+                  ]}
+                >
+                  <Lock size={18} color={isDark ? "#A7F3D0" : "#047857"} strokeWidth={2} />
+                </View>
+                <View style={styles.lockTextWrap}>
+                  <Text style={[styles.lockTitle, { color: isDark ? "#F1F5F9" : "#065F46" }]}>
+                    Análisis diario Premium
+                  </Text>
+                  <Text style={[styles.lockDesc, { color: isDark ? "#9CA3AF" : "#047857" }]}>
+                    Hazte Premium para que tu coach analice cada sesión y te dé feedback personalizado.
+                  </Text>
+                </View>
+                <Text style={[styles.lockMore, { color: isDark ? "#A7F3D0" : "#047857" }]}>
+                  Ver más
+                </Text>
+              </Pressable>
+            </LinearGradient>
+          </ScrollView>
+        </Animated.View>
+      </Animated.View>
+    );
+  }
 
   const mood = data?.mood ?? "SOLIDO";
   const moodCfg = MOOD_CONFIG[mood];
@@ -578,5 +732,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     letterSpacing: 0.2,
+  },
+
+  lockFrame: {
+    borderRadius: 16,
+    padding: 1.5,
+    overflow: "hidden",
+  },
+  lockCard: {
+    borderRadius: 15,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  lockIconWrap: {
+    height: 36,
+    width: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  lockTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lockTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+  },
+  lockDesc: {
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+  lockMore: {
+    marginLeft: 10,
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

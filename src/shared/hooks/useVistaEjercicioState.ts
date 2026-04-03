@@ -17,6 +17,7 @@ import {
 import { useEjercicioCache } from "@/features/store/useEjercicioCache";
 import { obtenerCoach, obtenerCoachCompuesto } from "@/features/api/coach.api";
 import type { CoachResponse } from "@/features/api/coach.api";
+import { getSemanaISO } from "@/shared/utils/getSemanaISO";
 
 export type Params = {
   slug: string;
@@ -28,22 +29,6 @@ export type Params = {
 type Serie = { reps: number; peso: number };
 
 const COACH_AUTO_DISABLED_KEY = "coach:autoDisabled:v1";
-
-// Devuelve la clave ISO de la semana actual: "YYYY-WNN"
-function getSemanaISO(): string {
-  const now = new Date();
-  const diaSemana = now.getUTCDay();
-  const diffLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
-  const lunes = new Date(now);
-  lunes.setUTCDate(now.getUTCDate() + diffLunes);
-  lunes.setUTCHours(0, 0, 0, 0);
-  const año = lunes.getUTCFullYear();
-  const inicioAño = new Date(Date.UTC(año, 0, 1));
-  const semana = Math.ceil(
-    ((lunes.getTime() - inicioAño.getTime()) / 86400000 + inicioAño.getUTCDay() + 1) / 7
-  );
-  return `${año}-W${String(semana).padStart(2, "0")}`;
-}
 
 const ANALISIS_SEMANAL_KEY_PREFIX = "analisis-semanal:mostrado:";
 

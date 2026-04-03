@@ -26,6 +26,8 @@ export type AnalisisDiarioData = {
   };
 };
 
+export type AnalisisDiarioRegistro = AnalisisDiarioData & { fecha: string };
+
 // ─── Tipos análisis semanal ────────────────────────────────────────────────────
 
 export type MoodSemanal =
@@ -63,6 +65,8 @@ export type AnalisisSemanalData = {
     adherencia: number;
   };
 };
+
+export type AnalisisSemanalRegistro = AnalisisSemanalData & { semana: string };
 
 export type CoachSuggestion = {
   titulo: string;
@@ -211,6 +215,40 @@ export const obtenerAnalisisSemanal = async (): Promise<AnalisisSemanalData | nu
     const status = err?.response?.status;
     if (status === 403 || status === 402) return null;
     return handleApiError(err, "No se pudo obtener el análisis semanal");
+  }
+};
+
+/**
+ * Obtiene el historial de análisis diarios guardados (últimos 30).
+ */
+export const obtenerHistorialDiario = async (): Promise<AnalisisDiarioRegistro[] | null> => {
+  try {
+    log("obtenerHistorialDiario →");
+    const res = await api.get("/coach/historial-diario");
+    log("obtenerHistorialDiario ← ok", res.data);
+    return res.data?.data as AnalisisDiarioRegistro[];
+  } catch (err: any) {
+    checkAuthTokenInvalid(err);
+    const status = err?.response?.status;
+    if (status === 403 || status === 402) return null;
+    return handleApiError(err, "No se pudo obtener el historial diario");
+  }
+};
+
+/**
+ * Obtiene el historial de análisis semanales guardados (últimas 12 semanas).
+ */
+export const obtenerHistorialSemanal = async (): Promise<AnalisisSemanalRegistro[] | null> => {
+  try {
+    log("obtenerHistorialSemanal →");
+    const res = await api.get("/coach/historial-semanal");
+    log("obtenerHistorialSemanal ← ok", res.data);
+    return res.data?.data as AnalisisSemanalRegistro[];
+  } catch (err: any) {
+    checkAuthTokenInvalid(err);
+    const status = err?.response?.status;
+    if (status === 403 || status === 402) return null;
+    return handleApiError(err, "No se pudo obtener el historial semanal");
   }
 };
 
