@@ -17,6 +17,7 @@ import CoachHistorialSection from "@/shared/components/home/CoachHistorialSectio
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
+import { useSyncAnalisis } from "@/shared/hooks/useSyncAnalisis";
 import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
 import AnalisisDiarioModal from "@/shared/components/home/AnalisisDiarioModal";
 import AnalisisSemanalModal from "@/shared/components/home/AnalisisSemanalModal";
@@ -156,6 +157,8 @@ export default function Home() {
   }, [shouldAutoGenerate]);
 
   // ── Seguimiento inteligente ───────────────────────────────────────────
+  useSyncAnalisis(usuario?.id);
+
   const seguimiento = useSeguimientoInteligente();
 
   useEffect(() => {

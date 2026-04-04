@@ -1,7 +1,7 @@
 // src/shared/lib/api.ts
 import axios from "axios";
 
-const local = true;
+const local = false;
 
 const URL = local
   ? "http://192.168.1.146:3000"
