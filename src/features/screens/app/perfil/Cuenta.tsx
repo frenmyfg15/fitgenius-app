@@ -30,6 +30,8 @@ import GastoCalorico from "@/shared/components/ui/GastoCalorico";
 import PesoIdeal from "@/shared/components/ui/PesoIdeal";
 import TasaMetabolicaBasal from "@/shared/components/ui/TasaMetabolicaBasal";
 import PesoObjetivoProgreso from "@/shared/components/ui/PesoObjetivoProgreso";
+import GraficoPeso from "@/shared/components/ui/GraficoPeso";
+import GraficoAltura from "@/shared/components/ui/GraficoAltura";
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 import { useCuenta } from "@/shared/hooks/useCuenta";
 import {
@@ -362,6 +364,8 @@ export default function Cuenta() {
         objetivo={usuario?.pesoObjetivo}
         medidaPeso={usuario?.medidaPeso as "KG" | "LB"}
       />
+      <GraficoPeso />
+      <GraficoAltura />
 
       {showSubscriptionCard && (
         <View

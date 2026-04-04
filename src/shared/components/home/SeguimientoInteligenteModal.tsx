@@ -49,32 +49,40 @@ export default function SeguimientoInteligenteModal({
         lockColor: isDark ? "#FACC15" : "#D97706",
         lockedBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(2,6,23,0.06)",
         lockedBorder: isDark ? "rgba(255,255,255,0.09)" : "rgba(2,6,23,0.09)",
+        razonamientoBg: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+        razonamientoBorder: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
     };
 
     const decision = data?.decision ?? "INSIGHT";
     const isReemplazar = decision === "REEMPLAZAR";
     const buttonIsLocked = isReemplazar && lockedByPlan;
-
-    // Cualquier acción en curso bloquea ambos botones
     const isAnyLoading = applying || omitting;
 
     const titulo =
-        decision === "MANTENER" ? "Vas en la dirección correcta"
-            : decision === "AJUSTAR" ? "Pequeños ajustes, grandes resultados"
-                : decision === "REEMPLAZAR" ? "Es momento de una rutina mejor"
-                    : "Análisis de coach";
+        decision === "MANTENER"   ? "Vas en la dirección correcta"
+        : decision === "AJUSTAR"  ? "Pequeños ajustes, grandes resultados"
+        : decision === "REEMPLAZAR" ? "Es momento de una rutina mejor"
+        : decision === "DESCANSO" ? "Tu cuerpo necesita recuperarse"
+        : decision === "DELOAD"   ? "Semana de deload para seguir creciendo"
+        : "Análisis de coach";
 
     const subtitulo =
-        decision === "MANTENER" ? "Tu consistencia ya está marcando la diferencia."
-            : decision === "AJUSTAR" ? "Vamos a alinear tu esfuerzo con lo que realmente te funciona."
-                : decision === "REEMPLAZAR" ? "No se trata de empezar de cero, sino de empezar mejor."
-                    : "Analizamos tu semana para ayudarte a avanzar con cabeza.";
+        decision === "MANTENER"   ? "Tu consistencia ya está marcando la diferencia."
+        : decision === "AJUSTAR"  ? "Vamos a alinear tu esfuerzo con lo que realmente te funciona."
+        : decision === "REEMPLAZAR" ? "No se trata de empezar de cero, sino de empezar mejor."
+        : decision === "DESCANSO" ? "Descansar es parte del entrenamiento, no una pausa."
+        : decision === "DELOAD"   ? "Bajar la intensidad ahora te permite subir más fuerte después."
+        : "Analizamos tu semana para ayudarte a avanzar con cabeza.";
 
     const ctaLabel = buttonIsLocked
         ? "Desbloquear IA"
         : decision === "AJUSTAR"
             ? "Ajustar mi rutina"
-            : "Reinventar mi rutina";
+            : decision === "DESCANSO"
+                ? "Entendido, descansaré"
+                : decision === "DELOAD"
+                    ? "Aplicar deload esta semana"
+                    : "Reinventar mi rutina";
 
     const handlePrimary = buttonIsLocked ? onGoPremium : onConfirm;
 
@@ -104,6 +112,20 @@ export default function SeguimientoInteligenteModal({
                         {data?.mensaje ?? "Estamos revisando tu progreso para guiar tus próximos pasos."}
                     </Text>
 
+                    {!!data?.razonamiento && (
+                        <View style={[styles.razonamientoBox, {
+                            backgroundColor: colors.razonamientoBg,
+                            borderColor: colors.razonamientoBorder,
+                        }]}>
+                            <Text style={[styles.razonamientoLabel, { color: colors.subtext }]}>
+                                POR QUÉ
+                            </Text>
+                            <Text style={[styles.razonamientoText, { color: colors.subtext }]}>
+                                {data.razonamiento}
+                            </Text>
+                        </View>
+                    )}
+
                     {!!data && (
                         <View style={styles.statsBlock}>
                             <Text style={[styles.daysSummary, { color: colors.subtext }]}>
@@ -122,7 +144,6 @@ export default function SeguimientoInteligenteModal({
                     )}
 
                     <View style={styles.footer}>
-                        {/* ── Botón secundario: Omitir ── */}
                         <Pressable
                             onPress={handleClose}
                             disabled={isAnyLoading}
@@ -144,7 +165,6 @@ export default function SeguimientoInteligenteModal({
                             )}
                         </Pressable>
 
-                        {/* ── Botón primario: Acción principal ── */}
                         <Pressable
                             onPress={handlePrimary}
                             disabled={isAnyLoading}
@@ -195,6 +215,22 @@ const styles = StyleSheet.create({
     title: { fontSize: 20, fontWeight: "700", textAlign: "center" },
     subtitle: { fontSize: 13, textAlign: "center" },
     message: { fontSize: 14, lineHeight: 20, textAlign: "center", marginTop: 4 },
+    razonamientoBox: {
+        borderRadius: 10,
+        borderWidth: 1,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 4,
+    },
+    razonamientoLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        letterSpacing: 1.1,
+    },
+    razonamientoText: {
+        fontSize: 12,
+        lineHeight: 17,
+    },
     statsBlock: { marginTop: 6, gap: 8 },
     daysSummary: { fontSize: 12, textAlign: "center" },
     statsRow: { flexDirection: "row", gap: 8 },

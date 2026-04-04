@@ -182,6 +182,77 @@ export const eliminarCuentaUsuario = async () => {
   }
 };
 
+// ⭐ Actualizar peso y/o altura del usuario
+export const actualizarMedidas = async (datos: { peso?: number; altura?: number }) => {
+  try {
+    log("actualizarMedidas → /usuario/actualizar-usuario/");
+    const res = await api.post("/usuario/actualizar-usuario/", datos);
+    log("actualizarMedidas ←", {
+      status: res.status,
+      keys: Object.keys(res.data || {}),
+    });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+    const apiError = handleApiError(error, "Error al actualizar medidas");
+    throw apiError;
+  }
+};
+
+// ⭐ Mediciones de peso (valor siempre en KG)
+export const registrarPeso = async (kg: number) => {
+  try {
+    log("registrarPeso → /usuario/medicion/peso/");
+    const res = await api.post("/usuario/medicion/peso/", { valor: kg });
+    log("registrarPeso ←", { status: res.status });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+    const apiError = handleApiError(error, "No se pudo registrar el peso");
+    throw apiError;
+  }
+};
+
+export const obtenerHistorialPeso = async () => {
+  try {
+    log("obtenerHistorialPeso → /usuario/medicion/peso/");
+    const res = await api.get("/usuario/medicion/peso/");
+    log("obtenerHistorialPeso ←", { status: res.status });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+    const apiError = handleApiError(error, "No se pudo obtener el historial de peso");
+    throw apiError;
+  }
+};
+
+// ⭐ Mediciones de altura (valor siempre en CM)
+export const registrarAltura = async (cm: number) => {
+  try {
+    log("registrarAltura → /usuario/medicion/altura/");
+    const res = await api.post("/usuario/medicion/altura/", { valor: cm });
+    log("registrarAltura ←", { status: res.status });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+    const apiError = handleApiError(error, "No se pudo registrar la altura");
+    throw apiError;
+  }
+};
+
+export const obtenerHistorialAltura = async () => {
+  try {
+    log("obtenerHistorialAltura → /usuario/medicion/altura/");
+    const res = await api.get("/usuario/medicion/altura/");
+    log("obtenerHistorialAltura ←", { status: res.status });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error);
+    const apiError = handleApiError(error, "No se pudo obtener el historial de altura");
+    throw apiError;
+  }
+};
+
 // ⭐ Obtener datos del usuario autenticado
 export const getMe = async () => {
   try {

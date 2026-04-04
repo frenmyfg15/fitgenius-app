@@ -70,7 +70,7 @@
       "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
-      "STRIPE_PUBLISHABLE_KEY": "pk_test_..."
+      "STRIPE_PUBLISHABLE_KEY": "pk_test_51S0nmRIYazlpLyQudoJSjSyXbLtfzZklvxcEHdzkaXVplMeijyLBz5NtWPsSTVORpDhWJ29GdKwthG053SRjzisv00LfITbdX5"
     }
   }
 }

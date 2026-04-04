@@ -63,8 +63,7 @@ const linking: LinkingOptions<any> = {
   },
 };
 
-const PUBLISHABLE_KEY =
-  (Constants.expoConfig?.extra?.STRIPE_PUBLISHABLE_KEY as string) || "";
+const PUBLISHABLE_KEY = "pk_test_51S0nmRIYazlpLyQudoJSjSyXbLtfzZklvxcEHdzkaXVplMeijyLBz5NtWPsSTVORpDhWJ29GdKwthG053SRjzisv00LfITbdX5";
 
 type RootAuthStackParamList = {
   Sesion: undefined;

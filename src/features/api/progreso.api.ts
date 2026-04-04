@@ -12,12 +12,16 @@ export type SeguimientoDecision =
     | "MANTENER"
     | "AJUSTAR"
     | "REEMPLAZAR"
-    | "INSIGHT";
+    | "INSIGHT"
+    | "DESCANSO"
+    | "DELOAD";
 
 export type SeguimientoAccion =
     | "RUTINA_AJUSTADA"
     | "RUTINA_REEMPLAZADA"
-    | "SIN_CAMBIOS";
+    | "SIN_CAMBIOS"
+    | "SEMANA_DESCANSO"
+    | "SEMANA_DELOAD";
 
 export type SeguimientoCambio = {
     ejercicioId: number;
@@ -43,6 +47,7 @@ export type CheckSeguimientoData = {
 
 export type AnalisisSeguimientoData = {
     decision: SeguimientoDecision;
+    razonamiento: string;
     mensaje: string;
     adherencia: number;
     estres: number;
@@ -64,6 +69,7 @@ export type ModalSeguimientoData = {
     logId: number;
     decision: SeguimientoDecision;
     accion: SeguimientoAccion;
+    razonamiento: string;
     mensaje: string;
     metricas: SeguimientoMetricas;
     cambios: SeguimientoCambio[];
