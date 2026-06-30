@@ -1,31 +1,30 @@
 ﻿// CustomTabBar.tsx
 import React from "react";
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useColorScheme } from "nativewind";
-
-const indicatorGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
+import { Colors, scheme } from "@/shared/constants/colors";
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   return (
     <View
-      style={{
-        backgroundColor: isDark ? "#111111" : "#ffffff",
-        borderTopWidth: 1,
-        borderTopColor: isDark ? "#1f2937" : "#e5e7eb",
-        paddingBottom: insets.bottom || 8,
-        paddingHorizontal: 12,
-        paddingTop: 6,
-      }}
+      style={[
+        styles.bar,
+        {
+          backgroundColor: isDark ? Colors.primary : Colors.secondary,
+          borderTopColor: t.border,
+          paddingBottom: insets.bottom || 8,
+        },
+      ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={styles.row}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label =
@@ -42,40 +41,28 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
           };
 
           const iconName = getIcon(route.name);
-          const color = isFocused ? "#22c55e" : isDark ? "#94a3b8" : "#64748b";
+          const color = isFocused ? Colors.accent : t.textSecondary;
 
           return (
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 8,
-              }}
+              style={styles.tab}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
             >
-              <View style={{ alignItems: "center", gap: 2, width: "100%", position: "relative" }}>
+              <View style={styles.tabInner}>
                 <Ionicons name={iconName} size={22} color={color} />
-                <Text style={{ fontSize: 11, fontWeight: "700", color }}>{String(label)}</Text>
+                <Text style={[styles.label, { color }]}>{String(label)}</Text>
 
-                {/* Indicador inferior degradado SOLO para el seleccionado */}
-                {isFocused ? (
-                  <LinearGradient
-                    colors={indicatorGradient as any}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{
-                      position: "absolute",
-                      bottom: -6, // ligeramente separado del contenido
-                      left: "15%",
-                      right: "15%",
-                      height: 3,
-                      borderRadius: 2,
-                    }}
+                {isFocused && (
+                  <View
+                    style={[
+                      styles.indicator,
+                      { backgroundColor: Colors.accent },
+                    ]}
                   />
-                ) : null}
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -94,3 +81,38 @@ function getIcon(routeName: string): any {
     default: return "ellipse-outline";
   }
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingTop: 6,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  tabInner: {
+    alignItems: "center",
+    gap: 2,
+    width: "100%",
+    position: "relative",
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  indicator: {
+    position: "absolute",
+    bottom: -6,
+    left: "15%",
+    right: "15%",
+    height: 3,
+    borderRadius: 2,
+  },
+});
