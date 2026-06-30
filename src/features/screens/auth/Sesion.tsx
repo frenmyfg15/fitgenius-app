@@ -4,6 +4,7 @@ import {
   Image,
   TextInput,
   Pressable,
+  Switch,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -30,6 +31,8 @@ export default function Sesion() {
     loading,
     showPassword,
     setShowPassword,
+    rememberMe,
+    setRememberMe,
     bgGradient,
     handleSubmit,
     submitLogin,
@@ -79,24 +82,17 @@ export default function Sesion() {
                       />
                     </View>
 
-                    <Text className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
-                      FitGenius
+                    <Text className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                      Iniciar sesión
                     </Text>
 
-                    <Text className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      Entrena con confianza
+                    <Text className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Bienvenido de nuevo a FitGenius
                     </Text>
                   </View>
 
-                  <View
-                    className={clsx(
-                      "rounded-3xl border p-6",
-                      isDark
-                        ? "border-slate-700 bg-slate-900"
-                        : "border-slate-200 bg-white shadow-lg"
-                    )}
-                  >
-                    <View className="gap-5">
+                  <View className="rounded-3xl p-6">
+                    <View className="gap-7">
                       <View>
                         <Text className="mb-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                           Correo electrónico
@@ -123,7 +119,7 @@ export default function Sesion() {
 
                               <TextInput
                                 className={clsx(
-                                  "w-full rounded-xl border py-3 pl-10 pr-3",
+                                  "w-full rounded-xl border py-4 pl-10 pr-3",
                                   isDark
                                     ? "border-slate-700 bg-slate-800 text-slate-100"
                                     : "border-slate-300 bg-slate-50 text-slate-900",
@@ -183,7 +179,7 @@ export default function Sesion() {
                             render={({ field: { onChange, onBlur, value } }) => (
                               <TextInput
                                 className={clsx(
-                                  "w-full rounded-xl border py-3 pl-10 pr-12",
+                                  "w-full rounded-xl border py-4 pl-10 pr-12",
                                   isDark
                                     ? "border-slate-700 bg-slate-800 text-slate-100"
                                     : "border-slate-300 bg-slate-50 text-slate-900",
@@ -244,7 +240,7 @@ export default function Sesion() {
                           end={{ x: 1, y: 0 }}
                           style={{ borderRadius: 12 }}
                         >
-                          <View className="items-center justify-center px-4 py-3">
+                          <View className="items-center justify-center px-4 py-4">
                             {loading ? (
                               <ActivityIndicator size="small" color="#ffffff" />
                             ) : (
@@ -294,6 +290,21 @@ export default function Sesion() {
                         Regístrate
                       </Text>
                     </Text>
+
+                    <Pressable
+                      onPress={() => setRememberMe((v) => !v)}
+                      className="mt-4 flex-row items-center gap-2"
+                    >
+                      <Switch
+                        value={rememberMe}
+                        onValueChange={setRememberMe}
+                        trackColor={{ false: "#cbd5e1", true: "#00E85A" }}
+                        thumbColor={rememberMe ? "#00E85A" : "#ffffff"}
+                      />
+                      <Text className="text-sm text-slate-600 dark:text-slate-400">
+                        Recordarme
+                      </Text>
+                    </Pressable>
                   </View>
                 </View>
               </View>

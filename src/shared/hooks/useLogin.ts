@@ -4,10 +4,13 @@ import { useForm } from "react-hook-form";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { loginUsuario, loginUsuarioGoogle } from "@/features/api/usuario.api";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { configurarGoogle, loginConGoogleNativo } from "@/firebase/loginConGoogleNative";
+
+const REMEMBER_KEY = "fitgenius_remembered_email";
 
 type FormValues = { correo: string; contrasena: string };
 
@@ -15,6 +18,7 @@ export const useLogin = () => {
   const nav = useNavigation<NativeStackNavigationProp<any>>();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -31,6 +35,7 @@ export const useLogin = () => {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     mode: "onSubmit",
@@ -39,7 +44,13 @@ export const useLogin = () => {
 
   useEffect(() => {
     configurarGoogle();
-  }, []);
+    AsyncStorage.getItem(REMEMBER_KEY).then((saved) => {
+      if (saved) {
+        setRememberMe(true);
+        reset({ correo: saved, contrasena: "" });
+      }
+    });
+  }, [reset]);
 
   // ─── Acciones ─────────────────────────────────────────────────────────────────
 
@@ -47,13 +58,17 @@ export const useLogin = () => {
     setLoading(true);
     try {
       const res = await loginUsuario(data.correo, data.contrasena);
+      if (rememberMe) {
+        await AsyncStorage.setItem(REMEMBER_KEY, data.correo);
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_KEY);
+      }
       setUsuario(res.usuario ?? res);
-      // Sin toast: la navegación al home es feedback suficiente
     } catch { }
     finally {
       setLoading(false);
     }
-  }, [setUsuario]);
+  }, [setUsuario, rememberMe]);
 
   const startGoogleLogin = useCallback(async () => {
     setLoading(true);
@@ -86,6 +101,8 @@ export const useLogin = () => {
     loading,
     showPassword,
     setShowPassword,
+    rememberMe,
+    setRememberMe,
     bgGradient,
     handleSubmit,
     submitLogin,
