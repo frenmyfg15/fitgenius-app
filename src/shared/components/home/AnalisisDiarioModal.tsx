@@ -17,7 +17,7 @@ import type { AnalisisDiarioData, MoodDiario } from "@/features/api/coach.api";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useAnalisisStore } from "@/features/store/useAnalisisStore";
 
-const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
+const GRADIENT = ["#39FF14", "#39FF14", "#39FF14"] as const;
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ const MOOD_CONFIG: Record<
   SOLIDO: {
     label: "Sesión sólida",
     color: "#39FF14",
-    bg: "rgba(0,232,90,0.14)",
+    bg: "rgba(57,255,20,0.14)",
     symbol: "◆",
   },
   RECUPERA: {

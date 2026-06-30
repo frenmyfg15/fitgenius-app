@@ -1,4 +1,4 @@
-// File: src/features/premium/Extra.tsx
+﻿// File: src/features/premium/Extra.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -20,7 +20,7 @@ const tokens = {
     textSecondaryDark: "rgba(226,232,240,0.65)",
     textSecondaryLight: "rgba(15,23,42,0.55)",
 
-    cal: "#22C55E",
+    cal: "#39FF14",
     xp: "#A855F7",
   },
   radius: {

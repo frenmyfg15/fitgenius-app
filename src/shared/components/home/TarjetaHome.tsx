@@ -1,4 +1,4 @@
-// File: src/shared/components/home/TarjetaHome.tsx
+﻿// File: src/shared/components/home/TarjetaHome.tsx
 import React, { useMemo, memo, useEffect, useRef, useCallback, useState } from "react";
 import {
   View,
@@ -41,17 +41,17 @@ const confettiAnim = require("../../../../assets/lootie/feliticitaciones.json");
 // ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
+    gradientStart: "#39FF14",
+    gradientMid: "#39FF14",
+    gradientEnd: "#39FF14",
 
     cardBgDark: "#0F1829",
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.07)",
     cardBorderLight: "rgba(0,0,0,0.08)",
 
-    cardHighlightBorder: "#22C55E",
-    cardHighlightBorderSoft: "rgba(34,197,94,0.28)",
+    cardHighlightBorder: "#39FF14",
+    cardHighlightBorderSoft: "rgba(57,255,20,0.28)",
 
     thumbBgDark: "rgba(255,255,255,0.06)",
     thumbBgLight: "#F8FAFC",
@@ -70,20 +70,20 @@ const tokens = {
     detailsDark: "#64748B",
     detailsLight: "#64748B",
 
-    checkBgDark: "rgba(0,232,90,0.12)",
-    checkBgLight: "rgba(0,196,77,0.10)",
-    checkBorderDark: "rgba(0,232,90,0.30)",
-    checkBorderLight: "rgba(0,196,77,0.25)",
-    checkColor: "#22C55E",
+    checkBgDark: "rgba(57,255,20,0.12)",
+    checkBgLight: "rgba(57,255,20,0.10)",
+    checkBorderDark: "rgba(57,255,20,0.30)",
+    checkBorderLight: "rgba(57,255,20,0.25)",
+    checkColor: "#39FF14",
 
-    replaceBg: "rgba(34,197,94,0.10)",
-    replaceBgPressed: "rgba(34,197,94,0.22)",
-    replaceBgLoading: "rgba(34,197,94,0.06)",
-    replaceBorder: "rgba(34,197,94,0.30)",
-    replaceText: "#22C55E",
+    replaceBg: "rgba(57,255,20,0.10)",
+    replaceBgPressed: "rgba(57,255,20,0.22)",
+    replaceBgLoading: "rgba(57,255,20,0.06)",
+    replaceBorder: "rgba(57,255,20,0.30)",
+    replaceText: "#39FF14",
 
-    ctaPrimaryBg: "#22C55E",
-    ctaPrimaryBgPressed: "#16A34A",
+    ctaPrimaryBg: "#39FF14",
+    ctaPrimaryBgPressed: "#2DB800",
     ctaPrimaryText: "#FFFFFF",
 
     progressTrackDark: "rgba(255,255,255,0.07)",
@@ -551,7 +551,7 @@ const HeroEjercicio = memo(function HeroEjercicio({
       {/* ── Botón full-width ── */}
       <Animated.View style={[heroStyles.ctaWrapper, { transform: [{ scale: pulseAnim }] }]}>
         <LinearGradient
-          colors={["#22C55E", "#16A34A"]}
+          colors={["#39FF14", "#2DB800"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={heroStyles.ctaButton}
@@ -692,7 +692,7 @@ const ReplaceSwipeAction = memo(function ReplaceSwipeAction({
           >
             <RefreshCcw
               size={compact ? 14 : 16}
-              color={loading ? "rgba(34,197,94,0.4)" : tokens.color.replaceText}
+              color={loading ? "rgba(57,255,20,0.4)" : tokens.color.replaceText}
               strokeWidth={2.5}
             />
             <Text
@@ -741,7 +741,7 @@ const heroReplaceStyles = StyleSheet.create({
     color: tokens.color.replaceText,
   },
   buttonTextLoading: {
-    color: "rgba(34,197,94,0.4)",
+    color: "rgba(57,255,20,0.4)",
   },
 });
 
@@ -1029,7 +1029,7 @@ const compactStyles = StyleSheet.create({
     color: tokens.color.replaceText,
   },
   replaceButtonTextLoading: {
-    color: "rgba(34,197,94,0.4)",
+    color: "rgba(57,255,20,0.4)",
   },
 });
 
@@ -1273,8 +1273,8 @@ const AllDoneView = memo(function AllDoneView({ isDark }: { isDark: boolean }) {
         <LinearGradient
           colors={
             isDark
-              ? ["rgba(34,197,94,0.18)", "rgba(15,24,41,0.98)"]
-              : ["rgba(34,197,94,0.10)", "rgba(255,255,255,0.98)"]
+              ? ["rgba(57,255,20,0.18)", "rgba(15,24,41,0.98)"]
+              : ["rgba(57,255,20,0.10)", "rgba(255,255,255,0.98)"]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -1282,8 +1282,8 @@ const AllDoneView = memo(function AllDoneView({ isDark }: { isDark: boolean }) {
             allDoneStyles.card,
             {
               borderColor: isDark
-                ? "rgba(34,197,94,0.28)"
-                : "rgba(34,197,94,0.20)",
+                ? "rgba(57,255,20,0.28)"
+                : "rgba(57,255,20,0.20)",
               backgroundColor: isDark ? "#0F1829" : "#FFFFFF",
             },
           ]}
@@ -1293,11 +1293,11 @@ const AllDoneView = memo(function AllDoneView({ isDark }: { isDark: boolean }) {
               allDoneStyles.iconWrap,
               {
                 backgroundColor: isDark
-                  ? "rgba(34,197,94,0.12)"
-                  : "rgba(34,197,94,0.10)",
+                  ? "rgba(57,255,20,0.12)"
+                  : "rgba(57,255,20,0.10)",
                 borderColor: isDark
-                  ? "rgba(34,197,94,0.28)"
-                  : "rgba(34,197,94,0.22)",
+                  ? "rgba(57,255,20,0.28)"
+                  : "rgba(57,255,20,0.22)",
               },
             ]}
           >
@@ -1605,7 +1605,7 @@ const rootStyles = StyleSheet.create({
     color: "#111111",
   },
   floatingBadge: {
-    backgroundColor: "#22C55E",
+    backgroundColor: "#39FF14",
     borderRadius: 999,
     minWidth: 20,
     height: 20,

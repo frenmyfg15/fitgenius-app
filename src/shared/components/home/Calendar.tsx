@@ -24,7 +24,7 @@ interface Props {
 
 const diasLabel = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const diasEnum: DiaNombre[] = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
-const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
+const marcoGradient = ["#39FF14", "#39FF14", "#39FF14"];
 
 const toMadridYMD = (() => {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -68,7 +68,7 @@ const InsigniaCompletado = React.memo(function InsigniaCompletado() {
         width: 18,
         height: 18,
         borderRadius: 9,
-        backgroundColor: "#22c55e",
+        backgroundColor: "#39FF14",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 10,
@@ -159,7 +159,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           : esHoy
             ? "#ffffff"
             : completado
-              ? "#22c55e"
+              ? "#39FF14"
               : isDark
                 ? "#ffffff"
                 : "#111111";
@@ -169,7 +169,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
           : esHoy
             ? "#ffffff"
             : completado
-              ? "#22c55e"
+              ? "#39FF14"
               : isDark
                 ? "#94a3b8"
                 : "#6b7280";

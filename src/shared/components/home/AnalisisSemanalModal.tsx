@@ -23,7 +23,7 @@ import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { useAnalisisStore } from "@/features/store/useAnalisisStore";
 import { getSemanaISO } from "@/shared/utils/getSemanaISO";
 
-const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
+const GRADIENT = ["#39FF14", "#39FF14", "#39FF14"] as const;
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -59,12 +59,12 @@ const MOOD_CONFIG: Record<
   SEMANA_ELITE: {
     label: "Semana de élite",
     color: "#39FF14",
-    bg: "rgba(0,232,90,0.14)",
+    bg: "rgba(57,255,20,0.14)",
   },
   SEMANA_SOLIDA: {
     label: "Semana sólida",
     color: "#39FF14",
-    bg: "rgba(0,232,90,0.14)",
+    bg: "rgba(57,255,20,0.14)",
   },
   SEMANA_IRREGULAR: {
     label: "Semana irregular",
@@ -547,7 +547,7 @@ export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, se
                             ? "#F97316"
                             : data.stats.estresPromedio >= 6
                               ? "#F59E0B"
-                              : "#22C55E",
+                              : "#39FF14",
                       },
                     ]}
                   >

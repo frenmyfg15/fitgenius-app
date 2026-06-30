@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
     Modal,
     View,
@@ -41,9 +41,9 @@ export default function SeguimientoInteligenteModal({
         card: isDark ? "#0F172A" : "#F9FAFB",
         text: isDark ? "#E5E7EB" : "#0F172A",
         subtext: isDark ? "#94A3B8" : "#6B7280",
-        primary: "#22C55E",
-        primarySoft: "rgba(34,197,94,0.12)",
-        primaryText: "#16A34A",
+        primary: "#39FF14",
+        primarySoft: "rgba(57,255,20,0.12)",
+        primaryText: "#2DB800",
         border: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.08)",
         neutralPill: isDark ? "rgba(15,23,42,0.9)" : "#F3F4F6",
         lockColor: isDark ? "#FACC15" : "#D97706",
