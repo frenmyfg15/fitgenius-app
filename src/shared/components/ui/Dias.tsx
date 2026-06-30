@@ -41,9 +41,7 @@ export default function Dias({ dias, day, setDay }: Props) {
   );
 
   // Degradado para el subrayado activo
-  const underlineGradient = isDark
-    ? ["#00FF40", "#5EE69D", "#B200FF"]
-    : ["#39ff14", "#14ff80", "#a855f7"];
+  const underlineGradient = ["#39FF14", "#39FF14"];
 
   const baseBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)";
   const activeBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.92)";

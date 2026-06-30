@@ -235,7 +235,7 @@ export default function Sesion() {
                         }}
                       >
                         <LinearGradient
-                          colors={["#00FF40", "#5EE69D", "#B200FF"]}
+                          colors={["#39FF14", "#39FF14"]}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
                           style={{ borderRadius: 12 }}
