@@ -19,13 +19,13 @@ import type { MoodDiario, MoodSemanal } from "@/features/api/coach.api";
 
 const MOOD_DIARIO_COLOR: Record<MoodDiario, string> = {
   FUEGO:    "#F97316",
-  SOLIDO:   "#00E85A",
+  SOLIDO:   "#39FF14",
   RECUPERA: "#3B82F6",
 };
 
 const MOOD_SEMANAL_COLOR: Record<MoodSemanal, string> = {
-  SEMANA_ELITE:     "#00E85A",
-  SEMANA_SOLIDA:    "#00E85A",
+  SEMANA_ELITE:     "#39FF14",
+  SEMANA_SOLIDA:    "#39FF14",
   SEMANA_IRREGULAR: "#F59E0B",
   SEMANA_RECUPERA:  "#3B82F6",
 };
@@ -148,7 +148,7 @@ export default function CoachHistorialSection({
     weekBar:     isDark ? "rgba(255,255,255,0.06)"   : "rgba(0,0,0,0.05)",
     weekBarActive: (color: string) => color + (isDark ? "33" : "22"),
     headerBtn:   isDark ? "rgba(255,255,255,0.07)"   : "rgba(0,0,0,0.06)",
-    accent:      "#00E85A",
+    accent:      "#39FF14",
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ export default function CoachHistorialSection({
         <View style={styles.legendLeft}>
           {([
             ["#F97316", "Fuego"],
-            ["#00E85A", "Sólido"],
+            ["#39FF14", "Sólido"],
             ["#3B82F6", "Recupera"],
           ] as [string, string][]).map(([color, label]) => (
             <View key={label} style={styles.legendItem}>

@@ -30,7 +30,7 @@ const tokens = {
     bgLight: "#F8FAFC",
     tintDark: "#E2E8F0",
     tintLight: "#0F172A",
-    spinnerDark: "#00E85A",
+    spinnerDark: "#39FF14",
     spinnerLight: "#16A34A",
     textPrimaryDark: "#F1F5F9",
     textPrimaryLight: "#0F172A",

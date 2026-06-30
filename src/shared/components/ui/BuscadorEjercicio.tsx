@@ -603,7 +603,7 @@ export default function BuscadorEjercicio({
                         borderColor: line,
                       }}
                     >
-                      <Activity size={16} color="#00E85A" />
+                      <Activity size={16} color="#39FF14" />
                       <Text
                         style={{
                           color: textSecondary,
@@ -629,7 +629,7 @@ export default function BuscadorEjercicio({
                         borderColor: line,
                       }}
                     >
-                      <Target size={16} color="#00E85A" />
+                      <Target size={16} color="#39FF14" />
                       <Text
                         style={{
                           color: textSecondary,
@@ -672,7 +672,7 @@ export default function BuscadorEjercicio({
                       }}
                       style={{
                         flex: 1.4,
-                        backgroundColor: "#00E85A",
+                        backgroundColor: "#39FF14",
                         paddingVertical: 12,
                         borderRadius: 12,
                         alignItems: "center",

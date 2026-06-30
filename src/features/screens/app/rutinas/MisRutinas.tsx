@@ -42,7 +42,7 @@ const tokens = {
     bgLight: "#F8FAFC",
     surfaceDark: "#0F1829",
     surfaceLight: "#FFFFFF",
-    primary: "#00E85A",
+    primary: "#39FF14",
     primarySoftDark: "rgba(0,232,90,0.10)",
     primarySoftLight: "rgba(0,232,90,0.08)",
     textPrimaryDark: "#F1F5F9",

@@ -22,13 +22,13 @@ import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 const tokens = {
   color: {
     frameGradientDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+    frameGradientLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
     cardBgDark: "rgba(15,24,41,0.70)",
     cardBgLight: "rgba(255,255,255,0.95)",
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
     badgeFrameDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    badgeFrameLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+    badgeFrameLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
     badgeBgDark: "rgba(255,255,255,0.06)",
     badgeBgLight: "#FFFFFF",
     badgeBorderDark: "rgba(255,255,255,0.08)",
@@ -40,7 +40,7 @@ const tokens = {
     trackBgDark: "rgba(148,163,184,0.14)",
     trackBgLight: "#E2E8F0",
     trackBorderDark: "rgba(255,255,255,0.06)",
-    barGradient: ["#8BFF62", "#00E85A", "#A855F7"] as string[],
+    barGradient: ["#8BFF62", "#39FF14", "#A855F7"] as string[],
     barDot: "#FFFFFF",
     barDotBorder: "rgba(0,0,0,0.12)",
     textPrimaryDark: "#F1F5F9",
@@ -49,7 +49,7 @@ const tokens = {
     textSecondaryLight: "#64748B",
     textPercentDark: "#CBD5E1",
     textPercentLight: "#475569",
-    checkColor: "#00E85A",
+    checkColor: "#39FF14",
   },
   radius: { lg: 16, md: 12, sm: 10, full: 999 },
   spacing: { xs: 4, sm: 8, md: 16, lg: 20 },
@@ -264,7 +264,7 @@ function FeedbackModal({
                     modalStyles.iconBubble,
                     { backgroundColor: isDark ? "rgba(0,232,90,0.13)" : "rgba(0,200,80,0.10)" },
                   ]}>
-                    <IconComponent size={16} color="#00E85A" strokeWidth={2.2} />
+                    <IconComponent size={16} color="#39FF14" strokeWidth={2.2} />
                   </View>
                   <Text style={[modalStyles.feedbackTitle, { color: textPrimary }]}>
                     {feedback.titulo}
@@ -305,7 +305,7 @@ function FeedbackModal({
                 <View style={modalStyles.statItem}>
                   {maxLevel ? (
                     <>
-                      <CheckCircle2 size={20} color="#00E85A" strokeWidth={2.2} />
+                      <CheckCircle2 size={20} color="#39FF14" strokeWidth={2.2} />
                       <Text style={[modalStyles.statLabel, { color: textSecondary }]}>
                         máximo
                       </Text>
@@ -644,7 +644,7 @@ const modalStyles = StyleSheet.create({
   levelPillText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#00E85A",
+    color: "#39FF14",
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },

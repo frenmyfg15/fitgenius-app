@@ -19,7 +19,7 @@ const tokens = {
     textSecondaryDark: "#94A3B8",
     textPrimaryLight: "#0F172A",
     textSecondaryLight: "#475569",
-    accent: "#00E85A",
+    accent: "#39FF14",
     tabActiveBgDark: "rgba(0,232,90,0.12)",
     tabActiveBgLight: "rgba(0,180,70,0.08)",
     tabBorderDark: "rgba(255,255,255,0.06)",
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   paywallBtn: {
     marginTop: 8,
-    backgroundColor: "#00E85A",
+    backgroundColor: "#39FF14",
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 14,

@@ -22,7 +22,7 @@ import { eliminarCuentaUsuario } from "@/features/api/usuario.api";
 
 const tokens = {
   color: {
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    frameGradient: ["#39FF14", "#A855F7"] as string[],
 
     pageBgDark: "#111111",
     pageBgLight: "#FFFFFF",

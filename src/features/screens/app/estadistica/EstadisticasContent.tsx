@@ -49,7 +49,7 @@ const tokens = {
     textPrimaryLight: "#0F172A",
     textSecondaryLight: "#475569",
     textMutedLight: "#6B7280",
-    accent: "#00E85A",
+    accent: "#39FF14",
     cardBgDark: "rgba(15,24,41,1)",
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(255,255,255,0.08)",

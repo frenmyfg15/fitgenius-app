@@ -58,12 +58,12 @@ const MOOD_CONFIG: Record<
 > = {
   SEMANA_ELITE: {
     label: "Semana de élite",
-    color: "#00E85A",
+    color: "#39FF14",
     bg: "rgba(0,232,90,0.14)",
   },
   SEMANA_SOLIDA: {
     label: "Semana sólida",
-    color: "#00E85A",
+    color: "#39FF14",
     bg: "rgba(0,232,90,0.14)",
   },
   SEMANA_IRREGULAR: {
@@ -464,7 +464,7 @@ export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, se
             </Text>
             <Pressable
               onPress={onClose}
-              style={[styles.ctaBtn, { borderColor: isDark ? "#00E85A" : "rgba(15,23,42,0.18)" }]}
+              style={[styles.ctaBtn, { borderColor: isDark ? "#39FF14" : "rgba(15,23,42,0.18)" }]}
             >
               <Text style={[styles.ctaBtnText, { color: t.textPrimary }]}>
                 Entendido
@@ -639,7 +639,7 @@ export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, se
               onPress={onClose}
               style={[
                 styles.ctaBtn,
-                { borderColor: isDark ? "#00E85A" : "rgba(15,23,42,0.18)" },
+                { borderColor: isDark ? "#39FF14" : "rgba(15,23,42,0.18)" },
               ]}
             >
               <Text style={[styles.ctaBtnText, { color: t.textPrimary }]}>
@@ -895,7 +895,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    backgroundColor: "#00E85A",
+    backgroundColor: "#39FF14",
     marginTop: 4,
   },
   ctaBtnText: {

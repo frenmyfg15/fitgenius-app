@@ -41,7 +41,7 @@ const tokens = {
     pageBgDark: "#111111",
     pageBgLight: "#ffffff",
 
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    frameGradient: ["#39FF14", "#A855F7"] as string[],
 
     cardBgDark: "#0f172a",
     cardBgLight: "#ffffff",

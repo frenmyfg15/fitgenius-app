@@ -74,7 +74,7 @@ export default function Sesion() {
               <View className="flex-1 items-center justify-center">
                 <View className="w-full max-w-md">
                   <View className="mb-6 items-center">
-                    <View className="h-20 w-20 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800">
+                    <View className="h-40 w-40 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800">
                       <Image
                         source={require("../../../../assets/logo.png")}
                         resizeMode="contain"
@@ -298,8 +298,8 @@ export default function Sesion() {
                       <Switch
                         value={rememberMe}
                         onValueChange={setRememberMe}
-                        trackColor={{ false: "#cbd5e1", true: "#00E85A" }}
-                        thumbColor={rememberMe ? "#00E85A" : "#ffffff"}
+                        trackColor={{ false: "#cbd5e1", true: "#39FF14" }}
+                        thumbColor={rememberMe ? "#39FF14" : "#ffffff"}
                       />
                       <Text className="text-sm text-slate-600 dark:text-slate-400">
                         Recordarme

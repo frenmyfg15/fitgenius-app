@@ -34,7 +34,7 @@ import { kgToLb } from "@/shared/utils/kgToLb";
 
 const tokens = {
   color: {
-    frameGradient: ["#00E85A", "#A855F7"] as string[],
+    frameGradient: ["#39FF14", "#A855F7"] as string[],
     ctaBg: "#22C55E",
     ctaText: "#FFFFFF",
     subiendo: "#22C55E",

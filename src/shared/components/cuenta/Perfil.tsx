@@ -11,7 +11,7 @@ import { kgToLb } from "@/shared/utils/kgToLb";
 const tokens = {
   color: {
     frameGradientDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+    frameGradientLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
 
     cardBgDark: "rgba(15,24,41,0.70)",
     cardBgLight: "#FFFFFF",
@@ -19,7 +19,7 @@ const tokens = {
     cardBorderLight: "rgba(0,0,0,0.06)",
 
     avatarRingDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    avatarRingLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
+    avatarRingLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
     avatarBgDark: "rgba(255,255,255,0.06)",
     avatarBgLight: "#F5F5F5",
     avatarBorderDark: "rgba(255,255,255,0.08)",
