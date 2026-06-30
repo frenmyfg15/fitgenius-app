@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from "react";
+﻿import React, { useCallback, useMemo, useRef, useEffect } from "react";
 import { View, Text, Platform, TouchableOpacity, StyleSheet } from "react-native";
 import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
@@ -96,7 +96,7 @@ export default function PanelEstadisticas({
         backgroundColor: isDark ? "#64748b" : "#94a3b8",
       }}
       backgroundStyle={{
-        backgroundColor: isDark ? "#0b1220" : "#ffffff",
+        backgroundColor: isDark ? "#111111" : "#ffffff",
       }}
       style={{
         zIndex: 1000,

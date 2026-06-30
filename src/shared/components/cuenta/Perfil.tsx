@@ -1,4 +1,4 @@
-// File: src/features/cuenta/components/Perfil.tsx
+﻿// File: src/features/cuenta/components/Perfil.tsx
 import React, { useMemo } from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,7 +10,7 @@ import { kgToLb } from "@/shared/utils/kgToLb";
 // ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
-    frameGradientDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
+    frameGradientDark: ["#0F1829", "#111111", "#0F1829"] as string[],
     frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
 
     cardBgDark: "rgba(15,24,41,0.70)",
@@ -18,7 +18,7 @@ const tokens = {
     cardBorderDark: "rgba(255,255,255,0.08)",
     cardBorderLight: "rgba(0,0,0,0.06)",
 
-    avatarRingDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
+    avatarRingDark: ["#0F1829", "#111111", "#0F1829"] as string[],
     avatarRingLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
     avatarBgDark: "rgba(255,255,255,0.06)",
     avatarBgLight: "#F5F5F5",

@@ -1,4 +1,4 @@
-// File: src/shared/components/ejercicio/NotaIA.tsx
+﻿// File: src/shared/components/ejercicio/NotaIA.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -18,7 +18,7 @@ import { actualizarPrescripcion } from "@/features/api/rutinas.api";
 // ── Tokens (mismo sistema compartido) ────────────────────────────────────────
 const tokens = {
   color: {
-    cardBgDark: "#080D17",
+    cardBgDark: "#111111",
     cardBgLight: "#FFFFFF",
     cardBorderDark: "rgba(148,163,184,0.22)",
     cardBorderLight: "rgba(0,0,0,0.07)",

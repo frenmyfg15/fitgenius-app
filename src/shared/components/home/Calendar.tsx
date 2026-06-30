@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+﻿import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
@@ -128,7 +128,7 @@ export default function Calendar({ devolverDato, activar = true, completadas = {
     <View
       className={
         "rounded-2xl shadow-sm p-4 flex-row justify-around items-center w-full max-w-lg mx-auto " +
-        (isDark ? "bg-[#0b1220] border border-white/10" : "bg-white border border-gray-100")
+        (isDark ? "bg-[#111111] border border-white/10" : "bg-white border border-gray-100")
       }
     >
       {diasConFechas.map(({ index, nombre, dia, fecha, ymd, diaEnum }) => {

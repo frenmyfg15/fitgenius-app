@@ -1,4 +1,4 @@
-// src/shared/hooks/useCrearRutinaState.ts
+﻿// src/shared/hooks/useCrearRutinaState.ts
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Dimensions } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -121,7 +121,7 @@ export function useCrearRutinaState() {
   const ui = useMemo(
     () => ({
       marcoGradient: ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"],
-      bg: isDark ? "#080D17" : "#ffffff",
+      bg: isDark ? "#111111" : "#ffffff",
       textPrimary: isDark ? "#e5e7eb" : "#0f172a",
       textSecondary: isDark ? "#94a3b8" : "#64748b",
       chipBg: isDark ? "rgba(148,163,184,0.16)" : "#f1f5f9",

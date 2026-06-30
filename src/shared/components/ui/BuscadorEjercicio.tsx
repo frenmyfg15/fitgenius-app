@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -95,7 +95,7 @@ export default function BuscadorEjercicio({
   );
   const lastQueryKeyRef = useRef(queryKey);
 
-  const bg = isDark ? "#0b1220" : "#ffffff";
+  const bg = isDark ? "#111111" : "#ffffff";
   const surface = isDark ? "rgba(255,255,255,0.04)" : "#f8fafc";
   const surface2 = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
   const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
@@ -681,8 +681,8 @@ export default function BuscadorEjercicio({
                         gap: 6,
                       }}
                     >
-                      <Plus size={18} color="#080D17" />
-                      <Text style={{ color: "#080D17", fontWeight: "800", fontSize: 13 }}>
+                      <Plus size={18} color="#111111" />
+                      <Text style={{ color: "#111111", fontWeight: "800", fontSize: 13 }}>
                         Añadir
                       </Text>
                     </TouchableOpacity>

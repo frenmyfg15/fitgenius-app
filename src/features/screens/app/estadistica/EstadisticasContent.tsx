@@ -1,4 +1,4 @@
-// src/features/screens/app/estadistica/EstadisticasContent.tsx
+﻿// src/features/screens/app/estadistica/EstadisticasContent.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -41,7 +41,7 @@ import ProgresoMuscularCard from "@/shared/components/estadistica/ProgresoMuscul
 
 const tokens = {
   color: {
-    bgDark: "#080D17",
+    bgDark: "#111111",
     bgLight: "#F8FAFC",
     textPrimaryDark: "#F1F5F9",
     textSecondaryDark: "#94A3B8",

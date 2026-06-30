@@ -1,4 +1,4 @@
-// src/features/fit/screens/EliminarCuentaScreen.tsx
+﻿// src/features/fit/screens/EliminarCuentaScreen.tsx
 import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
@@ -24,7 +24,7 @@ const tokens = {
   color: {
     frameGradient: ["#00E85A", "#A855F7"] as string[],
 
-    pageBgDark: "#0B1220",
+    pageBgDark: "#111111",
     pageBgLight: "#FFFFFF",
 
     cardBgDark: "rgba(15,24,41,0.75)",

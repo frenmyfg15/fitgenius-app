@@ -1,4 +1,4 @@
-// CustomTabBar.tsx
+﻿// CustomTabBar.tsx
 import React from "react";
 import { View, TouchableOpacity, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,7 +17,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
   return (
     <View
       style={{
-        backgroundColor: isDark ? "#0b1220" : "#ffffff",
+        backgroundColor: isDark ? "#111111" : "#ffffff",
         borderTopWidth: 1,
         borderTopColor: isDark ? "#1f2937" : "#e5e7eb",
         paddingBottom: insets.bottom || 8,

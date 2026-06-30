@@ -1,4 +1,4 @@
-// hooks/useLogin.ts
+﻿// hooks/useLogin.ts
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigation } from "@react-navigation/native";
@@ -27,7 +27,7 @@ export const useLogin = () => {
   const bgGradient = useMemo(
     () =>
       isDark
-        ? ["#0b1220", "#101a33", "#0b1220"]
+        ? ["#111111", "#111111", "#111111"]
         : ["#f6f7fb", "#e9ecf5", "#f6f7fb"],
     [isDark]
   );

@@ -1,4 +1,4 @@
-import {
+﻿import {
   View,
   Text,
   Image,
@@ -53,7 +53,7 @@ export default function Sesion() {
   };
 
   return (
-    <View className={clsx("flex-1", isDark ? "bg-[#0b1220]" : "bg-slate-50")}>
+    <View className={clsx("flex-1", isDark ? "bg-[#111111]" : "bg-slate-50")}>
       <LinearGradient
         colors={bgGradient as any}
         start={{ x: 0, y: 0 }}

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Modal,
   View,
@@ -63,7 +63,7 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
             style={styles.header}
           >
             <View style={styles.iconWrapper}>
-              <Crown size={22} color="#0b1220" />
+              <Crown size={22} color="#111111" />
             </View>
             <Text style={styles.headerTitle}>{effectiveTitle}</Text>
           </LinearGradient>
@@ -106,7 +106,7 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
               onPress={onGoPremium ?? onClose}
               style={[styles.button, styles.primaryButton]}
             >
-              <Text style={[styles.buttonText, { color: "#0b1220" }]}>
+              <Text style={[styles.buttonText, { color: "#111111" }]}>
                 Hazte premium
               </Text>
             </Pressable>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    color: "#0b1220",
+    color: "#111111",
     fontWeight: "800",
     fontSize: 16,
   },

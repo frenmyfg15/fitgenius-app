@@ -1,4 +1,4 @@
-// app/features/registro/PesoObjetivoScreen.tsx
+﻿// app/features/registro/PesoObjetivoScreen.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -55,7 +55,7 @@ export default function PesoObjetivoScreen() {
 
   const valido = localKg >= 30;
 
-  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const bgColor = isDark ? "#111111" : "#f6f7fb";
   const labelColor = isDark ? "#E5E7EB" : "#111827";
   const hintColor = isDark ? "#9CA3AF" : "#6B7280";
 
@@ -64,7 +64,7 @@ export default function PesoObjetivoScreen() {
       {valido && <BtnAprobe step="Edad" placement="left" />}
 
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+        className={isDark ? "bg-[#111111]" : "bg-[#f6f7fb]"}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
         keyboardShouldPersistTaps="handled"
       >

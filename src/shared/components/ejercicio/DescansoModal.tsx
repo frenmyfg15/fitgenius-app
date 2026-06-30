@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useColorScheme } from "nativewind";
 
@@ -29,7 +29,7 @@ export default function DescansoModal({ visible, tiempo, onFinalizar }: Props) {
       <View
         className={
           "w-full max-w-sm items-center justify-center rounded-2xl px-6 py-8 " +
-          (isDark ? "bg-[#0b1220]/90 border border-white/10" : "bg-white/95 border border-neutral-200")
+          (isDark ? "bg-[#111111]/90 border border-white/10" : "bg-white/95 border border-neutral-200")
         }
         style={{
           shadowColor: "#000",

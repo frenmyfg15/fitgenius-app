@@ -1,4 +1,4 @@
-// File: src/features/premium/DistribucionMuscularCard.tsx
+﻿// File: src/features/premium/DistribucionMuscularCard.tsx
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -35,7 +35,7 @@ const tokens = {
     radarFillDark: ["rgba(34,197,94,0.28)", "rgba(168,85,247,0.24)"] as string[],
     radarFillLight: ["rgba(34,197,94,0.18)", "rgba(168,85,247,0.16)"] as string[],
     radarStroke: ["#00FF40", "#B200FF"] as string[],
-    dotStrokeDark: "#080D17",
+    dotStrokeDark: "#111111",
     dotStrokeLight: "#FFFFFF",
 
     // Empty state

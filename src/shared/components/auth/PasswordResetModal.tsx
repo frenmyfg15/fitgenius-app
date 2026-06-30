@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import {
   Modal,
   View,
@@ -236,7 +236,7 @@ export default function PasswordResetModal({ visible, onClose, onSuccess }: Prop
   const border = isDark ? "rgba(148,163,184,0.35)" : "#e5e7eb";
   const textMain = isDark ? "#e5e7eb" : "#0f172a";
   const textSub = isDark ? "#94a3b8" : "#64748b";
-  const inputBg = isDark ? "#0b1220" : "#ffffff";
+  const inputBg = isDark ? "#111111" : "#ffffff";
 
   return (
     <>
@@ -384,7 +384,7 @@ export default function PasswordResetModal({ visible, onClose, onSuccess }: Prop
                       disabled={loading}
                       style={{
                         flex: 1,
-                        backgroundColor: isDark ? "#0b1220" : "#f1f5f9",
+                        backgroundColor: isDark ? "#111111" : "#f1f5f9",
                         borderRadius: 999,
                         paddingVertical: 10,
                         alignItems: "center",
@@ -402,7 +402,7 @@ export default function PasswordResetModal({ visible, onClose, onSuccess }: Prop
                       disabled={loading}
                       style={{
                         flex: 1,
-                        backgroundColor: isDark ? "#0b1220" : "#f1f5f9",
+                        backgroundColor: isDark ? "#111111" : "#f1f5f9",
                         borderRadius: 999,
                         paddingVertical: 10,
                         alignItems: "center",
@@ -499,7 +499,7 @@ export default function PasswordResetModal({ visible, onClose, onSuccess }: Prop
                     disabled={loading}
                     style={{
                       marginTop: 6,
-                      backgroundColor: isDark ? "#0b1220" : "#f1f5f9",
+                      backgroundColor: isDark ? "#111111" : "#f1f5f9",
                       borderRadius: 999,
                       paddingVertical: 10,
                       alignItems: "center",

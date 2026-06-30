@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+﻿import React, { useEffect, useRef } from "react";
 import { View, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
@@ -24,7 +24,7 @@ function Shimmer({ children, borderRadius = 12 }: { children: React.ReactNode; b
   const isDark = colorScheme === "dark";
   const translate = useShimmer();
 
-  const base = isDark ? "#080D17" : "rgba(15,23,42,0.06)";
+  const base = isDark ? "#111111" : "rgba(15,23,42,0.06)";
   const highlight = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.55)";
 
   return (
@@ -231,7 +231,7 @@ export default function EstadisticasSkeleton() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#080D17" : "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? "#111111" : "#ffffff" }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12, alignItems: "center" }}>
         <SkeletonLine w={160} h={20} radius={10} />
         <View style={{ height: 8 }} />

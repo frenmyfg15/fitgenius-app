@@ -1,4 +1,4 @@
-// src/shared/components/ui/WigthInput.tsx
+﻿// src/shared/components/ui/WigthInput.tsx
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -41,7 +41,7 @@ function WigthInput({
   // Paleta por tema
   const theme = useMemo(
     () => ({
-      bg: isDark ? "#0b1220" : "#f6f7fb",
+      bg: isDark ? "#111111" : "#f6f7fb",
       text: isDark ? "#e5e7eb" : "#0f172a",
       subtext: isDark ? "#94a3b8" : "#475569",
       border: "#22c55e",

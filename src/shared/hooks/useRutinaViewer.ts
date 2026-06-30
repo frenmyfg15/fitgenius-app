@@ -1,4 +1,4 @@
-// src/shared/components/misRutinas/hooks/useRutinaViewer.ts
+﻿// src/shared/components/misRutinas/hooks/useRutinaViewer.ts
 import { useState, useMemo, useCallback } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { useColorScheme } from "nativewind";
@@ -63,7 +63,7 @@ export function useRutinaViewer({ rutinas, setVer, onDelete }: Params) {
   };
 
   const { bg, border, textTitle, textMuted, surface } = useMemo(() => {
-    const bg = isDark ? "#0b1220" : "#ffffff";
+    const bg = isDark ? "#111111" : "#ffffff";
     const border = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
     const textTitle = isDark ? "#e5e7eb" : "#0f172a";
     const textMuted = isDark ? "#94a3b8" : "#64748b";

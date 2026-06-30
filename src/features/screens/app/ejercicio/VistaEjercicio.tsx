@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useMemo,
   useState,
   useCallback,
@@ -408,7 +408,7 @@ export default function VistaEjercicio() {
     return (
       <View
         className="min-h-screen items-center justify-center"
-        style={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
+        style={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
       >
         <Text className={isDark ? "text-[#e5e7eb]" : "text-gray-700"}>
           Cargando ejercicio...
@@ -420,7 +420,7 @@ export default function VistaEjercicio() {
   return (
     <View
       className="flex-1 relative"
-      style={{ backgroundColor: isDark ? "#080D17" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
     >
       <KeyboardAwareScrollView
         enableOnAndroid={true}

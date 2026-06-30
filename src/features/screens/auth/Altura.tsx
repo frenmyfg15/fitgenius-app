@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useFocusEffect } from "@react-navigation/native";
@@ -79,7 +79,7 @@ export default function AlturaLocalScreen() {
   );
 
   const alturaValida = localCm >= 100;
-  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const bgColor = isDark ? "#111111" : "#f6f7fb";
   const bg = { backgroundColor: bgColor };
   const textMain = { color: isDark ? "#ffffff" : "#111827" };
   const textSub = { color: isDark ? "#d1d5db" : "#4b5563" };

@@ -1,4 +1,4 @@
-// File: src/features/cuenta/Cuenta.tsx
+﻿// File: src/features/cuenta/Cuenta.tsx
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -44,7 +44,7 @@ import { getMe } from "@/features/api/usuario.api";
 // ── Tokens ───────────────────────────────────────────────────────────────────
 const tokens = {
   color: {
-    bgDark: "#080D17",
+    bgDark: "#111111",
     bgLight: "#F8FAFC",
 
     subCardBgDark: "rgba(15,24,41,0.60)",

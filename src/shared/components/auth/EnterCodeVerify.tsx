@@ -1,4 +1,4 @@
-// src/shared/components/auth/EnterCodeVerify.tsx
+﻿// src/shared/components/auth/EnterCodeVerify.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -112,7 +112,7 @@ export default function EnterCodeVerify({
   const resendEnabled = resendCooldown <= 0 && !resending;
 
   return (
-    <View className="w-80 min-h-52 bg-white dark:bg-[#0b1220] shadow-lg rounded-2xl items-center justify-center p-5 relative">
+    <View className="w-80 min-h-52 bg-white dark:bg-[#111111] shadow-lg rounded-2xl items-center justify-center p-5 relative">
       <Pressable
         onPress={() => setComponentCode(false)}
         className="absolute top-2 right-2 bg-black/90 dark:bg-white/10 px-2 py-1 rounded-full"
@@ -142,7 +142,7 @@ export default function EnterCodeVerify({
         placeholder="______"
         placeholderTextColor="#94A3B8"
         editable={!verifying}
-        className="text-center border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-3 w-full text-lg bg-white dark:bg-[#0b1220] text-slate-900 dark:text-white mt-4"
+        className="text-center border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-3 w-full text-lg bg-white dark:bg-[#111111] text-slate-900 dark:text-white mt-4"
         style={{ letterSpacing: 8 }}
       />
 

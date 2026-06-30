@@ -1,4 +1,4 @@
-// app/features/auth/RegistrarScreen.tsx
+﻿// app/features/auth/RegistrarScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -68,7 +68,7 @@ export default function RegistrarScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
       >
         <ScrollView
-          className={isDark ? "bg-[#0b1220]" : "bg-slate-50"}
+          className={isDark ? "bg-[#111111]" : "bg-slate-50"}
           contentContainerStyle={{
             flexGrow: 1,
             paddingHorizontal: 16,
@@ -350,7 +350,7 @@ function Input({
   const iconColor = isDark ? "#94a3b8" : "#64748b";
   const textColor = isDark ? "#f8fafc" : "#0f172a";
   const placeholderColor = isDark ? "#94A3B8" : "#64748B";
-  const bgColor = isDark ? "#0b1220" : "#ffffff";
+  const bgColor = isDark ? "#111111" : "#ffffff";
   const borderColor = error ? "#f87171" : isDark ? "#334155" : "#cbd5e1";
 
   const LeftIcon =

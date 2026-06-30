@@ -1,4 +1,4 @@
-// app/features/registro/ObjetivoScreen.tsx
+﻿// app/features/registro/ObjetivoScreen.tsx
 import React, { useMemo, useCallback, useEffect } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -45,7 +45,7 @@ export default function ObjetivoScreen() {
 
   return (
     <ScrollView
-      className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+      className={isDark ? "bg-[#111111]" : "bg-[#f6f7fb]"}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
       keyboardShouldPersistTaps="handled"
     >
@@ -74,7 +74,7 @@ export default function ObjetivoScreen() {
           select={usuario?.objetivo}    // valor actual desde el store
           multiple={false}
           // Si tu componente acepta estilos extra, puedes pasar tema:
-          // className={isDark ? "bg-[#101a33]" : "bg-white"}
+          // className={isDark ? "bg-[#111111]" : "bg-white"}
           // textClassName={isDark ? "text-white" : "text-neutral-900"}
         />
       </View>

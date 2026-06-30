@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
+﻿import React, { memo, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -26,7 +26,7 @@ const tokens = {
     accent: "#E8FF47",
     accentSoft: "rgba(232,255,71,0.14)",
 
-    overlayDark: "#080D17",
+    overlayDark: "#111111",
     overlayLight: "#F8FAFC",
 
     textPrimaryDark: "#F8FAFC",

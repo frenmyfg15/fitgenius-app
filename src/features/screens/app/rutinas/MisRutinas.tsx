@@ -1,4 +1,4 @@
-// src/features/fit/screens/app/rutinas/MisRutinas.tsx
+﻿// src/features/fit/screens/app/rutinas/MisRutinas.tsx
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
@@ -38,7 +38,7 @@ import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 const tokens = {
   color: {
-    bgDark: "#080D17",
+    bgDark: "#111111",
     bgLight: "#F8FAFC",
     surfaceDark: "#0F1829",
     surfaceLight: "#FFFFFF",
@@ -468,7 +468,7 @@ export default function MisRutinasScreen() {
               ]}
               activeOpacity={0.88}
             >
-              <Ionicons name="arrow-forward" size={16} color="#080D17" />
+              <Ionicons name="arrow-forward" size={16} color="#111111" />
               <Text style={styles.btnContinuarText}>
                 {modalInfo.continuarLabel}
               </Text>
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   btnContinuarText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#080D17",
+    color: "#111111",
   },
   btnMasTarde: {
     flexDirection: "row",

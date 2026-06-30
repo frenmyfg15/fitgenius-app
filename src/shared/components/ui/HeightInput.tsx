@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   memo,
   useMemo,
   useState,
@@ -33,7 +33,7 @@ function HeightInputBase({
   // Paleta por tema
   const theme = useMemo(
     () => ({
-      bg: isDark ? "#0b1220" : "#f6f7fb",
+      bg: isDark ? "#111111" : "#f6f7fb",
       text: isDark ? "#e5e7eb" : "#0f172a",
       subtext: isDark ? "#94a3b8" : "#475569",
       border: "#22c55e", // dejamos el verde de marca

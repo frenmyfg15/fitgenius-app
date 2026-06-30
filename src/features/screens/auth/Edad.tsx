@@ -1,4 +1,4 @@
-// app/features/registro/EdadScreen.tsx
+﻿// app/features/registro/EdadScreen.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -52,7 +52,7 @@ export default function Edad() {
 
   const edadValida = localEdad >= MIN_EDAD;
 
-  const bgColor = isDark ? "#0b1220" : "#f6f7fb";
+  const bgColor = isDark ? "#111111" : "#f6f7fb";
   const textMain = { color: isDark ? "#ffffff" : "#111827" };
   const textSub = { color: isDark ? "#d1d5db" : "#4b5563" };
 

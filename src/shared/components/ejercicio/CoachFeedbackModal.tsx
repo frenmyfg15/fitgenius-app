@@ -1,4 +1,4 @@
-// File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
+﻿// File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
 import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import {
@@ -170,7 +170,7 @@ export default function CoachFeedbackModal({
       enableOverDrag={false}
       topInset={topInset}
       handleIndicatorStyle={{ backgroundColor: isDark ? "#64748b" : "#94a3b8" }}
-      backgroundStyle={{ backgroundColor: isDark ? "#0b1220" : "#ffffff" }}
+      backgroundStyle={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
       style={styles.modalZIndex}
       containerStyle={styles.modalZIndex}
     >
@@ -832,7 +832,7 @@ function ContenidoUpsell({
         <View
           style={[
             styles.upsellCard,
-            { backgroundColor: isDark ? "#0b1220" : "#ffffff" },
+            { backgroundColor: isDark ? "#111111" : "#ffffff" },
           ]}
         >
           <Text

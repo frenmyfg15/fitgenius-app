@@ -1,4 +1,4 @@
-// shared/components/ui/WizardProgressBar.tsx
+﻿// shared/components/ui/WizardProgressBar.tsx
 import React, { useEffect, useMemo, useRef, memo } from "react";
 import {
   View,
@@ -60,7 +60,7 @@ function WizardProgressBarBase({
   // % mostrado
   const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
 
-  const bg = isDark ? "#0b1220" : "#f6f7fb";
+  const bg = isDark ? "#111111" : "#f6f7fb";
   const label = isDark ? "#e5e5e5" : "#404040";
   const track = isDark ? "#2a2a2e" : "#e5e5e5";
 

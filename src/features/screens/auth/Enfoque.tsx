@@ -1,4 +1,4 @@
-// app/features/registro/EnfoqueScreen.tsx
+﻿// app/features/registro/EnfoqueScreen.tsx
 import React, { useMemo, useCallback } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -126,7 +126,7 @@ export default function EnfoqueScreen() {
       {selectedList.length > 0 && <BtnAprobe step="Nivel" placement="left" />}
 
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+        className={isDark ? "bg-[#111111]" : "bg-[#f6f7fb]"}
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 24,

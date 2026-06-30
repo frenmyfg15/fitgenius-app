@@ -1,4 +1,4 @@
-// src/shared/components/rutina/ReplaceEjercicioAsignadoFlow.tsx
+﻿// src/shared/components/rutina/ReplaceEjercicioAsignadoFlow.tsx
 import React, { useCallback, useMemo, useState } from "react";
 import {
     View,
@@ -85,7 +85,7 @@ export default function ReplaceEjercicioAsignadoFlow({
     }, [nuevoEjercicioId, series, reps, peso, descanso]);
 
     const theme = useMemo(() => {
-        const bg = isDark ? "#0b1220" : "#ffffff";
+        const bg = isDark ? "#111111" : "#ffffff";
         const surface = isDark ? "rgba(255,255,255,0.06)" : "#f8fafc";
         const line = isDark ? "rgba(255,255,255,0.12)" : "#e5e7eb";
         const text = isDark ? "#e5e7eb" : "#0f172a";

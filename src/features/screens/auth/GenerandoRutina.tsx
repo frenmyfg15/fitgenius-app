@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useOnboardingStore } from "@/features/store/useOnboardingStore";
@@ -6,7 +6,7 @@ import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
 
 const tokens = {
     color: {
-        bgDark: "#080D17",
+        bgDark: "#111111",
         bgLight: "#F8FAFC",
     },
 } as const;

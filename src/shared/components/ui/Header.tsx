@@ -1,4 +1,4 @@
-// src/shared/components/ui/Header.tsx
+﻿// src/shared/components/ui/Header.tsx
 import React, { memo, useCallback, useMemo } from "react";
 import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -19,7 +19,7 @@ type PlanState = "PREMIUM_ACTIVE" | "PREMIUM_UNPAID" | "FREE";
 
 const tokens = {
   color: {
-    headerBgDark: "#080D17",
+    headerBgDark: "#111111",
     headerBgLight: "#FFFFFF",
     headerBorderDark: "rgba(255,255,255,0.06)",
     headerBorderLight: "rgba(15,23,42,0.08)",

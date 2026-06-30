@@ -1,4 +1,4 @@
-// app/features/registro/LugarScreen.tsx
+﻿// app/features/registro/LugarScreen.tsx
 import React, { useMemo, useCallback } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -46,7 +46,7 @@ export default function Lugar() {
 
   return (
     <ScrollView
-      className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+      className={isDark ? "bg-[#111111]" : "bg-[#f6f7fb]"}
       contentContainerStyle={{
         paddingHorizontal: 16,
         paddingTop: 24,

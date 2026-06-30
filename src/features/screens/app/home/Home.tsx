@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { View, ScrollView, RefreshControl, StyleSheet, Platform, Text } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
@@ -13,7 +13,6 @@ import TarjetaHome from "@/shared/components/home/TarjetaHome";
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import IaGenerate from "@/shared/components/ui/IaGenerate";
 import IaGenerateAuto from "@/shared/components/ui/IaGenerateAuto";
-import CoachHistorialSection from "@/shared/components/home/CoachHistorialSection";
 import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
@@ -27,7 +26,7 @@ import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
 
 const tokens = {
   color: {
-    bgDark: "#080D17",
+    bgDark: "#111111",
     bgLight: "#F8FAFC",
     tintDark: "#E2E8F0",
     tintLight: "#0F172A",
@@ -634,7 +633,6 @@ export default function Home() {
             <View style={styles.calendarWrapper}>
               <Calendar devolverDato={devolver} completadas={completadasMap} />
             </View>
-            <CoachHistorialSection onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
 
             <View style={styles.cardWrapper}>
               <TarjetaHome

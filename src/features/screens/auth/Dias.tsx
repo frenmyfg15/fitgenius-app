@@ -1,4 +1,4 @@
-// app/features/registro/DiasScreen.tsx
+﻿// app/features/registro/DiasScreen.tsx
 import React, { useCallback } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -50,7 +50,7 @@ export default function Dias() {
       {hasSelection && <BtnAprobe step="Duracion" placement="left" />}
 
       <ScrollView
-        className={isDark ? "bg-[#0b1220]" : "bg-[#f6f7fb]"}
+        className={isDark ? "bg-[#111111]" : "bg-[#f6f7fb]"}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}
         keyboardShouldPersistTaps="handled"
       >

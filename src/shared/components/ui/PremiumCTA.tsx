@@ -1,4 +1,4 @@
-// File: src/features/cuenta/components/PremiumMiniCTACard.tsx
+﻿// File: src/features/cuenta/components/PremiumMiniCTACard.tsx
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,7 +10,7 @@ import { useNavigation } from "@react-navigation/native";
 const tokens = {
   color: {
     // Frame gradient
-    frameGradientDark: ["#0F1829", "#080D17", "#0F1829"] as string[],
+    frameGradientDark: ["#0F1829", "#111111", "#0F1829"] as string[],
     frameGradientLight: ["#00E85A", "#22C55E", "#16A34A"] as string[],
 
     // Card interior

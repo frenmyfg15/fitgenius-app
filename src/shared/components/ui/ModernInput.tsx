@@ -1,4 +1,4 @@
-// src/shared/components/ui/ModernInput.tsx
+﻿// src/shared/components/ui/ModernInput.tsx
 import React, { memo, useCallback } from "react";
 import { TextInput, TextInputProps } from "react-native";
 
@@ -29,7 +29,7 @@ function ModernInputBase({
   onChangeText,
   onSubmit,
   maxLength,
-  className = "w-11/12 text-center rounded-2xl border px-4 py-3 text-xl font-semibold bg-white dark:bg-[#0b1220] text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:border-neon-400",
+  className = "w-11/12 text-center rounded-2xl border px-4 py-3 text-xl font-semibold bg-white dark:bg-[#111111] text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:border-neon-400",
   ...rest
 }: Props) {
   const keyboardType: TextInputProps["keyboardType"] =

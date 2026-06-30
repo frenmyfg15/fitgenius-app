@@ -485,105 +485,81 @@ const HeroEjercicio = memo(function HeroEjercicio({
     return pills.slice(0, 3);
   }, [ejercicio, medidaPeso, isCompuesto]);
 
+  const cardBg = isDark ? tokens.color.heroBgDark : tokens.color.heroBgLight;
+
   return (
     <TouchableOpacity
       activeOpacity={0.97}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Siguiente ejercicio: ${nombre}. Toca para empezar.`}
-      style={[
-        heroStyles.container,
-        { backgroundColor: isDark ? tokens.color.heroBgDark : tokens.color.heroBgLight },
-      ]}
+      style={[heroStyles.container, { backgroundColor: cardBg }]}
     >
-      <View style={heroStyles.row}>
-        <View style={heroStyles.imageArea}>
-          {img ? (
-            <Image source={img} style={heroStyles.image} resizeMode="contain" />
-          ) : (
-            <View style={heroStyles.imagePlaceholder}>
-              <Dumbbell size={36} color="rgba(100,116,139,0.3)" strokeWidth={1.5} />
-            </View>
-          )}
-        </View>
-
-        <View style={heroStyles.infoArea}>
-          <View
-            style={[
-              heroStyles.tag,
-              {
-                backgroundColor: isDark ? tokens.color.tagBgDark : tokens.color.tagBgLight,
-                borderColor: isDark ? tokens.color.tagBorderDark : tokens.color.tagBorderLight,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                heroStyles.tagText,
-                { color: isDark ? tokens.color.tagTextDark : tokens.color.tagTextLight },
-              ]}
-            >
-              {tagSuperior || "—"}
-            </Text>
+      {/* ── Imagen full-width ── */}
+      <View style={heroStyles.imageWrapper}>
+        {img ? (
+          <Image source={img} style={heroStyles.image} resizeMode="cover" />
+        ) : (
+          <View style={[heroStyles.imagePlaceholder, { backgroundColor: isDark ? "#0A1020" : "#E2E8F0" }]}>
+            <Dumbbell size={48} color="rgba(100,116,139,0.25)" strokeWidth={1.5} />
           </View>
+        )}
 
-          <Text
-            numberOfLines={2}
-            style={[
-              heroStyles.name,
-              { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
-            ]}
-          >
-            {nombre}
-          </Text>
+        {/* Gradient fade hacia el fondo de la card */}
+        <LinearGradient
+          colors={["transparent", cardBg]}
+          locations={[0.4, 1]}
+          style={heroStyles.imageGradient}
+        />
 
-          {statPills.length > 0 && (
-            <View style={heroStyles.pillsRow}>
-              {statPills.map((p) => (
-                <View
-                  key={p.label}
-                  style={[
-                    heroStyles.pill,
-                    {
-                      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
-                      borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      heroStyles.pillLabel,
-                      { color: isDark ? "#475569" : "#94A3B8" },
-                    ]}
-                  >
-                    {p.label}
-                  </Text>
-                  <Text
-                    style={[
-                      heroStyles.pillValue,
-                      { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
-                    ]}
-                  >
+        {/* Tag flotante sobre la imagen */}
+        {tagSuperior ? (
+          <View style={heroStyles.tagBadge}>
+            <Text style={heroStyles.tagBadgeText}>{tagSuperior}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* ── Contenido ── */}
+      <View style={heroStyles.content}>
+        <Text
+          numberOfLines={2}
+          style={[heroStyles.name, { color: isDark ? tokens.color.nameDark : tokens.color.nameLight }]}
+        >
+          {nombre}
+        </Text>
+
+        {statPills.length > 0 && (
+          <View style={heroStyles.statsRow}>
+            {statPills.map((p, i) => (
+              <React.Fragment key={p.label}>
+                {i > 0 && (
+                  <Text style={[heroStyles.statsDot, { color: isDark ? "#334155" : "#CBD5E1" }]}>·</Text>
+                )}
+                <Text style={[heroStyles.statItem, { color: isDark ? "#94A3B8" : "#64748B" }]}>
+                  <Text style={[heroStyles.statValue, { color: isDark ? tokens.color.nameDark : tokens.color.nameLight }]}>
                     {p.value}
                   </Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <LinearGradient
-              colors={["#22C55E", "#16A34A"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={heroStyles.ctaButton}
-            >
-              <Text style={heroStyles.ctaText}>Empezar</Text>
-              <ChevronRight size={16} color="#fff" strokeWidth={2.5} />
-            </LinearGradient>
-          </Animated.View>
-        </View>
+                  {"  "}{p.label}
+                </Text>
+              </React.Fragment>
+            ))}
+          </View>
+        )}
       </View>
+
+      {/* ── Botón full-width ── */}
+      <Animated.View style={[heroStyles.ctaWrapper, { transform: [{ scale: pulseAnim }] }]}>
+        <LinearGradient
+          colors={["#22C55E", "#16A34A"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={heroStyles.ctaButton}
+        >
+          <Text style={heroStyles.ctaText}>Empezar</Text>
+          <ChevronRight size={18} color="#fff" strokeWidth={2.5} />
+        </LinearGradient>
+      </Animated.View>
     </TouchableOpacity>
   );
 });
@@ -594,93 +570,92 @@ const heroStyles = StyleSheet.create({
     overflow: "hidden",
     width: "100%",
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    minHeight: 222,
-  },
-  imageArea: {
-    width: 132,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
+  imageWrapper: {
+    width: "100%",
+    height: 190,
   },
   image: {
     width: "100%",
-    height: 132,
+    height: "100%",
   },
   imagePlaceholder: {
     width: "100%",
-    height: 132,
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  infoArea: {
-    flex: 1,
-    paddingHorizontal: tokens.spacing.md,
-    paddingTop: tokens.spacing.md,
-    paddingBottom: tokens.spacing.md,
-    gap: 10,
-    justifyContent: "center",
+  imageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 90,
   },
-  tag: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  tagBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: tokens.radius.sm,
-    borderWidth: 1,
   },
-  tagText: {
+  tagBadgeText: {
+    color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontWeight: "700",
+    letterSpacing: 0.8,
     textTransform: "uppercase",
+  },
+  content: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
+    paddingBottom: tokens.spacing.md,
+    gap: 8,
   },
   name: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "800",
-    letterSpacing: -0.2,
-    lineHeight: 22,
+    letterSpacing: -0.3,
+    lineHeight: 26,
   },
-  pillsRow: {
+  statsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.spacing.xs,
-  },
-  pill: {
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
     alignItems: "center",
-    minWidth: 58,
+    gap: 8,
+    flexWrap: "wrap",
   },
-  pillLabel: {
-    fontSize: 8,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 1,
-  },
-  pillValue: {
-    fontSize: 12,
+  statsDot: {
+    fontSize: 14,
     fontWeight: "700",
+  },
+  statItem: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  ctaWrapper: {
+    marginHorizontal: tokens.spacing.lg,
+    marginBottom: tokens.spacing.lg,
+    marginTop: tokens.spacing.xs,
+    borderRadius: tokens.radius.full,
+    overflow: "hidden",
   },
   ctaButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    borderRadius: tokens.radius.full,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    alignSelf: "flex-start",
+    paddingVertical: 15,
   },
   ctaText: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "800",
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
 
@@ -735,51 +710,6 @@ const ReplaceSwipeAction = memo(function ReplaceSwipeAction({
   );
 });
 
-const ReplaceInlineButton = memo(function ReplaceInlineButton({
-  rutinaId,
-  diaRutinaId,
-  asignadoId,
-}: {
-  rutinaId: number;
-  diaRutinaId: number;
-  asignadoId: number;
-}) {
-  return (
-    <ReplaceEjercicioAsignadoFlow
-      rutinaId={rutinaId}
-      diaRutinaId={diaRutinaId}
-      asignadoId={asignadoId}
-    >
-      {({ open, loading }) => (
-        <Pressable
-          onPress={open}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Cambiar ejercicio"
-          style={({ pressed }) => [
-            compactStyles.replaceButtonInline,
-            pressed && compactStyles.replaceButtonPressed,
-            loading && compactStyles.replaceButtonLoading,
-          ]}
-        >
-          <RefreshCcw
-            size={14}
-            color={loading ? "rgba(34,197,94,0.4)" : tokens.color.replaceText}
-            strokeWidth={2.5}
-          />
-          <Text
-            style={[
-              compactStyles.replaceButtonText,
-              loading && compactStyles.replaceButtonTextLoading,
-            ]}
-          >
-            {loading ? "..." : "Cambiar"}
-          </Text>
-        </Pressable>
-      )}
-    </ReplaceEjercicioAsignadoFlow>
-  );
-});
 
 const heroReplaceStyles = StyleSheet.create({
   wrapper: {
@@ -936,15 +866,6 @@ const TarjetaEjercicioCompacta = memo(function TarjetaEjercicioCompacta({
             {detalles}
           </Text>
 
-          {canReplace && (
-            <View style={compactStyles.inlineActionRow}>
-              <ReplaceInlineButton
-                rutinaId={Number(rutinaId)}
-                diaRutinaId={Number(diaRutinaId)}
-                asignadoId={Number(asignadoId)}
-              />
-            </View>
-          )}
         </View>
 
         {completado ? (
@@ -979,6 +900,26 @@ const TarjetaEjercicioCompacta = memo(function TarjetaEjercicioCompacta({
     cardInner
   );
 
+  if (canReplace) {
+    return (
+      <Swipeable
+        renderRightActions={() => (
+          <ReplaceSwipeAction
+            rutinaId={Number(rutinaId)}
+            diaRutinaId={Number(diaRutinaId)}
+            asignadoId={Number(asignadoId)}
+            compact
+          />
+        )}
+        overshootRight={false}
+        rightThreshold={32}
+        friction={2}
+      >
+        {inner}
+      </Swipeable>
+    );
+  }
+
   return inner;
 });
 
@@ -1012,6 +953,7 @@ const compactStyles = StyleSheet.create({
   thumbImage: {
     width: 44,
     height: 44,
+    borderRadius: tokens.radius.md,
   },
   thumbFallback: {
     fontSize: 12,
@@ -1044,10 +986,6 @@ const compactStyles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
   },
-  inlineActionRow: {
-    marginTop: 6,
-    alignItems: "flex-start",
-  },
   checkCircle: {
     width: 26,
     height: 26,
@@ -1077,18 +1015,6 @@ const compactStyles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: tokens.color.replaceBorder,
     borderRadius: tokens.radius.lg,
-  },
-  replaceButtonInline: {
-    minHeight: 30,
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    backgroundColor: tokens.color.replaceBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: tokens.color.replaceBorder,
-    borderRadius: tokens.radius.full,
   },
   replaceButtonPressed: {
     backgroundColor: tokens.color.replaceBgPressed,
@@ -1134,7 +1060,6 @@ const TodosEjerciciosSheet = memo(function TodosEjerciciosSheet({
   const wasVisible = useRef(false);
 
   const snapPoints = useMemo(() => ["55%", "88%"], []);
-  const completados = ejercicios.filter((e) => isCompletedOnDate(e, selectedYMD)).length;
   const topInset = Math.max(insets.top, 12);
   const bottomPadding = insets.bottom + 100;
 
@@ -1196,19 +1121,14 @@ const TodosEjerciciosSheet = memo(function TodosEjerciciosSheet({
       }}
     >
       <View style={sheetStyles.header}>
-        <View>
-          <Text
-            style={[
-              sheetStyles.headerTitle,
-              { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
-            ]}
-          >
-            Todos los ejercicios
-          </Text>
-          <Text style={sheetStyles.headerSub}>
-            {completados}/{ejercicios.length} completados
-          </Text>
-        </View>
+        <Text
+          style={[
+            sheetStyles.headerTitle,
+            { color: isDark ? tokens.color.nameDark : tokens.color.nameLight },
+          ]}
+        >
+          Todos los ejercicios
+        </Text>
 
         <TouchableOpacity
           onPress={handleClosePress}
@@ -1222,10 +1142,6 @@ const TodosEjerciciosSheet = memo(function TodosEjerciciosSheet({
         >
           <X size={18} color={isDark ? "#e5e7eb" : "#0f172a"} />
         </TouchableOpacity>
-      </View>
-
-      <View style={sheetStyles.progressWrapper}>
-        <ProgressBar completados={completados} total={ejercicios.length} isDark={isDark} />
       </View>
 
       <BottomSheetScrollView
@@ -1604,12 +1520,25 @@ export default function TarjetaHome({ rutina, dia, selectedYMD }: Props) {
         <Pressable
           onPress={() => setSheetVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Abrir ejercicios"
+          accessibilityLabel="Ver todos los ejercicios"
           style={rootStyles.floatingBtn}
         >
-          <Text style={rootStyles.floatingText}>Ejercicios</Text>
+          {pendientes.length > 0 ? (
+            <>
+              <View style={rootStyles.floatingBadge}>
+                <Text style={rootStyles.floatingBadgeNum}>{pendientes.length}</Text>
+              </View>
+              <Text style={rootStyles.floatingText}>
+                {pendientes.length === 1 ? "pendiente" : "pendientes"}
+              </Text>
+            </>
+          ) : (
+            <Text style={rootStyles.floatingText}>
+              {ejercicios.length} ejercicios
+            </Text>
+          )}
           <ChevronRight
-            size={16}
+            size={15}
             color="#111111"
             strokeWidth={2.8}
             style={{ transform: [{ rotate: "-90deg" }] }}
@@ -1674,5 +1603,20 @@ const rootStyles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.2,
     color: "#111111",
+  },
+  floatingBadge: {
+    backgroundColor: "#22C55E",
+    borderRadius: 999,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  floatingBadgeNum: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 14,
   },
 });

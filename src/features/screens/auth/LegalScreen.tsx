@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Linking, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,7 +26,7 @@ function Card({
     <View
       className={
         "rounded-2xl p-4 border " +
-        (isDark ? "bg-[#0b1220] border-white/10" : "bg-white border-neutral-200") +
+        (isDark ? "bg-[#111111] border-white/10" : "bg-white border-neutral-200") +
         " " +
         className
       }

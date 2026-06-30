@@ -1,4 +1,4 @@
-// navigation/AuthNavigator.tsx
+﻿// navigation/AuthNavigator.tsx
 import React from "react";
 import { View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -51,7 +51,7 @@ export default function AuthNavigator() {
   const isDark = colorScheme === "dark";
   const showWizard = useRegistroStore((s) => s.showWizard);
 
-  const backgroundColor = isDark ? "#0b1220" : "#f6f7fb";
+  const backgroundColor = isDark ? "#111111" : "#f6f7fb";
 
   return (
     <SafeAreaView

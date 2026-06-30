@@ -1,4 +1,4 @@
-// src/features/fit/screens/CambiarContrasenaScreen.tsx
+﻿// src/features/fit/screens/CambiarContrasenaScreen.tsx
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -38,7 +38,7 @@ const schema = z
 
 const tokens = {
   color: {
-    pageBgDark: "#0b1220",
+    pageBgDark: "#111111",
     pageBgLight: "#ffffff",
 
     frameGradient: ["#00E85A", "#A855F7"] as string[],

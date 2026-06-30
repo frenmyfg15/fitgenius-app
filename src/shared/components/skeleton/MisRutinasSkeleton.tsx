@@ -1,4 +1,4 @@
-// src/shared/components/skeleton/MisRutinasSkeleton.tsx
+﻿// src/shared/components/skeleton/MisRutinasSkeleton.tsx
 import React, { useEffect, useRef } from "react";
 import { View, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,7 +35,7 @@ function Shimmer({
     const isDark = colorScheme === "dark";
     const t = useShimmer();
 
-    const base = isDark ? "#080D17" : "rgba(15,23,42,0.06)";
+    const base = isDark ? "#111111" : "rgba(15,23,42,0.06)";
     const highlight = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.55)";
 
     return (
@@ -84,7 +84,7 @@ export default function MisRutinasSkeleton() {
         <View
             style={{
                 // ✅ Mismos valores que MisRutinasScreen → tokens.color.bgDark / bgLight
-                backgroundColor: isDark ? "#080D17" : "#F8FAFC",
+                backgroundColor: isDark ? "#111111" : "#F8FAFC",
                 padding: 5,
                 paddingBottom: 80,
                 minHeight: "100%",

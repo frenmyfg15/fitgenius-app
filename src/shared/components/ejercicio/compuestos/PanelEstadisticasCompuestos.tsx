@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { View, TouchableOpacity, ScrollView, Text } from "react-native";
 import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
@@ -113,7 +113,7 @@ export default function PanelEstadisticasCompuestos({
         className={
           "h-[95%] rounded-t-3xl p-6 " +
           (isDark
-            ? "bg-[#0b1220]/95 border-t border-white/10"
+            ? "bg-[#111111]/95 border-t border-white/10"
             : "bg-white/95 border-t border-neutral-200")
         }
         style={{

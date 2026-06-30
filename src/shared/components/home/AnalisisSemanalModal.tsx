@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const
 
 const C = {
   dark: {
-    bg: "#080D17",
+    bg: "#111111",
     card: "rgba(255,255,255,0.05)",
     border: "rgba(255,255,255,0.08)",
     textPrimary: "#F1F5F9",
@@ -58,13 +58,13 @@ const MOOD_CONFIG: Record<
 > = {
   SEMANA_ELITE: {
     label: "Semana de élite",
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.14)",
+    color: "#00E85A",
+    bg: "rgba(0,232,90,0.14)",
   },
   SEMANA_SOLIDA: {
     label: "Semana sólida",
-    color: "#22C55E",
-    bg: "rgba(34,197,94,0.14)",
+    color: "#00E85A",
+    bg: "rgba(0,232,90,0.14)",
   },
   SEMANA_IRREGULAR: {
     label: "Semana irregular",
@@ -464,7 +464,7 @@ export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, se
             </Text>
             <Pressable
               onPress={onClose}
-              style={[styles.ctaBtn, { borderColor: isDark ? "#22C55E" : "rgba(15,23,42,0.18)" }]}
+              style={[styles.ctaBtn, { borderColor: isDark ? "#00E85A" : "rgba(15,23,42,0.18)" }]}
             >
               <Text style={[styles.ctaBtnText, { color: t.textPrimary }]}>
                 Entendido
@@ -639,7 +639,7 @@ export default function AnalisisSemanalModal({ visible, onClose, onGoPremium, se
               onPress={onClose}
               style={[
                 styles.ctaBtn,
-                { borderColor: isDark ? "#22C55E" : "rgba(15,23,42,0.18)" },
+                { borderColor: isDark ? "#00E85A" : "rgba(15,23,42,0.18)" },
               ]}
             >
               <Text style={[styles.ctaBtnText, { color: t.textPrimary }]}>
@@ -895,7 +895,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    backgroundColor: "#22C55E",
+    backgroundColor: "#00E85A",
     marginTop: 4,
   },
   ctaBtnText: {

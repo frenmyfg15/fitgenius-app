@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   View,
   Text,
@@ -132,7 +132,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="VistaEjercicio"
         component={VistaEjercicio}
-        options={{ contentStyle: { backgroundColor: "#0b1220" } }}
+        options={{ contentStyle: { backgroundColor: "#111111" } }}
       />
     </HomeStack.Navigator>
   );

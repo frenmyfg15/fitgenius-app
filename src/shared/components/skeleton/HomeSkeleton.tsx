@@ -1,4 +1,4 @@
-// src/shared/components/skeleton/HomeSkeleton.tsx
+﻿// src/shared/components/skeleton/HomeSkeleton.tsx
 import React, { useEffect, useRef } from "react";
 import { View, Animated, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,7 +33,7 @@ function Shimmer({
   const isDark = colorScheme === "dark";
   const t = useShimmer();
 
-  const base = isDark ? "#080D17" : "rgba(15,23,42,0.06)";
+  const base = isDark ? "#111111" : "rgba(15,23,42,0.06)";
   const highlight = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.55)";
 
   return (
@@ -84,7 +84,7 @@ export default function HomeSkeleton() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: isDark ? "#080D17" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
       contentContainerStyle={{
         padding: 16,
         paddingBottom: 80,
