@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -142,86 +143,88 @@ export default function CambiarContrasenaScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        style={{ flex: 1, backgroundColor: bg }}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: 32,
-          paddingBottom: TAB_BAR_SAFE,
-          flexGrow: 1,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: bg }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
       >
-        {/* Header */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={[styles.title, { color: t.textPrimary }]}>
-            Cambiar contraseña
-          </Text>
-          <Text style={[styles.subtitle, { color: t.textSecondary }]}>
-            Actualiza tus credenciales de forma segura.
-          </Text>
-        </View>
+        <ScrollView
+          style={{ flex: 1, backgroundColor: bg }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 32,
+            paddingBottom: TAB_BAR_SAFE,
+            flexGrow: 1,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={{ marginBottom: 24 }}>
+            <Text style={[styles.title, { color: t.textPrimary }]}>
+              Cambiar contraseña
+            </Text>
+            <Text style={[styles.subtitle, { color: t.textSecondary }]}>
+              Actualiza tus credenciales de forma segura.
+            </Text>
+          </View>
 
-        {/* Card */}
-        <View style={{ maxWidth: 520, alignSelf: "center", width: "100%" }}>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
-            ]}
-          >
-            <Field
-              label="Contraseña actual"
-              value={actual}
-              onChangeText={setActual}
-              visible={showActual}
-              toggle={() => setShowActual((v) => !v)}
-            />
-
-            <Field
-              label="Nueva contraseña"
-              value={nueva}
-              onChangeText={setNueva}
-              visible={showNueva}
-              toggle={() => setShowNueva((v) => !v)}
-            />
-
-            <Field
-              label="Confirmar nueva contraseña"
-              value={confirmar}
-              onChangeText={setConfirmar}
-              visible={showConfirmar}
-              toggle={() => setShowConfirmar((v) => !v)}
-            />
-
-            <Pressable
-              onPress={onSubmit}
-              disabled={cargando}
+          {/* Card */}
+          <View style={{ maxWidth: 520, alignSelf: "center", width: "100%" }}>
+            <View
               style={[
-                styles.button,
-                {
-                  backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
-                  opacity: cargando ? 0.6 : 1,
-                },
+                styles.card,
+                { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
               ]}
             >
-              {cargando ? (
-                <ActivityIndicator />
-              ) : (
-                <Text style={[styles.buttonText, { color: t.textPrimary }]}>
-                  Cambiar contraseña
-                </Text>
-              )}
-            </Pressable>
+              <Field
+                label="Contraseña actual"
+                value={actual}
+                onChangeText={setActual}
+                visible={showActual}
+                toggle={() => setShowActual((v) => !v)}
+              />
+
+              <Field
+                label="Nueva contraseña"
+                value={nueva}
+                onChangeText={setNueva}
+                visible={showNueva}
+                toggle={() => setShowNueva((v) => !v)}
+              />
+
+              <Field
+                label="Confirmar nueva contraseña"
+                value={confirmar}
+                onChangeText={setConfirmar}
+                visible={showConfirmar}
+                toggle={() => setShowConfirmar((v) => !v)}
+              />
+
+              <Pressable
+                onPress={onSubmit}
+                disabled={cargando}
+                style={[
+                  styles.button,
+                  {
+                    backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+                    opacity: cargando ? 0.6 : 1,
+                  },
+                ]}
+              >
+                {cargando ? (
+                  <ActivityIndicator />
+                ) : (
+                  <Text style={[styles.buttonText, { color: t.textPrimary }]}>
+                    Cambiar contraseña
+                  </Text>
+                )}
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

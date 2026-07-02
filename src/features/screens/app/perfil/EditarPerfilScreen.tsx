@@ -12,6 +12,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 
 import { equipamiento as opcionesEquipamiento } from "../../../../shared/constants/register/equipamiento";
@@ -297,6 +298,10 @@ export default function EditarPerfil() {
   };
 
   return (
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: isDark ? PAGE_BG_DARK : "#F8FAFC" }}
+    >
     <ScrollView
       style={[
         styles.page,
@@ -483,6 +488,7 @@ export default function EditarPerfil() {
         )}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useColorScheme } from "nativewind";
@@ -136,20 +137,21 @@ export default function EliminarCuenta() {
   }, [canSubmit, nav, setUsuario]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.flex}
-    >
-      <ScrollView
-        style={[styles.page, { backgroundColor: ui.pageBg }]}
-        contentContainerStyle={[
-          styles.pageContent,
-          { paddingBottom: tokens.spacing.tabBarSafe },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: ui.pageBg }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
       >
-        <View style={styles.centerWrap}>
+        <ScrollView
+          style={[styles.page, { backgroundColor: ui.pageBg }]}
+          contentContainerStyle={[
+            styles.pageContent,
+            { paddingBottom: tokens.spacing.tabBarSafe },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.centerWrap}>
           <LinearGradient
             colors={tokens.color.frameGradient as any}
             start={{ x: 0, y: 0 }}
@@ -272,7 +274,8 @@ export default function EliminarCuenta() {
           </LinearGradient>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

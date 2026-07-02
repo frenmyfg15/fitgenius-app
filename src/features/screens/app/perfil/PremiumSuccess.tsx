@@ -1,6 +1,7 @@
 // src/features/premium/screens/PremiumSuccess.tsx
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 type PremiumSuccessRouteParams = {
@@ -17,6 +18,7 @@ export default function PremiumSuccess() {
   const planLabel = plan === "yearly" ? "anual" : "mensual";
 
   return (
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
     <View
       style={{
         flex: 1,
@@ -86,5 +88,6 @@ export default function PremiumSuccess() {
         <Text style={{ color: "#475569", fontWeight: "600" }}>Volver</Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 }
