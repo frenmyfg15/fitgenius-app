@@ -12,6 +12,7 @@ import { useColorScheme } from "nativewind";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigationState } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
 
 import Header from "@/shared/components/ui/Header";
 import Cuenta from "../screens/app/perfil/Cuenta";
@@ -27,6 +28,16 @@ import CrearRutinaScreen from "../screens/app/rutina-manual/CrearRutina";
 import PremiumPaymentScreen from "../screens/app/premium/PremiumPaymentScreen";
 import { Colors, scheme } from "@/shared/constants/colors";
 import { Font, TextStyle } from "@/shared/constants/typography";
+
+// Muestra la notificación (banner + sonido) aunque la app esté en primer plano.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 /* ---------- Tipos ---------- */
 export type HomeStackParamList = {

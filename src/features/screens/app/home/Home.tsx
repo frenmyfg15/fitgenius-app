@@ -18,6 +18,7 @@ import OnboardingModal from "@/shared/components/ui/OnboardingModal";
 import HomeSkeleton from "@/shared/components/skeleton/HomeSkeleton";
 import { useSeguimientoInteligente } from "@/shared/hooks/useSeguimientoInteligente";
 import { useSyncAnalisis } from "@/shared/hooks/useSyncAnalisis";
+import { usePushNotifications } from "@/shared/hooks/usePushNotifications";
 import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInteligenteModal";
 import AnalisisDiarioModal from "@/shared/components/home/AnalisisDiarioModal";
 import AnalisisSemanalModal from "@/shared/components/home/AnalisisSemanalModal";
@@ -127,6 +128,7 @@ export default function Home() {
 
   // ── Seguimiento inteligente ───────────────────────────────────────────
   useSyncAnalisis(usuario?.id);
+  usePushNotifications(usuario?.id);
   const seguimiento = useSeguimientoInteligente();
 
   useEffect(() => {

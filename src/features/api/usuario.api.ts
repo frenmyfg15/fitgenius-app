@@ -287,6 +287,20 @@ export const marcarOnboardingVisto = async () => {
   }
 };
 
+export const registrarPushToken = async (token: string) => {
+  try {
+    log("registrarPushToken → /usuario/push-token");
+    const res = await api.post("/usuario/push-token", { token });
+    log("registrarPushToken ←", { status: res.status });
+    return res.data?.data ?? res.data;
+  } catch (error) {
+    checkAuthTokenInvalid(error); // ✅
+    // Silencioso: el registro del token no debe interrumpir al usuario.
+    log("registrarPushToken ← error", error);
+    return null;
+  }
+};
+
 // 🔐 Recuperar contraseña (v1)
 
 // 1) Solicitar código
