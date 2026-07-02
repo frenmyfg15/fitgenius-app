@@ -5,10 +5,10 @@ import {
     Text,
     TextInput,
     Pressable,
-    Image,
     Platform,
     ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { useColorScheme } from "nativewind";
 import { X, Trash2, Pencil, Plus, CheckCircle2 } from "lucide-react-native";
 import { Picker } from "@react-native-picker/picker";
@@ -454,11 +454,13 @@ export default function EditarCompuestoSheet({
                                 >
                                     <Image
                                         source={{
-                                            uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${hijo.ejercicioInfo?.idGif ?? ""
+                                            uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${hijo.ejercicioInfo?.idGif ?? ""
                                                 }.gif`,
                                         }}
                                         style={{ width: "100%", height: "100%" }}
-                                        resizeMode="contain"
+                                        contentFit="contain"
+                                        cachePolicy="memory-disk"
+                                        transition={150}
                                     />
                                 </View>
 

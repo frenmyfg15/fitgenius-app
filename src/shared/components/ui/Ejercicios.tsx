@@ -2,13 +2,13 @@ import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Modal,
   Pressable,
   ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { useColorScheme } from "nativewind";
 import {
   Rutina,
@@ -181,7 +181,9 @@ function CompuestoEjercicioItem({
             <Image
               source={{ uri: cloudinaryGif(idGif) }}
               style={styles.compThumbImg}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={150}
             />
             {/* Indicador de toque */}
             <View style={[styles.compThumbOverlay, { backgroundColor: "rgba(0,0,0,0.3)" }]}>
@@ -268,7 +270,13 @@ export default function Ejercicios({ dias, day }: Props) {
                     borderColor: isDark ? tokens.color.surfaceBorderDark : tokens.color.surfaceBorderLight,
                   }]}
                 >
-                  <Image source={{ uri: cloudinaryGif(ej.idGif) }} style={styles.heroImg} resizeMode="contain" />
+                  <Image
+                    source={{ uri: cloudinaryGif(ej.idGif) }}
+                    style={styles.heroImg}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={150}
+                  />
                 </TouchableOpacity>
 
                 <View style={styles.simpleInfo}>
@@ -408,7 +416,12 @@ export default function Ejercicios({ dias, day }: Props) {
             <TouchableOpacity style={styles.closeBtn} onPress={() => setZoomGif(null)}>
               <X color={isDark ? "#FFF" : "#000"} size={24} />
             </TouchableOpacity>
-            <Image source={{ uri: zoomGif ?? "" }} style={styles.fullGif} resizeMode="contain" />
+            <Image
+              source={{ uri: zoomGif ?? "" }}
+              style={styles.fullGif}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+            />
           </View>
         </Pressable>
       </Modal>

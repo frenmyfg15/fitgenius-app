@@ -3,7 +3,6 @@ import React, { useMemo, memo, useEffect, useRef, useCallback, useState } from "
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Pressable,
@@ -11,6 +10,7 @@ import {
   Easing,
   Platform,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
@@ -199,7 +199,7 @@ const imagenPorGrupo = (grupo?: string) => {
 
 const gifUriPorEjercicio = (idGif?: string | number) => {
   if (idGif == null || idGif === "") return undefined;
-  return `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${idGif}.gif`;
+  return `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${idGif}.gif`;
 };
 
 // ── Utils ────────────────────────────────────────────────────────────────────
@@ -520,7 +520,13 @@ const HeroEjercicio = memo(function HeroEjercicio({
       {/* ── Imagen full-width ── */}
       <View style={heroStyles.imageWrapper}>
         {img ? (
-          <Image source={img} style={heroStyles.image} resizeMode="cover" />
+          <Image
+            source={img}
+            style={heroStyles.image}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={150}
+          />
         ) : (
           <View style={[heroStyles.imagePlaceholder, { backgroundColor: isDark ? "#0A1020" : "#E2E8F0" }]}>
             <Dumbbell size={48} color="rgba(100,116,139,0.25)" strokeWidth={1.5} />
@@ -878,7 +884,13 @@ const TarjetaEjercicioCompacta = memo(function TarjetaEjercicioCompacta({
           ]}
         >
           {img ? (
-            <Image source={img} style={compactStyles.thumbImage} resizeMode="contain" />
+            <Image
+              source={img}
+              style={compactStyles.thumbImage}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={150}
+            />
           ) : (
             <Text style={compactStyles.thumbFallback}>—</Text>
           )}

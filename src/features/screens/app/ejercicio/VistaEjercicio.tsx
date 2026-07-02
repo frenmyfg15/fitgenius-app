@@ -8,11 +8,11 @@
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Animated,
   Easing,
 } from "react-native";
+import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { usePreventRemove } from "@react-navigation/native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -448,12 +448,15 @@ export default function VistaEjercicio() {
           ) : (
             <Image
               source={{
-                uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ejercicio.idGif}.gif`,
+                uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${ejercicio.idGif}.gif`,
               }}
-              resizeMode="contain"
-              className="w-full h-full"
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={150}
               accessibilityLabel={ejercicio.nombre}
               style={{
+                width: "100%",
+                height: "100%",
                 borderRadius: 50,
                 marginVertical: 10,
                 backgroundColor: Colors.secondary,

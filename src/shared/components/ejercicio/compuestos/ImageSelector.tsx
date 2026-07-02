@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Image, TouchableOpacity, ScrollView } from "react-native";
+import { View, TouchableOpacity, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { useColorScheme } from "nativewind";
 import { Colors, scheme } from "@/shared/constants/colors";
 
@@ -24,10 +25,13 @@ export default function ImageSelector({ images, alt = "imagen" }: Props) {
       <View className="w-full aspect-square relative max-w-sm mb-2">
         <Image
           source={{ uri: selectedImage }}
-          resizeMode="contain"
-          className="w-full h-full"
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          transition={150}
           accessibilityLabel={alt}
           style={{
+            width: "100%",
+            height: "100%",
             borderRadius: 50,
             marginVertical: 10,
             backgroundColor: Colors.secondary,
@@ -71,7 +75,9 @@ export default function ImageSelector({ images, alt = "imagen" }: Props) {
               >
                 <Image
                   source={{ uri }}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
                   style={{
                     width: "100%",
                     height: "100%",

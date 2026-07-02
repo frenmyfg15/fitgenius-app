@@ -3,12 +3,12 @@ import React, { useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Platform,
 } from "react-native";
+import { Image } from "expo-image";
 import { useColorScheme } from "nativewind";
 import { Plus, CheckCircle2, X } from "lucide-react-native";
 import {
@@ -150,7 +150,7 @@ const ControlesCompuesto: React.FC<Props> = ({
           contentContainerStyle={styles.scrollContainer}
         >
           {compuesto.map((ej) => {
-            const uri = `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ej.info.idGif}.gif`;
+            const uri = `https://res.cloudinary.com/dcn4vq1n4/image/upload/f_auto,q_auto/ejercicios/${ej.info.idGif}.gif`;
             return (
               <View
                 key={ej.id}
@@ -165,7 +165,9 @@ const ControlesCompuesto: React.FC<Props> = ({
                 <Image
                   source={{ uri }}
                   style={styles.exerciseGif}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
                 />
                 <View
                   style={[
