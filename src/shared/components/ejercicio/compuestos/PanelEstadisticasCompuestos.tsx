@@ -1,15 +1,17 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, TouchableOpacity, ScrollView, Text, StyleSheet } from "react-native";
-import { X } from "lucide-react-native";
+import { X, CalendarDays } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { Colors, scheme } from "@/shared/constants/colors";
 import { Font, TextStyle } from "@/shared/constants/typography";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
+import CalendarioSesiones from "@/shared/components/ui/CalendarioSesiones";
 
 import GraficoVolumenPorSerieCompuestos from "./GraficoVolumenPorSerieCompuestos";
 import EstadisticasRendimientoCompuestos from "./EstadisticasRendimientoCompuestos";
 import VisualizacionesSugeridasCompuestos from "./VisualizacionesSugeridasCompuestos";
+import { obtenerSesionesEjercicioCompuesto } from "@/features/api/ejercicios.api";
 
 type EjercicioMini = {
   id: number;
@@ -50,19 +52,88 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   ultimaSesion?: UltimaSesionCompuesta | null;
+  ejercicioCompuestoId?: number | null;
+};
+
+const formatearFecha = (ymd: string) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const texto = dt.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
 
 export default function PanelEstadisticasCompuestos({
   visible,
   onClose,
   ultimaSesion,
+  ejercicioCompuestoId,
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const t = scheme(isDark);
 
+  const [sesionActual, setSesionActual] = useState<UltimaSesionCompuesta | null | undefined>(
+    ultimaSesion
+  );
+  const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([]);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
+  const [calendarioAbierto, setCalendarioAbierto] = useState(false);
+  const [cargandoSesion, setCargandoSesion] = useState(false);
+  const wasVisible = useRef(false);
+
+  useEffect(() => {
+    if (visible && !wasVisible.current && ejercicioCompuestoId) {
+      setCargandoSesion(true);
+      obtenerSesionesEjercicioCompuesto(ejercicioCompuestoId)
+        .then((data) => {
+          setFechasDisponibles(data?.fechasDisponibles ?? []);
+          if (data?.sesion) {
+            setSesionActual(data.sesion);
+            setFechaSeleccionada(
+              typeof data.sesion.fecha === "string" ? data.sesion.fecha.slice(0, 10) : null
+            );
+          }
+        })
+        .catch(() => { })
+        .finally(() => setCargandoSesion(false));
+    }
+    if (!visible) {
+      setCalendarioAbierto(false);
+    }
+    wasVisible.current = visible;
+  }, [visible, ejercicioCompuestoId]);
+
+  const handleSelectFecha = useCallback(
+    (ymd: string) => {
+      if (!ejercicioCompuestoId || ymd === fechaSeleccionada) {
+        setCalendarioAbierto(false);
+        return;
+      }
+
+      setCargandoSesion(true);
+      obtenerSesionesEjercicioCompuesto(ejercicioCompuestoId, ymd)
+        .then((data) => {
+          if (data?.sesion) {
+            setSesionActual(data.sesion);
+            setFechaSeleccionada(ymd);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          setCargandoSesion(false);
+          setCalendarioAbierto(false);
+        });
+    },
+    [ejercicioCompuestoId, fechaSeleccionada]
+  );
+
   const registrosPlanos = useMemo(() => {
-    const detalles = ultimaSesion?.detallesSeriesCompuestas ?? [];
+    const detalles = sesionActual?.detallesSeriesCompuestas ?? [];
     return detalles.flatMap((det) =>
       (det.registrosEjercicios || []).map((reg) => ({
         serieNumero: det.serieNumero,
@@ -77,7 +148,7 @@ export default function PanelEstadisticasCompuestos({
           typeof reg.duracionSegundos === "number" ? reg.duracionSegundos : null,
       }))
     );
-  }, [ultimaSesion]);
+  }, [sesionActual]);
 
   const hayDatos = (registrosPlanos?.length ?? 0) > 0;
 
@@ -120,12 +191,42 @@ export default function PanelEstadisticasCompuestos({
           </TouchableOpacity>
         </View>
 
+        {!!ejercicioCompuestoId && (fechaSeleccionada || fechasDisponibles.length > 0) && (
+          <View style={styles.fechaRow}>
+            <Text style={[styles.fechaTexto, { color: t.textSecondary }]}>
+              {fechaSeleccionada ? formatearFecha(fechaSeleccionada) : "Sesión"}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setCalendarioAbierto((v) => !v)}
+              activeOpacity={0.85}
+              style={[styles.fechaBtn, { backgroundColor: isDark ? t.border : t.surface }]}
+            >
+              <CalendarDays size={14} color={t.textPrimary} />
+              <Text style={{ fontFamily: Font.body.semiBold, fontSize: 12, color: t.textPrimary }}>
+                {calendarioAbierto ? "Cerrar" : "Ver otro día"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 60 }}
         >
+          {calendarioAbierto && (
+            <View style={[styles.calendarioWrap, { borderColor: t.border }]}>
+              <CalendarioSesiones
+                visible={calendarioAbierto}
+                fechasDisponibles={fechasDisponibles}
+                fechaSeleccionada={fechaSeleccionada}
+                onSelectFecha={handleSelectFecha}
+              />
+            </View>
+          )}
+
           {hayDatos ? (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: 12, opacity: cargandoSesion ? 0.5 : 1 }}>
               <GraficoVolumenPorSerieCompuestos registros={registrosPlanos} />
               <EstadisticasRendimientoCompuestos registros={registrosPlanos} />
               <VisualizacionesSugeridasCompuestos registros={registrosPlanos} />
@@ -182,5 +283,29 @@ const styles = StyleSheet.create({
   closeBtn: {
     padding: 8,
     borderRadius: 999,
+  },
+  fechaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  fechaTexto: {
+    fontSize: 13,
+    fontFamily: Font.body.medium,
+  },
+  fechaBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  calendarioWrap: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 20,
   },
 });

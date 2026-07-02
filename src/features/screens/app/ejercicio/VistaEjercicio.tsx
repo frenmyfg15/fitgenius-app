@@ -748,6 +748,9 @@ export default function VistaEjercicio() {
           visible={estadisticaVisible}
           onClose={() => setEstadisticaVisible(false)}
           ultimaSesion={ejercicio?.ultimaSesion ?? null}
+          ejercicioCompuestoId={
+            ejercicio.ejercicioCompuestoId || ejercicio.ejercicioCompuesto?.id
+          }
         />
       ) : (
         <PanelEstadisticas
@@ -755,6 +758,7 @@ export default function VistaEjercicio() {
           onClose={() => setEstadisticaVisible(false)}
           detallesSeries={detallesSeriesSimples}
           esCardio={ejercicio.grupoMuscular === "CARDIO"}
+          ejercicioId={ejercicio.id}
         />
       )}
 

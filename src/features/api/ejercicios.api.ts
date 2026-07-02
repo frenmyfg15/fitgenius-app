@@ -122,6 +122,44 @@ export const guardarSesionEjercicio = async (
 };
 
 /* ============================================================
+   HISTORIAL DE SESIONES (simple)
+============================================================ */
+export type SesionesEjercicioResponse = {
+  fechasDisponibles: string[];
+  sesion: any | null;
+};
+
+export const obtenerSesionesEjercicio = async (
+  ejercicioId: number,
+  fecha?: string
+): Promise<SesionesEjercicioResponse> => {
+  try {
+    log("obtenerSesionesEjercicio →", { ejercicioId, fecha });
+
+    const url = fecha
+      ? `/ejercicios/${ejercicioId}/sesiones?fecha=${fecha}`
+      : `/ejercicios/${ejercicioId}/sesiones`;
+
+    const res = await api.get(url);
+
+    const payload = res.data?.data ?? res.data;
+
+    log("obtenerSesionesEjercicio ← ok", {
+      status: res.status,
+      fechasDisponibles: payload?.fechasDisponibles?.length,
+    });
+
+    return payload;
+  } catch (error) {
+    log("obtenerSesionesEjercicio ← error", error);
+
+    checkAuthTokenInvalid(error); // ✅
+
+    return handleApiError(error, "Error al obtener el historial del ejercicio");
+  }
+};
+
+/* ============================================================
    COMPLETAR SESIÓN (simple)
 ============================================================ */
 export const completarSesionEjercicio = async (payload: {
@@ -217,6 +255,42 @@ export const obtenerEjercicioCompuesto = async (id: number) => {
     checkAuthTokenInvalid(error); // ✅
 
     return handleApiError(error, "Error al obtener el ejercicio compuesto");
+  }
+};
+
+/* ============================================================
+   HISTORIAL DE SESIONES (compuesto)
+============================================================ */
+export const obtenerSesionesEjercicioCompuesto = async (
+  ejercicioCompuestoId: number,
+  fecha?: string
+): Promise<SesionesEjercicioResponse> => {
+  try {
+    log("obtenerSesionesEjercicioCompuesto →", { ejercicioCompuestoId, fecha });
+
+    const url = fecha
+      ? `/ejercicios/compuestos/${ejercicioCompuestoId}/sesiones?fecha=${fecha}`
+      : `/ejercicios/compuestos/${ejercicioCompuestoId}/sesiones`;
+
+    const res = await api.get(url);
+
+    const payload = res.data?.data ?? res.data;
+
+    log("obtenerSesionesEjercicioCompuesto ← ok", {
+      status: res.status,
+      fechasDisponibles: payload?.fechasDisponibles?.length,
+    });
+
+    return payload;
+  } catch (error) {
+    log("obtenerSesionesEjercicioCompuesto ← error", error);
+
+    checkAuthTokenInvalid(error); // ✅
+
+    return handleApiError(
+      error,
+      "Error al obtener el historial del ejercicio compuesto"
+    );
   }
 };
 
