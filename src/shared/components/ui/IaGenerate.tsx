@@ -12,56 +12,20 @@ import CargaRutina from "./CargaRutina";
 import { useIaGenerate } from "@/shared/hooks/useIaGenerate";
 import NoAdsModal from "@/shared/components/ads/NoAdsModal";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
-// ── Tokens ────────────────────────────────────────────────────────────────────
-const tokens = {
-  color: {
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
+const GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
+const CARD_BG_DARK = ["rgba(15,24,41,0.92)", "rgba(8,13,23,0.96)", "rgba(15,24,41,0.92)"] as const;
 
-    cardBgDarkA: "rgba(15,24,41,0.92)",
-    cardBgDarkB: "rgba(8,13,23,0.96)",
-    borderDark: "rgba(255,255,255,0.07)",
-    borderLight: "rgba(0,0,0,0.06)",
-
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#64748B",
-    textSecondaryLight: "#475569",
-
-    inputBgDark: "rgba(255,255,255,0.05)",
-    inputBgLight: "#F8FAFC",
-
-    ghostBgDark: "rgba(255,255,255,0.04)",
-    ghostBgLight: "rgba(2,6,23,0.03)",
-    ghostBorderDark: "rgba(255,255,255,0.09)",
-    ghostBorderLight: "rgba(2,6,23,0.08)",
-
-    lockDark: "#FACC15",
-    lockLight: "#D97706",
-    overlay: "rgba(0,0,0,0.55)",
-    errorRed: "#EF4444",
-  },
-  radius: { md: 12, lg: 16, xl: 20, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 16, lg: 24 },
-} as const;
-
-const GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const LUGARES_CASA = ["casa", "hogar", "home", "en casa"];
+const HELPERS = {
+  lugarCasa: ["casa", "hogar", "home", "en casa"],
+};
 const esCasa = (lugar?: string) =>
-  !!lugar && LUGARES_CASA.some((l) => lugar.toLowerCase().includes(l));
+  !!lugar && HELPERS.lugarCasa.some((l) => lugar.toLowerCase().includes(l));
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
 type Props = { onCreate?: () => void };
 
-// ── Componente principal ─────────────────────────────────────────────────────
 export default function IaGenerate({ onCreate }: Props) {
   const navigation = useNavigation<any>();
   const usuario = useUsuarioStore((s) => s.usuario);
@@ -84,32 +48,27 @@ export default function IaGenerate({ onCreate }: Props) {
     abrirModal();
   };
 
+  const t = scheme(isDark);
+
   return (
     <>
-      {/* ── Botón trigger ────────────────────────────────────────────────── */}
-      <LinearGradient
-        colors={GRADIENT as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.triggerGradient}
-      >
-        {isDark ? (
-          <LinearGradient
-            colors={[tokens.color.cardBgDarkA, tokens.color.cardBgDarkB, tokens.color.cardBgDarkA]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.triggerInner, { borderColor: tokens.color.borderDark }]}
-          >
-            <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
-          </LinearGradient>
-        ) : (
-          <View style={[styles.triggerInner, { backgroundColor: "#ffffff", borderColor: tokens.color.borderLight }]}>
-            <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
-          </View>
-        )}
-      </LinearGradient>
+      {/* Botón trigger */}
+      {isDark ? (
+        <LinearGradient
+          colors={CARD_BG_DARK as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.triggerShell, { borderColor: Colors.accentBorder }]}
+        >
+          <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
+        </LinearGradient>
+      ) : (
+        <View style={[styles.triggerShell, { backgroundColor: Colors.secondary, borderColor: Colors.accentBorder }]}>
+          <TriggerContent loading={loading} lockedByPlan={lockedByPlan} isDark={isDark} onPress={handlePressMain} />
+        </View>
+      )}
 
-      {/* ── Modal configuración ──────────────────────────────────────────── */}
+      {/* Modal configuración */}
       <Modal visible={showModal} animationType="fade" transparent onRequestClose={cerrarModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -119,59 +78,52 @@ export default function IaGenerate({ onCreate }: Props) {
           <TouchableOpacity
             activeOpacity={1}
             onPress={cerrarModal}
-            style={[styles.modalBackdrop, { backgroundColor: tokens.color.overlay }]}
+            style={[styles.modalBackdrop, { backgroundColor: t.overlay }]}
           >
             <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
-              <LinearGradient
-                colors={GRADIENT as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.modalGradient}
-              >
-                {isDark ? (
-                  <LinearGradient
-                    colors={[tokens.color.cardBgDarkA, tokens.color.cardBgDarkB, tokens.color.cardBgDarkA]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.modalInnerShell, { borderColor: tokens.color.borderDark }]}
-                  >
-                    <ModalInner
-                      isDark={isDark}
-                      nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
-                      instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
-                      lugarEntrenamiento={usuario?.lugarEntrenamiento}
-                      crear={crear} cerrarModal={cerrarModal} loading={loading}
-                      handleChangeNombre={handleChangeNombre}
-                      handleChangeInstruccion={handleChangeInstruccion}
-                    />
-                  </LinearGradient>
-                ) : (
-                  <View style={[styles.modalInnerShell, { backgroundColor: "#ffffff", borderColor: tokens.color.borderLight }]}>
-                    <ModalInner
-                      isDark={isDark}
-                      nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
-                      instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
-                      lugarEntrenamiento={usuario?.lugarEntrenamiento}
-                      crear={crear} cerrarModal={cerrarModal} loading={loading}
-                      handleChangeNombre={handleChangeNombre}
-                      handleChangeInstruccion={handleChangeInstruccion}
-                    />
-                  </View>
-                )}
-              </LinearGradient>
+              {isDark ? (
+                <LinearGradient
+                  colors={CARD_BG_DARK as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.modalShell, { borderColor: Colors.accentBorder }]}
+                >
+                  <ModalInner
+                    isDark={isDark}
+                    nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
+                    instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
+                    lugarEntrenamiento={usuario?.lugarEntrenamiento}
+                    crear={crear} cerrarModal={cerrarModal} loading={loading}
+                    handleChangeNombre={handleChangeNombre}
+                    handleChangeInstruccion={handleChangeInstruccion}
+                  />
+                </LinearGradient>
+              ) : (
+                <View style={[styles.modalShell, { backgroundColor: Colors.secondary, borderColor: Colors.accentBorder }]}>
+                  <ModalInner
+                    isDark={isDark}
+                    nombre={nombre} nombreLen={nombreLen} maxNombre={maxNombre}
+                    instruccion={instruccion} instrLen={instrLen} maxInstr={maxInstr}
+                    lugarEntrenamiento={usuario?.lugarEntrenamiento}
+                    crear={crear} cerrarModal={cerrarModal} loading={loading}
+                    handleChangeNombre={handleChangeNombre}
+                    handleChangeInstruccion={handleChangeInstruccion}
+                  />
+                </View>
+              )}
             </TouchableOpacity>
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Spinner generación ────────────────────────────────────────────── */}
+      {/* Spinner generación */}
       {loading && (
         <Modal visible={loading} transparent animationType="fade">
           <CargaRutina />
         </Modal>
       )}
 
-      {/* ── Modal sin anuncios ────────────────────────────────────────────── */}
+      {/* Modal sin anuncios */}
       <NoAdsModal
         visible={noAdsModalVisible}
         loading={noAdsRetrying}
@@ -186,7 +138,6 @@ export default function IaGenerate({ onCreate }: Props) {
   );
 }
 
-// ── TriggerContent ────────────────────────────────────────────────────────────
 function TriggerContent({
   loading, lockedByPlan, isDark, onPress,
 }: {
@@ -195,8 +146,8 @@ function TriggerContent({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const textColor = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const lockColor = isDark ? tokens.color.lockDark : tokens.color.lockLight;
+  const t = scheme(isDark);
+  const lockColor = isDark ? "#FACC15" : "#D97706";
 
   return (
     <TouchableOpacity
@@ -209,15 +160,14 @@ function TriggerContent({
       style={styles.triggerBtn}
     >
       {lockedByPlan && <Lock size={14} color={lockColor} strokeWidth={2.2} />}
-      <Sparkles size={14} color={isDark ? "#fff" : tokens.color.textPrimaryLight} strokeWidth={2} />
-      <Text style={[styles.triggerText, { color: textColor }]}>
+      <Sparkles size={14} color={isDark ? "#fff" : t.textPrimary} strokeWidth={2} />
+      <Text style={[styles.triggerText, { color: t.textPrimary }]}>
         {lockedByPlan ? "Desbloquear IA" : "Generar con IA"}
       </Text>
     </TouchableOpacity>
   );
 }
 
-// ── ModalInner ────────────────────────────────────────────────────────────────
 type ModalInnerProps = {
   isDark: boolean;
   nombre: string;
@@ -241,26 +191,23 @@ function ModalInner({
   crear, cerrarModal, loading,
   handleChangeNombre, handleChangeInstruccion,
 }: ModalInnerProps) {
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const border = isDark ? tokens.color.borderDark : tokens.color.borderLight;
-  const inputBg = isDark ? tokens.color.inputBgDark : tokens.color.inputBgLight;
+  const t = scheme(isDark);
+  const inputBg = isDark ? Colors.dark.surfaceAlt : t.surface;
   const canSubmit = !!nombre.trim();
 
   return (
     <View style={styles.modalContent}>
 
       {/* Header */}
-      <View style={[styles.modalHeader, { borderBottomColor: border }]}>
+      <View style={[styles.modalHeader, { borderBottomColor: t.border }]}>
         <View style={styles.modalHeaderText}>
-          <Text style={[styles.modalTitle, { color: textPrimary }]} accessibilityRole="header">
+          <Text style={[styles.modalTitle, { color: t.textPrimary }]} accessibilityRole="header">
             Configura tu rutina con IA
           </Text>
-          <Text style={[styles.modalSubtitle, { color: textSecondary }]}>
+          <Text style={[styles.modalSubtitle, { color: t.textSecondary }]}>
             Dale un nombre e instrucciones opcionales.
           </Text>
-
-          <Text style={[styles.infoText, { color: textSecondary, marginTop: 6 }]}>
+          <Text style={[styles.infoText, { color: t.textSecondary, marginTop: 6 }]}>
             Se priorizarán ejercicios de {esCasa(lugarEntrenamiento) ? "casa" : "gym"} · Cámbialo en tu perfil
           </Text>
         </View>
@@ -269,9 +216,12 @@ function ModalInner({
           onPress={cerrarModal}
           accessibilityRole="button"
           accessibilityLabel="Cerrar"
-          style={[styles.closeBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F1F5F9", borderColor: border }]}
+          style={[
+            styles.closeBtn,
+            { backgroundColor: isDark ? t.border : t.surface, borderColor: t.border },
+          ]}
         >
-          <Text style={[styles.closeBtnText, { color: textPrimary }]}>✕</Text>
+          <Text style={[styles.closeBtnText, { color: t.textPrimary }]}>✕</Text>
         </TouchableOpacity>
       </View>
 
@@ -282,58 +232,52 @@ function ModalInner({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Campo: nombre */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
-            <Text style={[styles.label, { color: textPrimary }]}>Nombre de la rutina</Text>
-            <Asterisk size={10} color={tokens.color.errorRed} strokeWidth={2.5} accessibilityLabel="Obligatorio" />
+            <Text style={[styles.label, { color: t.textPrimary }]}>Nombre de la rutina</Text>
+            <Asterisk size={10} color="#EF4444" strokeWidth={2.5} accessibilityLabel="Obligatorio" />
           </View>
           <TextInput
             value={nombre}
             onChangeText={handleChangeNombre}
             placeholder="Ej: Push/Pull/Legs"
-            placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+            placeholderTextColor={t.textTertiary}
             editable={!loading}
             maxLength={maxNombre}
             accessibilityLabel="Nombre de la rutina"
-            style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: textPrimary }]}
+            style={[styles.input, { backgroundColor: inputBg, borderColor: t.border, color: t.textPrimary }]}
           />
-          <Text style={[styles.counter, { color: textSecondary, textAlign: "right" }]}>
+          <Text style={[styles.counter, { color: t.textSecondary, textAlign: "right" }]}>
             {nombreLen}/{maxNombre}
           </Text>
         </View>
 
-        {/* Campo: instrucciones */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: textPrimary }]}>
+          <Text style={[styles.label, { color: t.textPrimary }]}>
             Instrucciones{" "}
-            <Text style={{ color: textSecondary, fontWeight: "400" }}>(opcional)</Text>
+            <Text style={{ color: t.textSecondary, fontWeight: "400" }}>(opcional)</Text>
           </Text>
           <TextInput
             value={instruccion}
             onChangeText={handleChangeInstruccion}
             placeholder="Días, material, objetivos…"
-            placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+            placeholderTextColor={t.textTertiary}
             multiline
             textAlignVertical="top"
             editable={!loading}
             maxLength={maxInstr}
             accessibilityLabel="Instrucciones para la IA"
-            style={[styles.inputMultiline, { backgroundColor: inputBg, borderColor: border, color: textPrimary }]}
+            style={[styles.inputMultiline, { backgroundColor: inputBg, borderColor: t.border, color: t.textPrimary }]}
           />
-          <Text style={[styles.counter, { color: textSecondary, textAlign: "right" }]}>
+          <Text style={[styles.counter, { color: t.textSecondary, textAlign: "right" }]}>
             {instrLen}/{maxInstr}
           </Text>
         </View>
-
-
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.modalFooter, { borderTopColor: border }]}>
+      <View style={[styles.modalFooter, { borderTopColor: t.border }]}>
         <View style={styles.footerActions}>
-
-          {/* Cancelar */}
           <TouchableOpacity
             onPress={cerrarModal}
             disabled={loading}
@@ -343,16 +287,15 @@ function ModalInner({
             style={[
               styles.cancelBtn,
               {
-                backgroundColor: isDark ? tokens.color.ghostBgDark : tokens.color.ghostBgLight,
-                borderColor: isDark ? tokens.color.ghostBorderDark : tokens.color.ghostBorderLight,
+                backgroundColor: isDark ? t.border : t.surface,
+                borderColor: t.border,
                 opacity: loading ? 0.55 : 1,
               },
             ]}
           >
-            <Text style={[styles.cancelBtnText, { color: textPrimary }]}>Cancelar</Text>
+            <Text style={[styles.cancelBtnText, { color: t.textPrimary }]}>Cancelar</Text>
           </TouchableOpacity>
 
-          {/* Confirmar */}
           {canSubmit ? (
             <TouchableOpacity
               onPress={crear}
@@ -361,7 +304,7 @@ function ModalInner({
               accessibilityRole="button"
               accessibilityLabel={loading ? "Generando rutina" : "Confirmar y generar"}
               accessibilityState={{ disabled: loading, busy: loading }}
-              style={[styles.submitShadow, { opacity: loading ? 0.82 : 1 }]}
+              style={[styles.submitWrap, { opacity: loading ? 0.82 : 1 }]}
             >
               <LinearGradient
                 colors={GRADIENT as any}
@@ -380,19 +323,15 @@ function ModalInner({
               style={[
                 styles.submitDisabled,
                 {
-                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(2,6,23,0.06)",
-                  borderColor: isDark ? "rgba(255,255,255,0.09)" : "rgba(2,6,23,0.09)",
+                  backgroundColor: isDark ? t.border : t.surface,
+                  borderColor: t.border,
                 },
               ]}
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
             >
-              <Sparkles
-                size={14}
-                color={isDark ? "rgba(241,245,249,0.35)" : "rgba(15,23,42,0.35)"}
-                strokeWidth={2.2}
-              />
-              <Text style={[styles.submitText, { color: isDark ? "rgba(241,245,249,0.35)" : "rgba(15,23,42,0.35)" }]}>
+              <Sparkles size={14} color={t.textDisabled} strokeWidth={2.2} />
+              <Text style={[styles.submitText, { color: t.textDisabled }]}>
                 Confirmar y generar
               </Text>
             </View>
@@ -400,7 +339,7 @@ function ModalInner({
         </View>
 
         {!canSubmit && (
-          <Text style={[styles.footerHint, { color: textSecondary }]}>
+          <Text style={[styles.footerHint, { color: t.textSecondary }]}>
             Pon un nombre para habilitar el botón.
           </Text>
         )}
@@ -409,131 +348,127 @@ function ModalInner({
   );
 }
 
-// ── Estilos ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
 
-  // Trigger
-  triggerGradient: { borderRadius: tokens.radius.full, padding: 1.5, overflow: "hidden" },
-  triggerInner: { borderRadius: tokens.radius.full - 1, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  triggerShell: {
+    borderRadius: 999,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
   triggerBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: tokens.spacing.md,
+    paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  triggerText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.1 },
+  triggerText: { fontSize: 13, fontWeight: "700", fontFamily: Font.body.bold, letterSpacing: 0.1 },
 
-  // Modal
   modalBackdrop: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: tokens.spacing.md,
+    padding: 16,
   },
   modalContainer: { width: "100%", maxWidth: 640, flexShrink: 1 },
-  modalGradient: { borderRadius: tokens.radius.xl, padding: 1.5, overflow: "hidden" },
-  modalInnerShell: { borderRadius: tokens.radius.xl - 1, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  modalShell: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    overflow: "hidden",
+    flexShrink: 1,
+  },
   modalContent: { overflow: "hidden", flexShrink: 1 },
 
-  // Header
   modalHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.md,
-    paddingBottom: tokens.spacing.sm,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalHeaderText: { flex: 1, marginRight: tokens.spacing.md, gap: 2 },
-  modalTitle: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
-  modalSubtitle: { fontSize: 12, lineHeight: 17 },
+  modalHeaderText: { flex: 1, marginRight: 16, gap: 2 },
+  modalTitle: { fontSize: 16, fontWeight: "800", fontFamily: Font.body.bold, letterSpacing: -0.3 },
+  modalSubtitle: { fontSize: 12, fontFamily: Font.body.regular, lineHeight: 17 },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: { fontSize: 13, fontWeight: "600" },
+  closeBtnText: { fontSize: 13, fontWeight: "600", fontFamily: Font.body.semiBold },
 
-  // Body
   modalBody: { flexShrink: 1 },
-  modalBodyContent: { paddingHorizontal: tokens.spacing.lg, paddingVertical: tokens.spacing.md, gap: tokens.spacing.md },
+  modalBodyContent: { paddingHorizontal: 24, paddingVertical: 16, gap: 16 },
 
-  // Fields
-  fieldGroup: { gap: tokens.spacing.xs },
+  fieldGroup: { gap: 4 },
   labelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  label: { fontSize: 12, fontWeight: "600" },
-  infoText: { fontSize: 11, lineHeight: 16 },
+  label: { fontSize: 12, fontWeight: "600", fontFamily: Font.body.semiBold },
+  infoText: { fontSize: 11, fontFamily: Font.body.regular, lineHeight: 16 },
   input: {
     paddingHorizontal: 13,
     paddingVertical: 10,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
     fontSize: 13,
+    fontFamily: Font.body.regular,
   },
   inputMultiline: {
     paddingHorizontal: 13,
     paddingVertical: 10,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
     fontSize: 13,
+    fontFamily: Font.body.regular,
     minHeight: 100,
   },
-  counter: { fontSize: 11 },
+  counter: { fontSize: 11, fontFamily: Font.body.regular },
 
-  // Footer
   modalFooter: {
-    paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.sm,
-    paddingBottom: tokens.spacing.md,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: tokens.spacing.xs,
+    gap: 4,
   },
   footerActions: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
-
-  // Cancelar
-  cancelBtn: { paddingHorizontal: tokens.spacing.md, paddingVertical: 10, borderRadius: tokens.radius.md, borderWidth: 1 },
-  cancelBtnText: { fontSize: 13, fontWeight: "600" },
-
-  // Submit
-  submitShadow: {
-    borderRadius: tokens.radius.md,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
+  cancelBtnText: { fontSize: 13, fontWeight: "600", fontFamily: Font.body.semiBold },
+
+  submitWrap: { borderRadius: 12, overflow: "hidden" },
   submitGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingHorizontal: tokens.spacing.md,
+    paddingHorizontal: 16,
     paddingVertical: 11,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
   },
-  submitText: { fontSize: 13, fontWeight: "800", color: "#fff", letterSpacing: 0.1 },
+  submitText: { fontSize: 13, fontWeight: "800", fontFamily: Font.body.bold, color: "#fff", letterSpacing: 0.1 },
   submitDisabled: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingHorizontal: tokens.spacing.md,
+    paddingHorizontal: 16,
     paddingVertical: 11,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  footerHint: { fontSize: 11, textAlign: "right" },
+  footerHint: { fontSize: 11, fontFamily: Font.body.regular, textAlign: "right" },
 });

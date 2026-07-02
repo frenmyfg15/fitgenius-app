@@ -1,31 +1,18 @@
-﻿// src/features/screens/EstadisticasScreen.tsx
+// src/features/screens/EstadisticasScreen.tsx
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 import { Lock } from "lucide-react-native";
 
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 import EstadisticasContent from "./EstadisticasContent";
 import CoachHistorialSection from "@/shared/components/home/CoachHistorialSection";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 
 type Tab = "estadisticas" | "coach";
-
-const tokens = {
-  color: {
-    bgDark: "#111111",
-    bgLight: "#F8FAFC",
-    textPrimaryDark: "#F1F5F9",
-    textSecondaryDark: "#94A3B8",
-    textPrimaryLight: "#0F172A",
-    textSecondaryLight: "#475569",
-    accent: "#39FF14",
-    tabActiveBgDark: "rgba(0,232,90,0.12)",
-    tabActiveBgLight: "rgba(0,180,70,0.08)",
-    tabBorderDark: "rgba(255,255,255,0.06)",
-    tabBorderLight: "rgba(0,0,0,0.06)",
-  },
-} as const;
 
 export default function EstadisticasScreen() {
   const { colorScheme } = useColorScheme();
@@ -35,26 +22,17 @@ export default function EstadisticasScreen() {
   const planActual = useUsuarioStore((s) => s.usuario?.planActual);
 
   const isPremium = planActual === "PREMIUM";
-  const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+  const t = scheme(isDark);
+  const bg = isDark ? Colors.primary : Colors.secondary;
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
+    <SafeAreaView edges={["top"]} style={[styles.root, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: bg }]}>
-        <Text
-          style={[
-            styles.eyebrow,
-            { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight },
-          ]}
-        >
+        <Text style={[styles.eyebrow, { color: t.textSecondary }]}>
           PROGRESO
         </Text>
-        <Text
-          style={[
-            styles.title,
-            { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
-          ]}
-        >
+        <Text style={[styles.title, { color: t.textPrimary }]}>
           Estadísticas
         </Text>
 
@@ -64,7 +42,7 @@ export default function EstadisticasScreen() {
             styles.tabBar,
             {
               backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
-              borderColor: isDark ? tokens.color.tabBorderDark : tokens.color.tabBorderLight,
+              borderColor: t.border,
             },
           ]}
         >
@@ -78,11 +56,7 @@ export default function EstadisticasScreen() {
                 onPress={() => setActiveTab(tab)}
                 style={[
                   styles.tabItem,
-                  isActive && {
-                    backgroundColor: isDark
-                      ? tokens.color.tabActiveBgDark
-                      : tokens.color.tabActiveBgLight,
-                  },
+                  isActive && { backgroundColor: Colors.accentSubtle },
                 ]}
               >
                 <View style={styles.tabContent}>
@@ -90,11 +64,7 @@ export default function EstadisticasScreen() {
                     style={[
                       styles.tabLabel,
                       {
-                        color: isActive
-                          ? tokens.color.accent
-                          : isDark
-                          ? tokens.color.textSecondaryDark
-                          : tokens.color.textSecondaryLight,
+                        color: isActive ? Colors.accent : t.textSecondary,
                         fontWeight: isActive ? "700" : "500",
                       },
                     ]}
@@ -102,11 +72,7 @@ export default function EstadisticasScreen() {
                     {tab === "estadisticas" ? "Estadísticas" : "Coach"}
                   </Text>
                   {isLocked && (
-                    <Lock
-                      size={11}
-                      color={isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight}
-                      strokeWidth={2.5}
-                    />
+                    <Lock size={11} color={t.textSecondary} strokeWidth={2.5} />
                   )}
                 </View>
               </TouchableOpacity>
@@ -135,28 +101,13 @@ export default function EstadisticasScreen() {
           </ScrollView>
         ) : (
           <View style={[styles.paywallContainer, { backgroundColor: bg }]}>
-            <View
-              style={[
-                styles.paywallIconWrapper,
-                { backgroundColor: isDark ? "rgba(0,232,90,0.08)" : "rgba(0,180,70,0.06)" },
-              ]}
-            >
-              <Lock size={32} color={tokens.color.accent} strokeWidth={2} />
+            <View style={[styles.paywallIconWrapper, { backgroundColor: Colors.accentSubtle }]}>
+              <Lock size={32} color={Colors.accent} strokeWidth={2} />
             </View>
-            <Text
-              style={[
-                styles.paywallTitle,
-                { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
-              ]}
-            >
+            <Text style={[styles.paywallTitle, { color: t.textPrimary }]}>
               Función Premium
             </Text>
-            <Text
-              style={[
-                styles.paywallSubtitle,
-                { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight },
-              ]}
-            >
+            <Text style={[styles.paywallSubtitle, { color: t.textSecondary }]}>
               El Coach con IA está disponible exclusivamente para usuarios Premium. Obtén análisis personalizados y recomendaciones inteligentes.
             </Text>
             <TouchableOpacity
@@ -169,7 +120,7 @@ export default function EstadisticasScreen() {
           </View>
         )
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -184,11 +135,13 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 1.2,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
     marginBottom: 6,
   },
   tabBar: {
@@ -211,6 +164,7 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 13,
+    fontFamily: Font.body.medium,
     letterSpacing: 0.1,
   },
   coachScroll: {
@@ -236,16 +190,18 @@ const styles = StyleSheet.create({
   paywallTitle: {
     fontSize: 22,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
     textAlign: "center",
   },
   paywallSubtitle: {
     fontSize: 14,
+    fontFamily: Font.body.regular,
     lineHeight: 22,
     textAlign: "center",
   },
   paywallBtn: {
     marginTop: 8,
-    backgroundColor: "#39FF14",
+    backgroundColor: Colors.accent,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 14,
@@ -253,6 +209,7 @@ const styles = StyleSheet.create({
   paywallBtnText: {
     color: "#000",
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     fontSize: 15,
   },
 });

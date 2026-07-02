@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import {
 } from "lucide-react-native";
 import { buscarEjercicios } from "@/features/api/ejercicios.api";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 type Ejercicio = {
   id: number;
@@ -66,6 +68,7 @@ export default function BuscadorEjercicio({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const insets = useSafeAreaInsets();
 
   const [search, setSearch] = useState("");
@@ -73,9 +76,7 @@ export default function BuscadorEjercicio({
   const [tipo, setTipo] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [selectOpen, setSelectOpen] = useState<null | "grupo" | "tipo">(null);
-  const [ejercicioDetalle, setEjercicioDetalle] = useState<Ejercicio | null>(
-    null
-  );
+  const [ejercicioDetalle, setEjercicioDetalle] = useState<Ejercicio | null>(null);
 
   const [resultados, setResultados] = useState<Ejercicio[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -95,13 +96,9 @@ export default function BuscadorEjercicio({
   );
   const lastQueryKeyRef = useRef(queryKey);
 
-  const bg = isDark ? "#111111" : "#ffffff";
-  const surface = isDark ? "rgba(255,255,255,0.04)" : "#f8fafc";
-  const surface2 = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const line = isDark ? "rgba(255,255,255,0.10)" : "#e5e7eb";
-  const ring = isDark ? "rgba(255,255,255,0.12)" : "#e2e8f0";
+  const bg = isDark ? Colors.primary : Colors.secondary;
+  const surface = isDark ? t.border : t.surface;
+  const surface2 = isDark ? t.border : t.surface;
 
   useEffect(() => {
     lastQueryKeyRef.current = queryKey;
@@ -211,7 +208,7 @@ export default function BuscadorEjercicio({
               paddingTop: 8,
               paddingBottom: 12,
               borderBottomWidth: 1,
-              borderColor: line,
+              borderColor: t.border,
               backgroundColor: bg,
             }}
           >
@@ -219,8 +216,9 @@ export default function BuscadorEjercicio({
               <Text
                 style={{
                   flex: 1,
-                  color: textPrimary,
+                  color: t.textPrimary,
                   fontWeight: "800",
+                  fontFamily: Font.body.bold,
                   fontSize: 18,
                 }}
               >
@@ -237,15 +235,15 @@ export default function BuscadorEjercicio({
                   justifyContent: "center",
                   backgroundColor: surface,
                   borderWidth: 1,
-                  borderColor: line,
+                  borderColor: t.border,
                 }}
               >
-                <X size={18} color={textSecondary} />
+                <X size={18} color={t.textSecondary} />
               </Pressable>
             </View>
 
             {!!descripcion && (
-              <Text style={{ marginTop: 4, fontSize: 12, color: textSecondary }}>
+              <Text style={{ marginTop: 4, fontSize: 12, fontFamily: Font.body.regular, color: t.textSecondary }}>
                 {descripcion}
               </Text>
             )}
@@ -257,21 +255,19 @@ export default function BuscadorEjercicio({
                 alignItems: "center",
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: ring,
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.03)"
-                  : "#ffffff",
+                borderColor: t.border,
+                backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
                 paddingHorizontal: 10,
                 height: 44,
               }}
             >
-              <Search size={18} color={textSecondary} />
+              <Search size={18} color={t.textSecondary} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Ej: press banca, remo…"
-                placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-                style={{ flex: 1, marginLeft: 8, color: textPrimary }}
+                placeholderTextColor={t.textTertiary}
+                style={{ flex: 1, marginLeft: 8, color: t.textPrimary }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
@@ -281,7 +277,7 @@ export default function BuscadorEjercicio({
                   onPress={() => setSearch("")}
                   style={{ padding: 6, marginLeft: 4 }}
                 >
-                  <X size={16} color={textSecondary} />
+                  <X size={16} color={t.textSecondary} />
                 </Pressable>
               )}
             </View>
@@ -295,17 +291,18 @@ export default function BuscadorEjercicio({
                   paddingVertical: 8,
                   backgroundColor: surface,
                   borderWidth: 1,
-                  borderColor: line,
+                  borderColor: t.border,
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
                 }}
               >
-                <Filter size={16} color={textSecondary} />
+                <Filter size={16} color={t.textSecondary} />
                 <Text
                   style={{
-                    color: textPrimary,
+                    color: t.textPrimary,
                     fontWeight: "700",
+                    fontFamily: Font.body.bold,
                     fontSize: 12,
                   }}
                 >
@@ -322,13 +319,14 @@ export default function BuscadorEjercicio({
                     paddingVertical: 8,
                     backgroundColor: surface,
                     borderWidth: 1,
-                    borderColor: line,
+                    borderColor: t.border,
                   }}
                 >
                   <Text
                     style={{
-                      color: textPrimary,
+                      color: t.textPrimary,
                       fontWeight: "700",
+                      fontFamily: Font.body.bold,
                       fontSize: 12,
                     }}
                   >
@@ -377,7 +375,7 @@ export default function BuscadorEjercicio({
                         borderRadius: 12,
                         backgroundColor: surface2,
                         borderWidth: 1,
-                        borderColor: line,
+                        borderColor: t.border,
                       }}
                     />
                   ))}
@@ -394,7 +392,7 @@ export default function BuscadorEjercicio({
                   padding: 12,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: line,
+                  borderColor: t.border,
                   backgroundColor: surface,
                   marginBottom: 10,
                 }}
@@ -405,11 +403,9 @@ export default function BuscadorEjercicio({
                     height: 84,
                     borderRadius: 10,
                     overflow: "hidden",
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.06)"
-                      : "#ffffff",
+                    backgroundColor: isDark ? t.border : Colors.secondary,
                     borderWidth: 1,
-                    borderColor: line,
+                    borderColor: t.border,
                   }}
                 >
                   <Image
@@ -423,8 +419,9 @@ export default function BuscadorEjercicio({
                   <Text
                     numberOfLines={1}
                     style={{
-                      color: textPrimary,
+                      color: t.textPrimary,
                       fontWeight: "800",
+                      fontFamily: Font.body.bold,
                       fontSize: 14,
                     }}
                   >
@@ -453,10 +450,10 @@ export default function BuscadorEjercicio({
                     borderRadius: 12,
                     backgroundColor: surface,
                     borderWidth: 1,
-                    borderColor: line,
+                    borderColor: t.border,
                   }}
                 >
-                  <Text style={{ color: textSecondary, fontSize: 13 }}>
+                  <Text style={{ color: t.textSecondary, fontFamily: Font.body.regular, fontSize: 13 }}>
                     {statusText}
                   </Text>
                 </View>
@@ -478,7 +475,7 @@ export default function BuscadorEjercicio({
                       paddingVertical: 10,
                       backgroundColor: surface,
                       borderWidth: 1,
-                      borderColor: line,
+                      borderColor: t.border,
                       opacity: loadingMore ? 0.7 : 1,
                     }}
                   >
@@ -487,8 +484,9 @@ export default function BuscadorEjercicio({
                     ) : (
                       <Text
                         style={{
-                          color: textPrimary,
+                          color: t.textPrimary,
                           fontWeight: "800",
+                          fontFamily: Font.body.bold,
                           fontSize: 13,
                         }}
                       >
@@ -546,7 +544,7 @@ export default function BuscadorEjercicio({
                   borderRadius: 24,
                   overflow: "hidden",
                   borderWidth: 1,
-                  borderColor: line,
+                  borderColor: t.border,
                 }}
               >
                 <View
@@ -583,9 +581,10 @@ export default function BuscadorEjercicio({
                 <View style={{ padding: 16 }}>
                   <Text
                     style={{
-                      color: textPrimary,
+                      color: t.textPrimary,
                       fontSize: 20,
                       fontWeight: "800",
+                      fontFamily: Font.body.bold,
                       marginBottom: 12,
                     }}
                   >
@@ -600,21 +599,22 @@ export default function BuscadorEjercicio({
                         backgroundColor: surface2,
                         borderRadius: 12,
                         borderWidth: 1,
-                        borderColor: line,
+                        borderColor: t.border,
                       }}
                     >
                       <Activity size={16} color="#39FF14" />
                       <Text
                         style={{
-                          color: textSecondary,
+                          color: t.textSecondary,
                           fontSize: 9,
                           marginTop: 4,
                           fontWeight: "600",
+                          fontFamily: Font.body.semiBold,
                         }}
                       >
                         TIPO
                       </Text>
-                      <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 12 }}>
+                      <Text style={{ color: t.textPrimary, fontWeight: "700", fontFamily: Font.body.bold, fontSize: 12 }}>
                         {ejercicioDetalle?.tipoEjercicio}
                       </Text>
                     </View>
@@ -626,21 +626,22 @@ export default function BuscadorEjercicio({
                         backgroundColor: surface2,
                         borderRadius: 12,
                         borderWidth: 1,
-                        borderColor: line,
+                        borderColor: t.border,
                       }}
                     >
                       <Target size={16} color="#39FF14" />
                       <Text
                         style={{
-                          color: textSecondary,
+                          color: t.textSecondary,
                           fontSize: 9,
                           marginTop: 4,
                           fontWeight: "600",
+                          fontFamily: Font.body.semiBold,
                         }}
                       >
                         GRUPO
                       </Text>
-                      <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 12 }}>
+                      <Text style={{ color: t.textPrimary, fontWeight: "700", fontFamily: Font.body.bold, fontSize: 12 }}>
                         {ejercicioDetalle?.grupoMuscular}
                       </Text>
                     </View>
@@ -655,10 +656,10 @@ export default function BuscadorEjercicio({
                         borderRadius: 12,
                         alignItems: "center",
                         borderWidth: 1,
-                        borderColor: line,
+                        borderColor: t.border,
                       }}
                     >
-                      <Text style={{ color: textSecondary, fontWeight: "700", fontSize: 13 }}>
+                      <Text style={{ color: t.textSecondary, fontWeight: "700", fontFamily: Font.body.bold, fontSize: 13 }}>
                         Cerrar
                       </Text>
                     </TouchableOpacity>
@@ -682,7 +683,7 @@ export default function BuscadorEjercicio({
                       }}
                     >
                       <Plus size={18} color="#111111" />
-                      <Text style={{ color: "#111111", fontWeight: "800", fontSize: 13 }}>
+                      <Text style={{ color: "#111111", fontWeight: "800", fontFamily: Font.body.bold, fontSize: 13 }}>
                         Añadir
                       </Text>
                     </TouchableOpacity>
@@ -710,10 +711,7 @@ function SelectField({
   onPress: () => void;
   isDark: boolean;
 }) {
-  const chipBg = isDark ? "rgba(255,255,255,0.04)" : "#ffffff";
-  const chipRing = isDark ? "rgba(255,255,255,0.12)" : "#e2e8f0";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const t = scheme(isDark);
 
   return (
     <Pressable
@@ -722,8 +720,8 @@ function SelectField({
         flex: 1,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: chipRing,
-        backgroundColor: chipBg,
+        borderColor: t.border,
+        backgroundColor: isDark ? t.border : Colors.secondary,
         paddingHorizontal: 12,
         paddingVertical: 10,
         flexDirection: "row",
@@ -733,20 +731,22 @@ function SelectField({
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: textSecondary, fontSize: 11, marginBottom: 2 }}>
+        <Text style={{ color: t.textSecondary, fontFamily: Font.body.regular, fontSize: 11, marginBottom: 2 }}>
           {label}
         </Text>
         <Text
           numberOfLines={1}
-          style={{ color: textPrimary, fontSize: 13, fontWeight: "700" }}
+          style={{ color: t.textPrimary, fontFamily: Font.body.bold, fontSize: 13, fontWeight: "700" }}
         >
           {value || placeholder}
         </Text>
       </View>
-      <ChevronDown size={16} color={textSecondary} />
+      <ChevronDown size={16} color={t.textSecondary} />
     </Pressable>
   );
 }
+
+const SELECTED_GREEN = { dark: "#22c55e", light: "#16a34a" };
 
 function SelectModal({
   visible,
@@ -766,10 +766,7 @@ function SelectModal({
   isDark: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  const surface = isDark ? "#020617" : "#ffffff";
-  const line = isDark ? "rgba(255,255,255,0.12)" : "#e5e7eb";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const t = scheme(isDark);
   const data = useMemo(() => ["__ALL__", ...options], [options]);
 
   return (
@@ -777,11 +774,11 @@ function SelectModal({
       <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }}>
         <View
           style={{
-            backgroundColor: surface,
+            backgroundColor: isDark ? Colors.primary : Colors.secondary,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             borderWidth: 1,
-            borderColor: line,
+            borderColor: t.border,
             maxHeight: "70%",
             paddingBottom: 10 + insets.bottom,
           }}
@@ -792,17 +789,17 @@ function SelectModal({
               paddingTop: 14,
               paddingBottom: 10,
               borderBottomWidth: 1,
-              borderColor: line,
+              borderColor: t.border,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
             }}
           >
-            <Text style={{ color: textPrimary, fontWeight: "800", fontSize: 16 }}>
+            <Text style={{ color: t.textPrimary, fontWeight: "800", fontFamily: Font.body.bold, fontSize: 16 }}>
               {title}
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={10}>
-              <X size={18} color={textSecondary} />
+              <X size={18} color={t.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -825,17 +822,17 @@ function SelectModal({
                     paddingHorizontal: 12,
                     borderRadius: 12,
                     borderWidth: 1,
-                    borderColor: line,
-                    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+                    borderColor: t.border,
+                    backgroundColor: isDark ? Colors.dark.surface : t.surface,
                     marginBottom: 8,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
                   }}
                 >
-                  <Text style={{ color: textPrimary, fontWeight: "700" }}>{label}</Text>
+                  <Text style={{ color: t.textPrimary, fontWeight: "700", fontFamily: Font.body.bold }}>{label}</Text>
                   {selected ? (
-                    <Check size={18} color={isDark ? "#22c55e" : "#16a34a"} />
+                    <Check size={18} color={isDark ? SELECTED_GREEN.dark : SELECTED_GREEN.light} />
                   ) : null}
                 </Pressable>
               );
@@ -848,22 +845,24 @@ function SelectModal({
 }
 
 function Chip({ text, isDark }: { text: string; isDark: boolean }) {
+  const t = scheme(isDark);
   return (
     <View
       style={{
         borderRadius: 999,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#ffffff",
+        backgroundColor: isDark ? t.border : Colors.secondary,
         borderWidth: 1,
-        borderColor: isDark ? "rgba(255,255,255,0.12)" : "#e2e8f0",
+        borderColor: t.border,
       }}
     >
       <Text
         style={{
           fontSize: 11,
           fontWeight: "800",
-          color: isDark ? "#e5e7eb" : "#0f172a",
+          fontFamily: Font.body.bold,
+          color: t.textPrimary,
         }}
       >
         {text}

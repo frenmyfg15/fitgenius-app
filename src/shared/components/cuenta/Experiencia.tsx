@@ -1,4 +1,4 @@
-﻿// File: src/features/cuenta/components/Experiencia.tsx
+// File: src/features/cuenta/components/Experiencia.tsx
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
   View,
@@ -11,66 +11,30 @@ import {
   TouchableWithoutFeedback,
   Pressable,
   Animated,
-  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { CheckCircle2, X, Zap, Flame, Trophy, Target } from "lucide-react-native";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
-// ── Tokens ────────────────────────────────────────────────────────────────────
-const tokens = {
-  color: {
-    frameGradientDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    frameGradientLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
-    cardBgDark: "rgba(15,24,41,0.70)",
-    cardBgLight: "rgba(255,255,255,0.95)",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-    badgeFrameDark: ["#0F1829", "#111111", "#0F1829"] as string[],
-    badgeFrameLight: ["#39FF14", "#22C55E", "#16A34A"] as string[],
-    badgeBgDark: "rgba(255,255,255,0.06)",
-    badgeBgLight: "#FFFFFF",
-    badgeBorderDark: "rgba(255,255,255,0.08)",
-    badgeBorderLight: "transparent",
-    labelBgDark: "rgba(15,24,41,0.85)",
-    labelBgLight: "#FFFFFF",
-    labelBorderDark: "rgba(255,255,255,0.09)",
-    labelBorderLight: "rgba(0,0,0,0.07)",
-    trackBgDark: "rgba(148,163,184,0.14)",
-    trackBgLight: "#E2E8F0",
-    trackBorderDark: "rgba(255,255,255,0.06)",
-    barGradient: ["#8BFF62", "#39FF14", "#A855F7"] as string[],
-    barDot: "#FFFFFF",
-    barDotBorder: "rgba(0,0,0,0.12)",
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#64748B",
-    textSecondaryLight: "#64748B",
-    textPercentDark: "#CBD5E1",
-    textPercentLight: "#475569",
-    checkColor: "#39FF14",
-  },
-  radius: { lg: 16, md: 12, sm: 10, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 16, lg: 20 },
-} as const;
+const BAR_GRADIENT = ["#8BFF62", "#39FF14", "#A855F7"] as const;
 
-// ── Niveles ───────────────────────────────────────────────────────────────────
 type Nivel = { nombre: string; experiencia: number; icono: ImageSourcePropType };
 
 const NIVELES: Nivel[] = [
-  { nombre: "Bronce", experiencia: 0, icono: require("../../../../assets/fit/cuenta/bronce.webp") },
-  { nombre: "Plata", experiencia: 500, icono: require("../../../../assets/fit/cuenta/plata.webp") },
-  { nombre: "Oro", experiencia: 1500, icono: require("../../../../assets/fit/cuenta/oro.webp") },
-  { nombre: "Platino", experiencia: 3000, icono: require("../../../../assets/fit/cuenta/platino.webp") },
-  { nombre: "Diamante", experiencia: 5000, icono: require("../../../../assets/fit/cuenta/diamante.webp") },
-  { nombre: "Maestro", experiencia: 8000, icono: require("../../../../assets/fit/cuenta/maestro.webp") },
-  { nombre: "Élite", experiencia: 12000, icono: require("../../../../assets/fit/cuenta/elite.webp") },
+  { nombre: "Bronce",   experiencia: 0,     icono: require("../../../../assets/fit/cuenta/bronce.webp") },
+  { nombre: "Plata",    experiencia: 500,   icono: require("../../../../assets/fit/cuenta/plata.webp") },
+  { nombre: "Oro",      experiencia: 1500,  icono: require("../../../../assets/fit/cuenta/oro.webp") },
+  { nombre: "Platino",  experiencia: 3000,  icono: require("../../../../assets/fit/cuenta/platino.webp") },
+  { nombre: "Diamante", experiencia: 5000,  icono: require("../../../../assets/fit/cuenta/diamante.webp") },
+  { nombre: "Maestro",  experiencia: 8000,  icono: require("../../../../assets/fit/cuenta/maestro.webp") },
+  { nombre: "Élite",    experiencia: 12000, icono: require("../../../../assets/fit/cuenta/elite.webp") },
 ];
 
 const XP_POR_EJERCICIO = 1.25;
 
-// ── Feedback motivador por rango de ejercicios ───────────────────────────────
 function getMensajeFeedback(ejercicios: number, nivelNombre: string, maxLevel: boolean) {
   if (maxLevel) {
     return {
@@ -121,7 +85,6 @@ function getMensajeFeedback(ejercicios: number, nivelNombre: string, maxLevel: b
   };
 }
 
-// ── Modal de feedback ─────────────────────────────────────────────────────────
 function FeedbackModal({
   visible,
   onClose,
@@ -144,20 +107,13 @@ function FeedbackModal({
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  const t = scheme(isDark);
+
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 65,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 65, friction: 8, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
@@ -170,15 +126,11 @@ function FeedbackModal({
   const ejercicios = Math.floor(experiencia / XP_POR_EJERCICIO);
   const feedback = getMensajeFeedback(ejercicios, nivelActual.nombre, maxLevel);
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-
   const IconComponent =
     feedback.icon === "trophy" ? Trophy :
       feedback.icon === "flame" ? Flame :
         feedback.icon === "zap" ? Zap : Target;
 
-  // XP hasta el siguiente nivel
   const xpRestante = maxLevel ? 0 : siguienteNivel.experiencia - experiencia;
 
   return (
@@ -196,14 +148,14 @@ function FeedbackModal({
               style={[
                 modalStyles.sheet,
                 {
-                  backgroundColor: isDark ? "#0D1623" : "#FFFFFF",
-                  borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+                  backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+                  borderColor: t.border,
                   transform: [{ scale: scaleAnim }],
                   opacity: opacityAnim,
                 },
               ]}
             >
-              {/* Header gradiente superior */}
+              {/* Header gradiente superior decorativo */}
               <LinearGradient
                 colors={["rgba(0,232,90,0.18)", "rgba(0,232,90,0)"]}
                 style={modalStyles.headerGlow}
@@ -215,25 +167,20 @@ function FeedbackModal({
                 onPress={onClose}
                 style={[
                   modalStyles.closeBtn,
-                  { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#F1F5F9" },
+                  { backgroundColor: isDark ? t.border : t.surface },
                 ]}
                 accessibilityLabel="Cerrar"
                 accessibilityRole="button"
               >
-                <X size={15} color={isDark ? "#64748B" : "#94A3B8"} strokeWidth={2.5} />
+                <X size={15} color={t.textTertiary} strokeWidth={2.5} />
               </TouchableOpacity>
 
               {/* Insignia + nivel */}
               <View style={modalStyles.badgeRow}>
-                <LinearGradient
-                  colors={isDark ? tokens.color.badgeFrameDark as any : tokens.color.badgeFrameLight as any}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={modalStyles.badgeFrame}
-                >
+                <View style={modalStyles.badgeFrame}>
                   <View style={[
                     modalStyles.badgeInner,
-                    { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#FFF" },
+                    { backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary },
                   ]}>
                     <Image
                       source={nivelActual.icono}
@@ -241,18 +188,15 @@ function FeedbackModal({
                       style={modalStyles.badgeImage}
                     />
                   </View>
-                </LinearGradient>
+                </View>
 
                 <View style={modalStyles.badgeMeta}>
-                  <View style={[
-                    modalStyles.levelPill,
-                    { backgroundColor: isDark ? "rgba(0,232,90,0.12)" : "rgba(0,200,80,0.10)" },
-                  ]}>
+                  <View style={[modalStyles.levelPill, { backgroundColor: Colors.accentSubtle }]}>
                     <Text style={modalStyles.levelPillText}>{nivelActual.nombre}</Text>
                   </View>
-                  <Text style={[modalStyles.xpBig, { color: textPrimary }]}>
+                  <Text style={[modalStyles.xpBig, { color: t.textPrimary }]}>
                     {experiencia.toLocaleString("es-ES")}
-                    <Text style={[modalStyles.xpUnit, { color: textSecondary }]}> XP</Text>
+                    <Text style={[modalStyles.xpUnit, { color: t.textSecondary }]}> XP</Text>
                   </Text>
                 </View>
               </View>
@@ -260,17 +204,14 @@ function FeedbackModal({
               {/* Título + mensaje */}
               <View style={modalStyles.textBlock}>
                 <View style={modalStyles.iconTitleRow}>
-                  <View style={[
-                    modalStyles.iconBubble,
-                    { backgroundColor: isDark ? "rgba(0,232,90,0.13)" : "rgba(0,200,80,0.10)" },
-                  ]}>
-                    <IconComponent size={16} color="#39FF14" strokeWidth={2.2} />
+                  <View style={[modalStyles.iconBubble, { backgroundColor: Colors.accentSubtle }]}>
+                    <IconComponent size={16} color={Colors.accent} strokeWidth={2.2} />
                   </View>
-                  <Text style={[modalStyles.feedbackTitle, { color: textPrimary }]}>
+                  <Text style={[modalStyles.feedbackTitle, { color: t.textPrimary }]}>
                     {feedback.titulo}
                   </Text>
                 </View>
-                <Text style={[modalStyles.feedbackMsg, { color: textSecondary }]}>
+                <Text style={[modalStyles.feedbackMsg, { color: t.textSecondary }]}>
                   {feedback.mensaje}
                 </Text>
               </View>
@@ -278,44 +219,44 @@ function FeedbackModal({
               {/* Stats row */}
               <View style={[
                 modalStyles.statsRow,
-                { borderColor: isDark ? "rgba(255,255,255,0.07)" : "#F1F5F9" },
+                { borderColor: isDark ? t.border : t.surface },
               ]}>
                 <View style={modalStyles.statItem}>
-                  <Text style={[modalStyles.statValue, { color: textPrimary }]}>
+                  <Text style={[modalStyles.statValue, { color: t.textPrimary }]}>
                     {ejercicios}
                   </Text>
-                  <Text style={[modalStyles.statLabel, { color: textSecondary }]}>
+                  <Text style={[modalStyles.statLabel, { color: t.textSecondary }]}>
                     ejercicios
                   </Text>
                 </View>
 
-                <View style={[modalStyles.statDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#F1F5F9" }]} />
+                <View style={[modalStyles.statDivider, { backgroundColor: isDark ? t.border : t.surface }]} />
 
                 <View style={modalStyles.statItem}>
-                  <Text style={[modalStyles.statValue, { color: textPrimary }]}>
+                  <Text style={[modalStyles.statValue, { color: t.textPrimary }]}>
                     {pct}%
                   </Text>
-                  <Text style={[modalStyles.statLabel, { color: textSecondary }]}>
+                  <Text style={[modalStyles.statLabel, { color: t.textSecondary }]}>
                     progreso
                   </Text>
                 </View>
 
-                <View style={[modalStyles.statDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#F1F5F9" }]} />
+                <View style={[modalStyles.statDivider, { backgroundColor: isDark ? t.border : t.surface }]} />
 
                 <View style={modalStyles.statItem}>
                   {maxLevel ? (
                     <>
-                      <CheckCircle2 size={20} color="#39FF14" strokeWidth={2.2} />
-                      <Text style={[modalStyles.statLabel, { color: textSecondary }]}>
+                      <CheckCircle2 size={20} color={Colors.accent} strokeWidth={2.2} />
+                      <Text style={[modalStyles.statLabel, { color: t.textSecondary }]}>
                         máximo
                       </Text>
                     </>
                   ) : (
                     <>
-                      <Text style={[modalStyles.statValue, { color: textPrimary }]}>
+                      <Text style={[modalStyles.statValue, { color: t.textPrimary }]}>
                         {xpRestante.toLocaleString("es-ES")}
                       </Text>
-                      <Text style={[modalStyles.statLabel, { color: textSecondary }]}>
+                      <Text style={[modalStyles.statLabel, { color: t.textSecondary }]}>
                         XP para {siguienteNivel.nombre}
                       </Text>
                     </>
@@ -327,11 +268,11 @@ function FeedbackModal({
               <View style={modalStyles.barWrap}>
                 <View style={[
                   modalStyles.barTrack,
-                  { backgroundColor: isDark ? "rgba(148,163,184,0.14)" : "#E2E8F0" },
+                  { backgroundColor: isDark ? t.border : t.surface },
                 ]}>
                   <View style={[modalStyles.barFill, { width: `${pct}%` as any }]}>
                     <LinearGradient
-                      colors={tokens.color.barGradient as any}
+                      colors={BAR_GRADIENT as any}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={StyleSheet.absoluteFillObject}
@@ -339,11 +280,11 @@ function FeedbackModal({
                   </View>
                 </View>
                 <View style={modalStyles.barLabels}>
-                  <Text style={[modalStyles.barLabelText, { color: textSecondary }]}>
+                  <Text style={[modalStyles.barLabelText, { color: t.textSecondary }]}>
                     {nivelActual.nombre}
                   </Text>
                   {!maxLevel && (
-                    <Text style={[modalStyles.barLabelText, { color: textSecondary }]}>
+                    <Text style={[modalStyles.barLabelText, { color: t.textSecondary }]}>
                       {siguienteNivel.nombre}
                     </Text>
                   )}
@@ -358,11 +299,12 @@ function FeedbackModal({
   );
 }
 
-// ── Experiencia (principal) ───────────────────────────────────────────────────
 export default function Experiencia() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const [modalVisible, setModalVisible] = useState(false);
+
+  const t = scheme(isDark);
 
   const { usuario } = useUsuarioStore();
   const experiencia = usuario?.experiencia ?? 0;
@@ -384,12 +326,6 @@ export default function Experiencia() {
 
   const maxLevel = nivelActual.nombre === siguienteNivel.nombre;
 
-  const frameGradient = isDark ? tokens.color.frameGradientDark : tokens.color.frameGradientLight;
-  const badgeFrameGrad = isDark ? tokens.color.badgeFrameDark : tokens.color.badgeFrameLight;
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const textPercent = isDark ? tokens.color.textPercentDark : tokens.color.textPercentLight;
-
   return (
     <>
       <Pressable
@@ -400,113 +336,94 @@ export default function Experiencia() {
       >
         {({ pressed }) => (
           <View style={{ opacity: pressed ? 0.88 : 1 }}>
-            <LinearGradient
-              colors={frameGradient as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.frame}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
+              ]}
             >
-              <View
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-                    borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
-                  },
-                ]}
-              >
-                {/* Insignia */}
-                <View style={styles.badgeWrapper}>
-                  <LinearGradient
-                    colors={badgeFrameGrad as any}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.badgeFrame}
-                  >
-                    <View
-                      style={[
-                        styles.badgeInner,
-                        {
-                          backgroundColor: isDark ? tokens.color.badgeBgDark : tokens.color.badgeBgLight,
-                          borderColor: isDark ? tokens.color.badgeBorderDark : tokens.color.badgeBorderLight,
-                          borderWidth: isDark ? 1 : 0,
-                        },
-                      ]}
-                    >
-                      <Image source={nivelActual.icono} resizeMode="contain" style={styles.badgeImage} />
-                    </View>
-                  </LinearGradient>
-
+              {/* Insignia */}
+              <View style={styles.badgeWrapper}>
+                <View style={styles.badgeFrame}>
                   <View
                     style={[
-                      styles.levelLabel,
-                      {
-                        backgroundColor: isDark ? tokens.color.labelBgDark : tokens.color.labelBgLight,
-                        borderColor: isDark ? tokens.color.labelBorderDark : tokens.color.labelBorderLight,
-                      },
+                      styles.badgeInner,
+                      { backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary },
                     ]}
                   >
-                    <Text style={[styles.levelLabelText, { color: textPrimary }]}>
-                      {nivelActual.nombre}
-                    </Text>
+                    <Image source={nivelActual.icono} resizeMode="contain" style={styles.badgeImage} />
                   </View>
                 </View>
 
-                {/* Info */}
-                <View style={styles.infoCol}>
-                  <View style={styles.infoRow}>
-                    <Text style={[styles.infoTitle, { color: textPrimary }]}>
-                      Progreso de experiencia
-                    </Text>
-                    <Text style={[styles.infoPercent, { color: textPercent }]}>{pct}%</Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.progressTrack,
-                      {
-                        backgroundColor: isDark ? tokens.color.trackBgDark : tokens.color.trackBgLight,
-                        borderColor: isDark ? tokens.color.trackBorderDark : "transparent",
-                        borderWidth: isDark ? 1 : 0,
-                      },
-                    ]}
-                  >
-                    <View style={[styles.progressFill, { width: `${pct}%` as any }]}>
-                      <LinearGradient
-                        colors={tokens.color.barGradient as any}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.progressGradient}
-                      />
-                      <View
-                        style={[
-                          styles.progressDot,
-                          { backgroundColor: tokens.color.barDot, borderColor: tokens.color.barDotBorder },
-                        ]}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={[styles.infoFooter, { color: textSecondary }]}>
-                    {maxLevel ? (
-                      <Text style={{ color: textPrimary, fontWeight: "600" }}>
-                        Nivel máximo alcanzado{" "}
-                        <CheckCircle2 size={13} color={tokens.color.checkColor} strokeWidth={2.5} />
-                      </Text>
-                    ) : (
-                      <>
-                        {experiencia}
-                        <Text style={{ color: isDark ? "#475569" : "#94A3B8" }}> / </Text>
-                        {siguienteNivel.experiencia} exp para{" "}
-                        <Text style={{ color: textPrimary, fontWeight: "600" }}>
-                          {siguienteNivel.nombre}
-                        </Text>
-                      </>
-                    )}
+                <View
+                  style={[
+                    styles.levelLabel,
+                    {
+                      backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+                      borderColor: t.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.levelLabelText, { color: t.textPrimary }]}>
+                    {nivelActual.nombre}
                   </Text>
                 </View>
               </View>
-            </LinearGradient>
+
+              {/* Info */}
+              <View style={styles.infoCol}>
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoTitle, { color: t.textPrimary }]}>
+                    Progreso de experiencia
+                  </Text>
+                  <Text style={[styles.infoPercent, { color: t.textTertiary }]}>{pct}%</Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.progressTrack,
+                    {
+                      backgroundColor: isDark ? t.border : t.surface,
+                      borderColor: isDark ? t.border : "transparent",
+                      borderWidth: isDark ? 1 : 0,
+                    },
+                  ]}
+                >
+                  <View style={[styles.progressFill, { width: `${pct}%` as any }]}>
+                    <LinearGradient
+                      colors={BAR_GRADIENT as any}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.progressGradient}
+                    />
+                    <View
+                      style={[
+                        styles.progressDot,
+                        { backgroundColor: "#FFFFFF", borderColor: "rgba(0,0,0,0.12)" },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <Text style={[styles.infoFooter, { color: t.textSecondary }]}>
+                  {maxLevel ? (
+                    <Text style={{ color: t.textPrimary, fontWeight: "600", fontFamily: Font.body.semiBold }}>
+                      Nivel máximo alcanzado{" "}
+                      <CheckCircle2 size={13} color={Colors.accent} strokeWidth={2.5} />
+                    </Text>
+                  ) : (
+                    <>
+                      {experiencia}
+                      <Text style={{ color: t.textTertiary }}> / </Text>
+                      {siguienteNivel.experiencia} exp para{" "}
+                      <Text style={{ color: t.textPrimary, fontWeight: "600", fontFamily: Font.body.semiBold }}>
+                        {siguienteNivel.nombre}
+                      </Text>
+                    </>
+                  )}
+                </Text>
+              </View>
+            </View>
           </View>
         )}
       </Pressable>
@@ -525,23 +442,28 @@ export default function Experiencia() {
   );
 }
 
-// ── Estilos card ──────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { width: "100%", maxWidth: 600, alignSelf: "center" },
-  frame: { borderRadius: tokens.radius.lg, padding: 1.5 },
   card: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
-    padding: tokens.spacing.lg,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.md,
+    gap: 16,
   },
   badgeWrapper: { position: "relative" },
-  badgeFrame: { borderRadius: tokens.radius.md, padding: 2 },
+  badgeFrame: {
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.accentBorder,
+    padding: 1,
+  },
   badgeInner: {
-    width: 80, height: 80,
-    borderRadius: tokens.radius.sm,
+    width: 80,
+    height: 80,
+    borderRadius: 10,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -549,34 +471,44 @@ const styles = StyleSheet.create({
   badgeImage: { width: 70, height: 70 },
   levelLabel: {
     position: "absolute",
-    right: -6, bottom: -6,
-    borderRadius: tokens.radius.full,
-    paddingHorizontal: 6, paddingVertical: 3,
+    right: -6,
+    bottom: -6,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderWidth: 1,
-    shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  levelLabelText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3 },
-  infoCol: { flex: 1, minWidth: 0, gap: tokens.spacing.sm },
+  levelLabelText: {
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: Font.body.bold,
+    letterSpacing: 0.3,
+  },
+  infoCol: { flex: 1, minWidth: 0, gap: 8 },
   infoRow: {
-    flexDirection: "row", alignItems: "center",
-    justifyContent: "space-between", gap: tokens.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
-  infoTitle: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
-  infoPercent: { fontSize: 11, fontWeight: "700" },
-  progressTrack: { height: 11, width: "100%", borderRadius: tokens.radius.full, overflow: "hidden" },
+  infoTitle: { fontSize: 14, fontWeight: "700", fontFamily: Font.body.bold, letterSpacing: 0.1 },
+  infoPercent: { fontSize: 11, fontWeight: "700", fontFamily: Font.body.bold },
+  progressTrack: { height: 11, width: "100%", borderRadius: 999, overflow: "hidden" },
   progressFill: { height: "100%", position: "relative" },
   progressGradient: { height: "100%", width: "100%" },
   progressDot: {
-    position: "absolute", right: -5, top: "50%", marginTop: -5,
-    width: 10, height: 10, borderRadius: tokens.radius.full, borderWidth: 1,
-    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 }, elevation: 2,
+    position: "absolute",
+    right: -5,
+    top: "50%",
+    marginTop: -5,
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    borderWidth: 1,
   },
-  infoFooter: { fontSize: 12, lineHeight: 17 },
+  infoFooter: { fontSize: 12, fontFamily: Font.body.regular, lineHeight: 17 },
 });
 
-// ── Estilos modal ─────────────────────────────────────────────────────────────
 const modalStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -592,29 +524,26 @@ const modalStyles = StyleSheet.create({
     borderWidth: 1,
     padding: 24,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 20,
   },
   headerGlow: {
     position: "absolute",
-    top: 0, left: 0, right: 0,
+    top: 0,
+    left: 0,
+    right: 0,
     height: 100,
     borderRadius: 24,
   },
   closeBtn: {
     position: "absolute",
-    top: 16, right: 16,
-    width: 28, height: 28,
+    top: 16,
+    right: 16,
+    width: 28,
+    height: 28,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
   },
-
-  // Badge row
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -624,10 +553,13 @@ const modalStyles = StyleSheet.create({
   },
   badgeFrame: {
     borderRadius: 14,
-    padding: 2,
+    borderWidth: 2,
+    borderColor: Colors.accentBorder,
+    padding: 1,
   },
   badgeInner: {
-    width: 68, height: 68,
+    width: 68,
+    height: 68,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -644,33 +576,39 @@ const modalStyles = StyleSheet.create({
   levelPillText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#39FF14",
+    fontFamily: Font.body.bold,
+    color: Colors.accent,
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
   xpBig: {
     fontSize: 28,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
     letterSpacing: -0.5,
   },
   xpUnit: {
     fontSize: 16,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
-
-  // Texto
   textBlock: { gap: 8, marginBottom: 20 },
   iconTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconBubble: {
-    width: 30, height: 30,
+    width: 30,
+    height: 30,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
-  feedbackTitle: { fontSize: 15, fontWeight: "800", letterSpacing: 0.1, flex: 1 },
-  feedbackMsg: { fontSize: 13, lineHeight: 20 },
-
-  // Stats
+  feedbackTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    fontFamily: Font.body.bold,
+    letterSpacing: 0.1,
+    flex: 1,
+  },
+  feedbackMsg: { fontSize: 13, fontFamily: Font.body.regular, lineHeight: 20 },
   statsRow: {
     flexDirection: "row",
     borderTopWidth: 1,
@@ -683,11 +621,9 @@ const modalStyles = StyleSheet.create({
     alignItems: "center",
     gap: 3,
   },
-  statValue: { fontSize: 18, fontWeight: "800" },
-  statLabel: { fontSize: 10, fontWeight: "500", textAlign: "center" },
+  statValue: { fontSize: 18, fontWeight: "800", fontFamily: Font.title.bold },
+  statLabel: { fontSize: 10, fontWeight: "500", fontFamily: Font.body.medium, textAlign: "center" },
   statDivider: { width: 1, marginVertical: 2 },
-
-  // Mini barra
   barWrap: { gap: 6 },
   barTrack: {
     height: 8,
@@ -703,5 +639,5 @@ const modalStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  barLabelText: { fontSize: 10, fontWeight: "600" },
+  barLabelText: { fontSize: 10, fontWeight: "600", fontFamily: Font.body.semiBold },
 });

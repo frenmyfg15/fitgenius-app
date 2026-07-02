@@ -19,6 +19,8 @@ import {
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { kgToLb } from "@/shared/utils/kgToLb";
 import { lbToKg } from "@/shared/utils/lbToKg";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 export type EjercicioAsignadoInput = {
   ejercicioId: number;
@@ -129,12 +131,10 @@ export default function FormularioEjercicio({
 
   const isCardioLocal = Boolean(esCardio);
 
-  const cardBg = isDark ? "#0f172a" : "#ffffff";
-  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = isDark ? "#10b981" : "#059669";
-  const surface = isDark ? "#1e293b" : "#f1f5f9";
-  const placeholderColor = isDark ? "#64748b" : "#94a3b8";
+  const t = scheme(isDark);
+  const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+  const surface = isDark ? Colors.dark.surfaceAlt : t.surface;
+  const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
   const schema = z.object({
     seriesSugeridas: esParteDeCompuesto
@@ -238,7 +238,7 @@ export default function FormularioEjercicio({
         ...(Platform.OS === "android" ? { elevation: 9999 } : null),
       }}
       handleIndicatorStyle={{
-        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        backgroundColor: t.border,
         width: 40,
       }}
       backgroundStyle={{
@@ -271,13 +271,14 @@ export default function FormularioEjercicio({
                 style={{
                   fontSize: 18,
                   fontWeight: "800",
-                  color: textPrimary,
+                  fontFamily: Font.body.bold,
+                  color: t.textPrimary,
                 }}
               >
                 Completa detalles
               </Text>
               <Pressable onPress={closeSheet} hitSlop={10}>
-                <X size={20} color={textSecondary} />
+                <X size={20} color={t.textSecondary} />
               </Pressable>
             </View>
 
@@ -285,7 +286,8 @@ export default function FormularioEjercicio({
               style={{
                 fontSize: 11,
                 fontWeight: "800",
-                color: textSecondary,
+                fontFamily: Font.body.bold,
+                color: t.textSecondary,
                 letterSpacing: 1,
                 marginBottom: 12,
               }}
@@ -297,48 +299,48 @@ export default function FormularioEjercicio({
               <Field
                 label={esParteDeCompuesto ? "Series (opcional)" : "Series"}
                 value={seriesSugeridas}
-                onChangeText={(t) => {
-                  setSeries(t.replace(/[^\d]/g, ""));
-                  if (t !== "") clearError("seriesSugeridas");
+                onChangeText={(v) => {
+                  setSeries(v.replace(/[^\d]/g, ""));
+                  if (v !== "") clearError("seriesSugeridas");
                 }}
                 placeholder={esParteDeCompuesto ? "Opcional" : "Ej: 3"}
                 error={errors.seriesSugeridas}
                 surface={surface}
-                textPrimary={textPrimary}
-                textSecondary={textSecondary}
-                placeholderColor={placeholderColor}
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                placeholderColor={t.textTertiary}
                 keyboardType="numeric"
               />
 
               <Field
                 label={isCardioLocal ? "Tiempo (seg)" : "Repeticiones"}
                 value={repeticionesSugeridas}
-                onChangeText={(t) => {
-                  setReps(t.replace(/[^\d]/g, ""));
-                  if (t !== "") clearError("repeticionesSugeridas");
+                onChangeText={(v) => {
+                  setReps(v.replace(/[^\d]/g, ""));
+                  if (v !== "") clearError("repeticionesSugeridas");
                 }}
                 placeholder={isCardioLocal ? "Ej: 30" : "Ej: 10"}
                 error={errors.repeticionesSugeridas}
                 surface={surface}
-                textPrimary={textPrimary}
-                textSecondary={textSecondary}
-                placeholderColor={placeholderColor}
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                placeholderColor={t.textTertiary}
                 keyboardType="numeric"
               />
 
               <Field
                 label={`Peso (${isLbUnit ? "lb" : "kg"})`}
                 value={pesoSugerido}
-                onChangeText={(t) => {
-                  setPeso(t.replace(/[^\d.,]/g, "").replace(",", "."));
-                  if (t !== "") clearError("pesoSugerido");
+                onChangeText={(v) => {
+                  setPeso(v.replace(/[^\d.,]/g, "").replace(",", "."));
+                  if (v !== "") clearError("pesoSugerido");
                 }}
                 placeholder={isLbUnit ? "Ej: 110" : "Ej: 50"}
                 error={errors.pesoSugerido}
                 surface={surface}
-                textPrimary={textPrimary}
-                textSecondary={textSecondary}
-                placeholderColor={placeholderColor}
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                placeholderColor={t.textTertiary}
                 keyboardType="decimal-pad"
               />
 
@@ -346,16 +348,16 @@ export default function FormularioEjercicio({
                 <Field
                   label="Descanso (seg)"
                   value={descansoSeg}
-                  onChangeText={(t) => {
-                    setDescanso(t.replace(/[^\d]/g, ""));
-                    if (t !== "") clearError("descansoSeg");
+                  onChangeText={(v) => {
+                    setDescanso(v.replace(/[^\d]/g, ""));
+                    if (v !== "") clearError("descansoSeg");
                   }}
                   placeholder="Ej: 60"
                   error={errors.descansoSeg}
                   surface={surface}
-                  textPrimary={textPrimary}
-                  textSecondary={textSecondary}
-                  placeholderColor={placeholderColor}
+                  textPrimary={t.textPrimary}
+                  textSecondary={t.textSecondary}
+                  placeholderColor={t.textTertiary}
                   keyboardType="numeric"
                 />
               )}
@@ -366,7 +368,8 @@ export default function FormularioEjercicio({
                 style={{
                   fontSize: 11,
                   fontWeight: "800",
-                  color: textSecondary,
+                  fontFamily: Font.body.bold,
+                  color: t.textSecondary,
                   letterSpacing: 1,
                   marginBottom: 10,
                 }}
@@ -378,7 +381,7 @@ export default function FormularioEjercicio({
                 value={notaIA}
                 onChangeText={setNota}
                 placeholder="Añade detalles o consideraciones especiales..."
-                placeholderTextColor={placeholderColor}
+                placeholderTextColor={t.textTertiary}
                 multiline
                 numberOfLines={3}
                 style={{
@@ -386,7 +389,7 @@ export default function FormularioEjercicio({
                   paddingHorizontal: 14,
                   paddingVertical: 12,
                   backgroundColor: surface,
-                  color: textPrimary,
+                  color: t.textPrimary,
                   fontSize: 14,
                   minHeight: 96,
                   textAlignVertical: "top",
@@ -402,13 +405,14 @@ export default function FormularioEjercicio({
                   borderRadius: 999,
                   paddingVertical: 12,
                   alignItems: "center",
-                  backgroundColor: accentColor,
+                  backgroundColor: ACTION_GREEN,
                 }}
               >
                 <Text
                   style={{
                     fontSize: 14,
                     fontWeight: "800",
+                    fontFamily: Font.body.bold,
                     color: "#ffffff",
                   }}
                 >
@@ -452,6 +456,7 @@ function Field({
         style={{
           fontSize: 12,
           fontWeight: "700",
+          fontFamily: Font.body.bold,
           color: textSecondary,
           marginBottom: 8,
         }}

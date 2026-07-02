@@ -7,13 +7,16 @@ import Svg, {
   LinearGradient as SvgLinearGradient,
   Stop,
 } from "react-native-svg";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 const R = 64;
 const C = 2 * Math.PI * R;
 const CX = 90;
 const CY = 90;
+
+const VIZ_GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
 
 type UnidadPeso = "KG" | "LB";
 type UnidadAltura = "CM" | "FT";
@@ -28,55 +31,6 @@ type PesoIdealProps = {
 
 const KG_TO_LB = 2.2046226218;
 
-const tokens = {
-  color: {
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
-
-    cardBgDark: "rgba(15,24,41,1)",
-    cardBgLight: "#FFFFFF",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-
-    chipBgDark: "rgba(148,163,184,0.12)",
-    chipBgLight: "#F1F5F9)",
-    chipBorderDark: "rgba(255,255,255,0.06)",
-    chipBorderLight: "rgba(0,0,0,0.06)",
-
-    metricBgDark: "rgba(15,24,41,0.55)",
-    metricBgLight: "#FFFFFF",
-    metricBorderDark: "rgba(255,255,255,0.06)",
-    metricBorderLight: "rgba(0,0,0,0.06)",
-
-    ringBaseDark: "rgba(148,163,184,0.22)",
-    ringBaseLight: "#E5E7EB",
-
-    fineStrokeDark: "#000000",
-    fineStrokeLight: "#111827",
-    fineOpacityDark: 0.25,
-    fineOpacityLight: 0.15,
-
-    markerStrokeDark: "rgba(0,0,0,0.35)",
-    markerStrokeLight: "#111827",
-
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#94A3B8",
-    textSecondaryLight: "#475569",
-    textMutedDark: "#64748B",
-    textMutedLight: "#6B7280",
-  },
-  radius: { lg: 16, md: 12, sm: 10, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
-} as const;
-
-const GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
-
 function round1(n: number) {
   return Number.isFinite(n) ? Math.round(n * 10) / 10 : 0;
 }
@@ -90,32 +44,19 @@ function Chip({
   value: string;
   isDark: boolean;
 }) {
+  const t = scheme(isDark);
   return (
     <View
       style={[
         styles.metric,
         {
-          backgroundColor: isDark ? tokens.color.metricBgDark : tokens.color.metricBgLight,
-          borderColor: isDark ? tokens.color.metricBorderDark : tokens.color.metricBorderLight,
+          backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+          borderColor: t.border,
         },
       ]}
     >
-      <Text
-        style={[
-          styles.metricLabel,
-          { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textMutedLight },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[
-          styles.metricValue,
-          { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
-        ]}
-      >
-        {value}
-      </Text>
+      <Text style={[styles.metricLabel, { color: t.textTertiary }]}>{label}</Text>
+      <Text style={[styles.metricValue, { color: t.textPrimary }]}>{value}</Text>
     </View>
   );
 }
@@ -130,16 +71,11 @@ export default function PesoIdeal({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
+  const t = scheme(isDark);
 
   const pesoNumOriginal = Number(peso ?? 0);
   const alturaNumOriginal = Number(altura ?? 0);
 
-  // ✅ Datos internos canónicos:
-  // - peso siempre en KG
-  // - altura siempre en CM
   const pesoKg = pesoNumOriginal;
   const alturaM = alturaNumOriginal > 0 ? alturaNumOriginal / 100 : 0;
 
@@ -169,150 +105,139 @@ export default function PesoIdeal({
   const angleDeg = pCurr * 360 - 90;
   const angleRad = (angleDeg * Math.PI) / 180;
 
-  // ✅ Solo conversión de visualización
   const unidadPesoLabel = medidaPeso === "LB" ? "lb" : "kg";
   const pesoDisplay = medidaPeso === "LB" ? pesoKg * KG_TO_LB : pesoKg;
   const minIdealDisplay = medidaPeso === "LB" ? minIdealKg * KG_TO_LB : minIdealKg;
   const maxIdealDisplay = medidaPeso === "LB" ? maxIdealKg * KG_TO_LB : maxIdealKg;
 
-  const ringBase = isDark ? tokens.color.ringBaseDark : tokens.color.ringBaseLight;
-  const fineStroke = isDark ? tokens.color.fineStrokeDark : tokens.color.fineStrokeLight;
-  const fineOpacity = isDark ? tokens.color.fineOpacityDark : tokens.color.fineOpacityLight;
+  const ringBase = isDark ? t.border : t.surface;
+  const fineStroke = Colors.primary;
+  const fineOpacity = isDark ? 0.25 : 0.15;
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={GRADIENT as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.frame}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
+        ]}
       >
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
-            },
-          ]}
-        >
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: textPrimary }]}>Peso ideal</Text>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: t.textPrimary }]}>Peso ideal</Text>
 
-            <View
+          <View
+            style={[
+              styles.statusChip,
+              {
+                backgroundColor: isDark ? t.border : t.surface,
+                borderColor: t.border,
+              },
+            ]}
+          >
+            <Text
               style={[
-                styles.statusChip,
-                {
-                  backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
-                  borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
-                },
+                styles.statusText,
+                { color: hasData ? (isGradient ? t.textPrimary : t.textSecondary) : t.textSecondary },
               ]}
             >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: hasData ? (isGradient ? textPrimary : textSecondary) : textSecondary },
-                ]}
-              >
-                {hasData ? estado : "Datos insuficientes"}
-              </Text>
-            </View>
-          </View>
-
-          {!hasData ? (
-            <Text style={[styles.emptyText, { color: textSecondary }]}>
-              Necesito tu{" "}
-              <Text style={[styles.emptyTextStrong, { color: textPrimary }]}>peso y altura</Text>{" "}
-              para estimar tu rango de peso ideal.
+              {hasData ? estado : "Datos insuficientes"}
             </Text>
-          ) : (
-            <>
-              {!soloGrafica && (
-                <View style={styles.chipsRow}>
-                  <Chip label="Peso" value={`${round1(pesoDisplay)} ${unidadPesoLabel}`} isDark={isDark} />
-                  <Chip
-                    label="Ideal min"
-                    value={`${round1(minIdealDisplay)} ${unidadPesoLabel}`}
-                    isDark={isDark}
+          </View>
+        </View>
+
+        {!hasData ? (
+          <Text style={[styles.emptyText, { color: t.textSecondary }]}>
+            Necesito tu{" "}
+            <Text style={[styles.emptyTextStrong, { color: t.textPrimary }]}>peso y altura</Text>{" "}
+            para estimar tu rango de peso ideal.
+          </Text>
+        ) : (
+          <>
+            {!soloGrafica && (
+              <View style={styles.chipsRow}>
+                <Chip label="Peso" value={`${round1(pesoDisplay)} ${unidadPesoLabel}`} isDark={isDark} />
+                <Chip
+                  label="Ideal min"
+                  value={`${round1(minIdealDisplay)} ${unidadPesoLabel}`}
+                  isDark={isDark}
+                />
+                <Chip
+                  label="Ideal max"
+                  value={`${round1(maxIdealDisplay)} ${unidadPesoLabel}`}
+                  isDark={isDark}
+                />
+              </View>
+            )}
+
+            <View style={styles.ringWrap}>
+              <View style={styles.ringBox}>
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 180 180"
+                  style={styles.ringSvg}
+                  accessibilityLabel="Anillo de rango de peso ideal"
+                  role="img"
+                >
+                  <Circle cx={CX} cy={CY} r={R} stroke={ringBase} strokeWidth={12} fill="transparent" />
+
+                  <Defs>
+                    <SvgLinearGradient id="idealGrad" x1="0" y1="0" x2="1" y2="1">
+                      <Stop offset="0%" stopColor={VIZ_GRADIENT[0]} />
+                      <Stop offset="50%" stopColor={VIZ_GRADIENT[1]} />
+                      <Stop offset="100%" stopColor={VIZ_GRADIENT[2]} />
+                    </SvgLinearGradient>
+                  </Defs>
+
+                  <Circle
+                    cx={CX}
+                    cy={CY}
+                    r={R}
+                    stroke="url(#idealGrad)"
+                    strokeWidth={12}
+                    fill="transparent"
+                    strokeDasharray={`${arcLen} ${C}`}
+                    strokeDashoffset={arcOffset}
+                    strokeLinecap="round"
                   />
-                  <Chip
-                    label="Ideal max"
-                    value={`${round1(maxIdealDisplay)} ${unidadPesoLabel}`}
-                    isDark={isDark}
+
+                  <Circle
+                    cx={CX}
+                    cy={CY}
+                    r={R}
+                    stroke={fineStroke}
+                    strokeOpacity={fineOpacity}
+                    strokeWidth={2}
+                    fill="transparent"
+                    strokeDasharray={`${2} ${C}`}
                   />
-                </View>
-              )}
 
-              <View style={styles.ringWrap}>
-                <View style={styles.ringBox}>
-                  <Svg
-                    width="100%"
-                    height="100%"
-                    viewBox="0 0 180 180"
-                    style={styles.ringSvg}
-                    accessibilityLabel="Anillo de rango de peso ideal"
-                    role="img"
-                  >
-                    <Circle cx={CX} cy={CY} r={R} stroke={ringBase} strokeWidth={12} fill="transparent" />
+                  <Circle
+                    cx={CX + (R + 6) * Math.cos(angleRad)}
+                    cy={CY + (R + 6) * Math.sin(angleRad)}
+                    r={5.5}
+                    fill="#FFFFFF"
+                    stroke={isDark ? "rgba(0,0,0,0.35)" : "#111827"}
+                    strokeWidth={1}
+                  />
+                </Svg>
 
-                    <Defs>
-                      <SvgLinearGradient id="idealGrad" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0%" stopColor={tokens.color.gradientStart} />
-                        <Stop offset="50%" stopColor={tokens.color.gradientMid} />
-                        <Stop offset="100%" stopColor={tokens.color.gradientEnd} />
-                      </SvgLinearGradient>
-                    </Defs>
-
-                    <Circle
-                      cx={CX}
-                      cy={CY}
-                      r={R}
-                      stroke="url(#idealGrad)"
-                      strokeWidth={12}
-                      fill="transparent"
-                      strokeDasharray={`${arcLen} ${C}`}
-                      strokeDashoffset={arcOffset}
-                      strokeLinecap="round"
-                    />
-
-                    <Circle
-                      cx={CX}
-                      cy={CY}
-                      r={R}
-                      stroke={fineStroke}
-                      strokeOpacity={fineOpacity}
-                      strokeWidth={2}
-                      fill="transparent"
-                      strokeDasharray={`${2} ${C}`}
-                    />
-
-                    <Circle
-                      cx={CX + (R + 6) * Math.cos(angleRad)}
-                      cy={CY + (R + 6) * Math.sin(angleRad)}
-                      r={5.5}
-                      fill="#FFFFFF"
-                      stroke={isDark ? tokens.color.markerStrokeDark : tokens.color.markerStrokeLight}
-                      strokeWidth={1}
-                    />
-                  </Svg>
-
-                  <View style={styles.ringCenter} pointerEvents="none">
-                    <Text style={[styles.ringKicker, { color: textMuted }]}>Rango ideal</Text>
-                    <Text style={[styles.ringValue, { color: textPrimary }]}>
-                      {round1(minIdealDisplay)}–{round1(maxIdealDisplay)} {unidadPesoLabel}
-                    </Text>
-                  </View>
+                <View style={styles.ringCenter} pointerEvents="none">
+                  <Text style={[styles.ringKicker, { color: t.textTertiary }]}>Rango ideal</Text>
+                  <Text style={[styles.ringValue, { color: t.textPrimary }]}>
+                    {round1(minIdealDisplay)}–{round1(maxIdealDisplay)} {unidadPesoLabel}
+                  </Text>
                 </View>
               </View>
+            </View>
 
-              <Text style={[styles.footnote, { color: textSecondary }]}>
-                Basado en IMC saludable (18.5–24.9) para tu altura. Úsalo como referencia general,
-                no como diagnóstico.
-              </Text>
-            </>
-          )}
-        </View>
-      </LinearGradient>
+            <Text style={[styles.footnote, { color: t.textSecondary }]}>
+              Basado en IMC saludable (18.5–24.9) para tu altura. Úsalo como referencia general,
+              no como diagnóstico.
+            </Text>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -322,134 +247,116 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 520,
   },
-
-  frame: {
-    borderRadius: tokens.radius.lg,
-    padding: 1.5,
+  card: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
+    padding: 20,
     overflow: "hidden",
   },
-
-  card: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
-    padding: tokens.spacing.xl,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
-
   title: {
     fontSize: 13,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.2,
   },
-
   statusChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: tokens.radius.sm,
+    borderRadius: 10,
     borderWidth: 1,
     maxWidth: 220,
   },
-
   statusText: {
     fontSize: 11,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     lineHeight: 14,
     textTransform: "capitalize",
   },
-
   emptyText: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     fontSize: 13,
+    fontFamily: Font.body.regular,
     lineHeight: 20,
   },
-
   emptyTextStrong: {
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
-
   chipsRow: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     flexDirection: "row",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
-
   metric: {
     flex: 1,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: tokens.spacing.md,
+    padding: 12,
   },
-
   metricLabel: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
-
   metricValue: {
     marginTop: 2,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.1,
   },
-
   ringWrap: {
-    marginTop: tokens.spacing.lg,
+    marginTop: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-
   ringBox: {
     width: 176,
     height: 176,
     position: "relative",
   },
-
   ringSvg: {
     position: "absolute",
     inset: 0,
     transform: [{ rotate: "-90deg" }],
   },
-
   ringCenter: {
     position: "absolute",
     inset: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: tokens.spacing.md,
+    paddingHorizontal: 12,
   },
-
   ringKicker: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
   },
-
   ringValue: {
     marginTop: 2,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: "900",
+    fontFamily: Font.title.bold,
     letterSpacing: -0.2,
     textAlign: "center",
   },
-
   footnote: {
-    marginTop: tokens.spacing.lg,
+    marginTop: 16,
     fontSize: 12,
     lineHeight: 18,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
 });

@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { View, ScrollView, RefreshControl, StyleSheet, Platform, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 
@@ -21,30 +22,8 @@ import SeguimientoInteligenteModal from "@/shared/components/home/SeguimientoInt
 import AnalisisDiarioModal from "@/shared/components/home/AnalisisDiarioModal";
 import AnalisisSemanalModal from "@/shared/components/home/AnalisisSemanalModal";
 import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
-
-// ── Tokens ───────────────────────────────────────────────────────────────────
-
-const tokens = {
-  color: {
-    bgDark: "#111111",
-    bgLight: "#F8FAFC",
-    tintDark: "#E2E8F0",
-    tintLight: "#0F172A",
-    spinnerDark: "#39FF14",
-    spinnerLight: "#16A34A",
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "rgba(226,232,240,0.72)",
-    textSecondaryLight: "rgba(15,23,42,0.62)",
-  },
-  spacing: {
-    sm: 8,
-    md: 16,
-    lg: 20,
-    xl: 24,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 130,
-  },
-} as const;
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -62,12 +41,8 @@ type Ejercicio = {
   completadoHoy?: boolean;
   fechasCompletadasAsignacion?: string[];
   ultimaFechaCompletado?: string | null;
-
-  // nuevo payload backend
   fechasPlanificadasCompletadasAsignacion?: string[];
   ultimaFechaPlanificadaCompletada?: string | null;
-
-  // solo para depurar / uso interno del frontend
   fechasCompletadasAsignacionReal?: string[];
   fechasCompletadasAsignacionUI?: string[];
 };
@@ -85,8 +60,6 @@ type RutinaResp = {
   fechasCompletadas?: string[];
   completadosPorFecha?: Record<string, number[]>;
   completadosPorAsignacion?: Record<string, string[]>;
-
-  // nuevo payload backend
   completadosPlanificadosPorFecha?: Record<string, number[]>;
   completadosPlanificadosPorAsignacion?: Record<string, string[]>;
 };
@@ -95,19 +68,13 @@ type RutinaResp = {
 
 const getDiaActualEnum = (): DiaNombre => {
   const dias: DiaNombre[] = [
-    "DOMINGO",
-    "LUNES",
-    "MARTES",
-    "MIERCOLES",
-    "JUEVES",
-    "VIERNES",
-    "SABADO",
+    "DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO",
   ];
   return dias[new Date().getDay()] as DiaNombre;
 };
 
 const normalizeEnum = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() as DiaNombre;
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase() as DiaNombre;
 
 const toMadridYMD = (() => {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -121,11 +88,14 @@ const toMadridYMD = (() => {
 
 const isYMD = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+const TAB_BAR_SAFE = Platform.OS === "ios" ? 140 : 130;
+
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const navigation = useNavigation<any>();
 
   const { usuario } = useUsuarioStore();
@@ -157,7 +127,6 @@ export default function Home() {
 
   // ── Seguimiento inteligente ───────────────────────────────────────────
   useSyncAnalisis(usuario?.id);
-
   const seguimiento = useSeguimientoInteligente();
 
   useEffect(() => {
@@ -166,23 +135,20 @@ export default function Home() {
       autoGenerating ||
       shouldAutoGenerate ||
       usuario?.haVistoOnboarding === false
-    )
-      return;
-
+    ) return;
     seguimiento.iniciar();
-  }, [
-    usuario?.id,
-    autoGenerating,
-    shouldAutoGenerate,
-    usuario?.haVistoOnboarding,
-  ]);
+  }, [usuario?.id, autoGenerating, shouldAutoGenerate, usuario?.haVistoOnboarding]);
 
   // ── Análisis diario ───────────────────────────────────────────────────
   useEffect(() => {
     if (!analisisDiarioPendiente) return;
     setAnalisisDiarioPendiente(false);
     diarioOverlay.present(
-      <AnalisisDiarioModal visible onClose={() => diarioOverlay.dismiss()} onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
+      <AnalisisDiarioModal
+        visible
+        onClose={() => diarioOverlay.dismiss()}
+        onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })}
+      />
     );
   }, [analisisDiarioPendiente]);
 
@@ -190,13 +156,16 @@ export default function Home() {
   useEffect(() => {
     if (!analisisSemanalPendiente) return;
     setAnalisisSemanalPendiente(false);
-    // Pequeño delay para no solapar con el modal diario si ambos se disparan
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       semanalOverlay.present(
-        <AnalisisSemanalModal visible onClose={() => semanalOverlay.dismiss()} onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })} />
+        <AnalisisSemanalModal
+          visible
+          onClose={() => semanalOverlay.dismiss()}
+          onGoPremium={() => navigation.navigate("Perfil", { screen: "PremiumPayment" })}
+        />
       );
     }, 600);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [analisisSemanalPendiente]);
 
   // ── Rutina ────────────────────────────────────────────────────────────
@@ -212,85 +181,20 @@ export default function Home() {
   const fetchRutina = useCallback(
     async (force = false) => {
       const id = usuario?.rutinaActivaId;
-      if (!id) {
-        console.log("[Home] fetchRutina -> sin rutinaActivaId");
-        setRutina(null);
-        return;
-      }
+      if (!id) { setRutina(null); return; }
 
       const key = `${id}|${routineRev}|${workoutRev}`;
-      console.log("[Home] fetchRutina -> start", {
-        force,
-        id,
-        routineRev,
-        workoutRev,
-        key,
-        lastKey: lastKeyRef.current,
-      });
-
-      if (!force && lastKeyRef.current === key) {
-        console.log("[Home] fetchRutina -> skip por misma key", { key });
-        return;
-      }
-
+      if (!force && lastKeyRef.current === key) return;
       lastKeyRef.current = key;
 
       const cached = rutinaCache.get(id);
-      if (cached && !force) {
-        console.log("[Home] fetchRutina -> usando cache", {
-          id,
-          cachedDias: cached?.dias?.length ?? 0,
-          cachedFechasCompletadas: cached?.fechasCompletadas ?? [],
-          cachedCompletadosPorFecha: cached?.completadosPorFecha ?? {},
-          cachedCompletadosPorAsignacion: cached?.completadosPorAsignacion ?? {},
-          cachedCompletadosPlanificadosPorFecha:
-            cached?.completadosPlanificadosPorFecha ?? {},
-          cachedCompletadosPlanificadosPorAsignacion:
-            cached?.completadosPlanificadosPorAsignacion ?? {},
-        });
-        setRutina(cached);
-      } else {
-        console.log("[Home] fetchRutina -> sin cache útil", { id, force });
-      }
+      if (cached && !force) setRutina(cached);
 
       try {
         if (!force) setLoading(true);
-
         const p = obtenerRutina(id)
           .then((data) => {
             const rutinaResp = (data ?? null) as RutinaResp | null;
-
-            console.log(
-              "[Home][fetchRutina] RAW API RESPONSE:",
-              JSON.stringify(
-                {
-                  id: rutinaResp?.id,
-                  diasCount: rutinaResp?.dias?.length,
-                  fechasCompletadas: rutinaResp?.fechasCompletadas,
-                  completadosPorFecha: rutinaResp?.completadosPorFecha,
-                  completadosPorAsignacion: rutinaResp?.completadosPorAsignacion,
-                  completadosPlanificadosPorFecha:
-                    rutinaResp?.completadosPlanificadosPorFecha,
-                  completadosPlanificadosPorAsignacion:
-                    rutinaResp?.completadosPlanificadosPorAsignacion,
-                  dias: rutinaResp?.dias?.map((d) => ({
-                    diaSemana: d.diaSemana,
-                    ejercicios: d.ejercicios?.map((e) => ({
-                      id: e.id,
-                      fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
-                      fechasPlanificadasCompletadasAsignacion:
-                        e.fechasPlanificadasCompletadasAsignacion,
-                      ultimaFechaCompletado: e.ultimaFechaCompletado,
-                      ultimaFechaPlanificadaCompletada:
-                        e.ultimaFechaPlanificadaCompletada,
-                    })),
-                  })),
-                },
-                null,
-                2
-              )
-            );
-
             setRutina(rutinaResp);
             if (rutinaResp) rutinaCache.set(id, rutinaResp);
           })
@@ -298,9 +202,7 @@ export default function Home() {
           .finally(() => {
             inflightRef.current = null;
             if (!force) setLoading(false);
-            console.log("[Home] fetchRutina -> end", { force, id });
           });
-
         inflightRef.current = p;
         await p;
       } catch (e) {
@@ -310,240 +212,86 @@ export default function Home() {
     [usuario?.rutinaActivaId, routineRev, workoutRev, rutinaCache]
   );
 
-  useEffect(() => {
-    fetchRutina(false);
-  }, [fetchRutina]);
+  useEffect(() => { fetchRutina(false); }, [fetchRutina]);
 
   const onRefresh = useCallback(async () => {
-    console.log("[Home] onRefresh -> start");
     setRefreshing(true);
-    try {
-      await fetchRutina(true);
-    } finally {
-      setRefreshing(false);
-      console.log("[Home] onRefresh -> end");
-    }
+    try { await fetchRutina(true); }
+    finally { setRefreshing(false); }
   }, [fetchRutina]);
 
   const devolver = useCallback((ymd: string, diaEnum: string) => {
-    const newYMD =
-      typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date());
-    const newDia = normalizeEnum(diaEnum);
-
-    console.log("[Home][devolver] CALENDAR SELECTION:", {
-      ymdRecibido: ymd,
-      ymdNormalizado: newYMD,
-      diaEnumRecibido: diaEnum,
-      diaEnumNormalizado: newDia,
-    });
-
-    setDia(newDia);
-    setSelectedYMD(newYMD);
+    setDia(normalizeEnum(diaEnum));
+    setSelectedYMD(typeof ymd === "string" && isYMD(ymd) ? ymd : toMadridYMD(new Date()));
   }, []);
-
-  const totalEjercicios = useMemo(() => {
-    const total =
-      rutina?.dias?.find((i) => i.diaSemana === dia)?.ejercicios?.length || 0;
-
-    console.log("[Home] totalEjercicios", {
-      dia,
-      total,
-    });
-
-    return total;
-  }, [rutina, dia]);
 
   const completadasMap = useMemo(() => {
     const map: Record<string, boolean> = {};
-
     for (const ymd of rutina?.fechasCompletadas ?? []) map[ymd] = true;
     for (const [ymd, ids] of Object.entries(rutina?.completadosPorFecha ?? {})) {
       if (Array.isArray(ids) && ids.length > 0) map[ymd] = true;
     }
-
-    console.log("[Home][completadasMap] CALENDAR MARKS (fecha real entrenada):", {
-      fechasCompletadasRaw: rutina?.fechasCompletadas,
-      completadosPorFechaRaw: rutina?.completadosPorFecha,
-      completadosPlanificadosPorFechaRaw: rutina?.completadosPlanificadosPorFecha,
-      mapResultante: map,
-    });
-
     return map;
-  }, [
-    rutina?.fechasCompletadas,
-    rutina?.completadosPorFecha,
-    rutina?.completadosPlanificadosPorFecha,
-  ]);
+  }, [rutina?.fechasCompletadas, rutina?.completadosPorFecha, rutina?.completadosPlanificadosPorFecha]);
 
   const rutinaHidratada = useMemo(() => {
-    if (!rutina?.dias) {
-      console.log("[Home] rutinaHidratada -> sin dias", {
-        dia,
-        selectedYMD,
-      });
-      return rutina;
-    }
-
+    if (!rutina?.dias) return rutina;
     const diasH = rutina.dias.map((d) => {
       const ejerciciosH = (d.ejercicios ?? []).map((e) => {
         const fechasReales = e.fechasCompletadasAsignacion ?? [];
-        const fechasPlanificadas =
-          e.fechasPlanificadasCompletadasAsignacion ?? [];
-
-        const fechasParaUI =
-          fechasPlanificadas.length > 0 ? fechasPlanificadas : fechasReales;
-
-        const completadoHoy = fechasParaUI.includes(selectedYMD);
-
-        console.log(
-          `[Home][rutinaHidratada] EJERCICIO id=${e.id} dia=${d.diaSemana}:`,
-          {
-            selectedYMD,
-            fechasCompletadasAsignacionReal: fechasReales,
-            fechasPlanificadasCompletadasAsignacion: fechasPlanificadas,
-            fechasUsadasPorUI: fechasParaUI,
-            completadoHoy,
-            source:
-              fechasPlanificadas.length > 0 ? "planificadas" : "reales(fallback)",
-          }
-        );
-
+        const fechasPlanificadas = e.fechasPlanificadasCompletadasAsignacion ?? [];
+        const fechasParaUI = fechasPlanificadas.length > 0 ? fechasPlanificadas : fechasReales;
         return {
           ...e,
-          completadoHoy,
+          completadoHoy: fechasParaUI.includes(selectedYMD),
           fechasCompletadasAsignacionReal: fechasReales,
           fechasCompletadasAsignacionUI: fechasParaUI,
           fechasCompletadasAsignacion: fechasParaUI,
         };
       });
-
-      const diaCompleto =
-        ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy);
-
-      console.log(`[Home][rutinaHidratada] DIA=${d.diaSemana}:`, {
-        totalEjercicios: ejerciciosH.length,
-        completados: ejerciciosH.filter((e) => e.completadoHoy).length,
-        diaCompleto,
-        selectedYMD,
-      });
-
-      return { ...d, ejercicios: ejerciciosH, completadoHoy: diaCompleto };
+      return {
+        ...d,
+        ejercicios: ejerciciosH,
+        completadoHoy: ejerciciosH.length > 0 && ejerciciosH.every((e) => !!e.completadoHoy),
+      };
     });
-
-    console.log("[Home] rutinaHidratada resumen", {
-      diaSeleccionado: dia,
-      selectedYMD,
-      dias: diasH.map((d) => ({
-        diaSemana: d.diaSemana,
-        completadoHoy: d.completadoHoy,
-        ejercicios: d.ejercicios.map((e) => ({
-          id: e.id,
-          completadoHoy: e.completadoHoy,
-          fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
-          fechasCompletadasAsignacionReal: e.fechasCompletadasAsignacionReal,
-          fechasPlanificadasCompletadasAsignacion:
-            e.fechasPlanificadasCompletadasAsignacion,
-        })),
-      })),
-    });
-
     return { ...rutina, dias: diasH };
-  }, [rutina, selectedYMD, dia]);
+  }, [rutina, selectedYMD]);
 
   const progresoHoy = useMemo(() => {
     const ejercicios =
       rutinaHidratada?.dias?.find((d) => d.diaSemana === dia)?.ejercicios ?? [];
-
-    const total = ejercicios.length;
-    const completados = ejercicios.filter((e) => e.completadoHoy).length;
-
-    console.log("[Home][progresoHoy] PROGRESO:", {
-      diaActivo: dia,
-      selectedYMD,
-      total,
-      completados,
-      helperMessage:
-        total === 0
-          ? "Día de descanso"
-          : completados === 0
-            ? `${total} ejercicios para hoy`
-            : completados < total
-              ? `Te quedan ${total - completados} ejercicios`
-              : "Entrenamiento completado",
-      ejercicios: ejercicios.map((e) => ({
-        id: e.id,
-        completadoHoy: e.completadoHoy,
-        fechasCompletadasAsignacion: e.fechasCompletadasAsignacion,
-      })),
-    });
-
-    return { total, completados };
+    return {
+      total: ejercicios.length,
+      completados: ejercicios.filter((e) => e.completadoHoy).length,
+    };
   }, [rutinaHidratada, dia, selectedYMD]);
 
   const helperMessage = useMemo(() => {
     const { total, completados } = progresoHoy;
-
     if (total === 0) return "Día de descanso";
     if (completados === 0) return `${total} ejercicios para hoy`;
     if (completados < total) return `Te quedan ${total - completados} ejercicios`;
     return "Entrenamiento completado";
   }, [progresoHoy]);
 
-  useEffect(() => {
-    console.log("[Home] render-state", {
-      usuarioId: usuario?.id,
-      rutinaActivaId: usuario?.rutinaActivaId,
-      haVistoOnboarding: usuario?.haVistoOnboarding,
-      dia,
-      selectedYMD,
-      routineRev,
-      workoutRev,
-      loading,
-      refreshing,
-      autoGenerating,
-      totalEjercicios,
-      hasRutina: !!rutina,
-    });
-  }, [
-    usuario?.id,
-    usuario?.rutinaActivaId,
-    usuario?.haVistoOnboarding,
-    dia,
-    selectedYMD,
-    routineRev,
-    workoutRev,
-    loading,
-    refreshing,
-    autoGenerating,
-    totalEjercicios,
-    rutina,
-  ]);
-
   if (loading && !rutina) return <HomeSkeleton />;
 
-  const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+  const bg = isDark ? Colors.primary : Colors.light.surface;
   const hasRutinaActiva = !!usuario?.rutinaActivaId;
 
   return (
     <>
       {autoGenerating && (
         <IaGenerateAuto
-          onDone={() => {
-            console.log("[Home] IaGenerateAuto onDone");
-            setAutoGenerating(false);
-          }}
-          onError={() => {
-            console.log("[Home] IaGenerateAuto onError");
-            setAutoGenerating(false);
-          }}
+          onDone={() => setAutoGenerating(false)}
+          onError={() => setAutoGenerating(false)}
         />
       )}
 
       <OnboardingModal
         visible={!!usuario && usuario.haVistoOnboarding === false}
-        onClose={() => {
-          console.log("[Home] OnboardingModal onClose");
-        }}
+        onClose={() => {}}
       />
 
       <SeguimientoInteligenteModal
@@ -551,24 +299,17 @@ export default function Home() {
         lockedByPlan={usuario?.planActual === "GRATUITO"}
         applying={seguimiento.applying}
         data={seguimiento.modalData}
-        onClose={() => {
-          console.log("[Home] SeguimientoInteligenteModal onClose");
-          seguimiento.cerrar();
-        }}
-        onConfirm={() => {
-          console.log("[Home] SeguimientoInteligenteModal onConfirm");
-          seguimiento.confirmar();
-        }}
+        onClose={() => seguimiento.cerrar()}
+        onConfirm={() => seguimiento.confirmar()}
         onGoPremium={() => {
-          console.log("[Home] SeguimientoInteligenteModal onGoPremium");
           seguimiento.cerrar();
           navigation.navigate("Premium");
         }}
       />
 
-
-      <ScrollView
-        style={[styles.scroll, { backgroundColor: bg }]}
+      <SafeAreaView edges={["top"]} style={[styles.scroll, { backgroundColor: bg }]}>
+        <ScrollView
+          style={{ flex: 1 }}
         contentContainerStyle={[
           styles.content,
           { backgroundColor: bg },
@@ -579,49 +320,16 @@ export default function Home() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={isDark ? tokens.color.tintDark : tokens.color.tintLight}
-            colors={[isDark ? tokens.color.spinnerDark : tokens.color.spinnerLight]}
+            tintColor={t.textPrimary}
+            colors={[Colors.accent]}
             progressBackgroundColor={bg}
           />
         }
       >
         <View style={styles.header}>
-          <Text
-            style={[
-              styles.eyebrow,
-              {
-                color: isDark
-                  ? tokens.color.textSecondaryDark
-                  : tokens.color.textSecondaryLight,
-              },
-            ]}
-          >
-            HOY
-          </Text>
-
-          <Text
-            style={[
-              styles.title,
-              {
-                color: isDark
-                  ? tokens.color.textPrimaryDark
-                  : tokens.color.textPrimaryLight,
-              },
-            ]}
-          >
-            Tu entrenamiento
-          </Text>
-
-          <Text
-            style={[
-              styles.subtitle,
-              {
-                color: isDark
-                  ? tokens.color.textSecondaryDark
-                  : tokens.color.textSecondaryLight,
-              },
-            ]}
-          >
+          <Text style={[styles.eyebrow, { color: t.textSecondary }]}>HOY</Text>
+          <Text style={[styles.title, { color: t.textPrimary }]}>Tu entrenamiento</Text>
+          <Text style={[styles.subtitle, { color: t.textSecondary }]}>
             {hasRutinaActiva
               ? "Sigue tu planificación diaria y completa tus ejercicios."
               : "Empieza creando o generando una rutina personalizada."}
@@ -633,13 +341,8 @@ export default function Home() {
             <View style={styles.calendarWrapper}>
               <Calendar devolverDato={devolver} completadas={completadasMap} />
             </View>
-
             <View style={styles.cardWrapper}>
-              <TarjetaHome
-                rutina={rutinaHidratada as any}
-                dia={dia}
-                selectedYMD={selectedYMD}
-              />
+              <TarjetaHome rutina={rutinaHidratada as any} dia={dia} selectedYMD={selectedYMD} />
             </View>
           </>
         ) : (
@@ -659,7 +362,8 @@ export default function Home() {
             </View>
           )
         )}
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }
@@ -670,9 +374,9 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
 
   content: {
-    padding: tokens.spacing.md,
-    paddingBottom: tokens.spacing.tabBarSafe,
-    gap: tokens.spacing.lg,
+    padding: 16,
+    paddingBottom: TAB_BAR_SAFE,
+    gap: 20,
     minHeight: "100%",
   },
 
@@ -682,26 +386,25 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
-    fontSize: 11,
-    fontWeight: "800",
+    ...TextStyle.caption,
+    fontFamily: Font.body.bold,
     letterSpacing: 1.2,
   },
 
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    ...TextStyle.h1,
+    fontFamily: Font.title.bold,
   },
 
   subtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "500",
+    ...TextStyle.body,
+    fontFamily: Font.body.medium,
     maxWidth: "92%",
   },
 
   helperText: {
-    fontSize: 13,
-    fontWeight: "600",
+    ...TextStyle.label,
+    fontFamily: Font.body.semiBold,
     marginTop: -4,
   },
 
@@ -727,7 +430,7 @@ const styles = StyleSheet.create({
 
   emptyWrapper: {
     alignItems: "center",
-    gap: tokens.spacing.xl,
+    gap: 24,
   },
 
   iaWrapper: {

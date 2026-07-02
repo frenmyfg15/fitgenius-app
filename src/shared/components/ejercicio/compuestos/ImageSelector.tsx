@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Image, TouchableOpacity, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
 
 type Props = {
   images: string[];
@@ -11,6 +12,7 @@ export default function ImageSelector({ images, alt = "imagen" }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   if (!images || images.length === 0) return null;
 
@@ -28,7 +30,7 @@ export default function ImageSelector({ images, alt = "imagen" }: Props) {
           style={{
             borderRadius: 50,
             marginVertical: 10,
-            backgroundColor: "#ffffff",
+            backgroundColor: Colors.secondary,
           }}
         />
       </View>
@@ -58,11 +60,11 @@ export default function ImageSelector({ images, alt = "imagen" }: Props) {
                   overflow: "hidden",
                   borderWidth: isActive ? 2 : 1,
                   borderColor: isActive
-                    ? "rgb(0,255,64)" // color del marco activo
+                    ? Colors.accent
                     : isDark
-                    ? "rgba(255,255,255,0.15)"
-                    : "#e5e7eb",
-                  backgroundColor: "#fff",
+                    ? t.borderStrong
+                    : t.border,
+                  backgroundColor: Colors.secondary,
                   width: 60,
                   height: 60,
                 }}

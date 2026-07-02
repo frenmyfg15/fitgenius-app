@@ -54,6 +54,8 @@ import ExerciseQuestionModal from "@/shared/components/ejercicio/ExerciseQuestio
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import AlertaConfirmacion from "@/shared/components/ui/AlertaConfirmacion";
 import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 /* ---------------- Vista (sólo UI) ---------------- */
 export default function VistaEjercicio() {
@@ -69,6 +71,7 @@ export default function VistaEjercicio() {
 
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const [qaVisible, setQaVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
@@ -408,9 +411,9 @@ export default function VistaEjercicio() {
     return (
       <View
         className="min-h-screen items-center justify-center"
-        style={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
+        style={{ backgroundColor: isDark ? Colors.primary : Colors.secondary }}
       >
-        <Text className={isDark ? "text-[#e5e7eb]" : "text-gray-700"}>
+        <Text style={{ ...TextStyle.body, fontFamily: Font.body.regular, color: t.textPrimary }}>
           Cargando ejercicio...
         </Text>
       </View>
@@ -420,7 +423,7 @@ export default function VistaEjercicio() {
   return (
     <View
       className="flex-1 relative"
-      style={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
+      style={{ backgroundColor: isDark ? Colors.primary : Colors.secondary }}
     >
       <KeyboardAwareScrollView
         enableOnAndroid={true}
@@ -453,7 +456,7 @@ export default function VistaEjercicio() {
               style={{
                 borderRadius: 50,
                 marginVertical: 10,
-                backgroundColor: "#ffffff",
+                backgroundColor: Colors.secondary,
               }}
             />
           )}
@@ -462,15 +465,15 @@ export default function VistaEjercicio() {
             onPress={iniciarDescanso}
             disabled={guardando}
             accessibilityLabel="Iniciar descanso"
-            className={
-              "absolute -bottom-2 right-7 flex-row items-center gap-2 px-3 py-2 rounded-full shadow-md " +
-              (isDark ? "bg-black" : "bg-zinc-800")
-            }
-            style={{ opacity: guardando ? 0.6 : 1 }}
+            className="absolute -bottom-2 right-7 flex-row items-center gap-2 px-3 py-2 rounded-full"
+            style={{
+              backgroundColor: isDark ? Colors.primary : Colors.dark.surfaceAlt,
+              opacity: guardando ? 0.6 : 1,
+            }}
             activeOpacity={0.85}
           >
-            <PlayCircle size={18} color="#fff" />
-            <Text className="text-white text-sm font-medium">Descanso</Text>
+            <PlayCircle size={18} color={Colors.secondary} />
+            <Text style={{ ...TextStyle.label, fontFamily: Font.body.medium, color: Colors.secondary }}>Descanso</Text>
           </TouchableOpacity>
         </View>
 
@@ -532,16 +535,16 @@ export default function VistaEjercicio() {
               activeOpacity={0.88}
               className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#111827",
+                backgroundColor: isDark ? t.border : Colors.primary,
                 opacity: guardando ? 0.45 : 1,
               }}
             >
-              <PlusCircle size={18} color={isDark ? "#e5e7eb" : "#fff"} />
+              <PlusCircle size={18} color={isDark ? t.textPrimary : Colors.secondary} />
               <Text
                 style={{
-                  color: isDark ? "#e5e7eb" : "#fff",
-                  fontSize: 14,
-                  fontWeight: "700",
+                  ...TextStyle.body,
+                  fontFamily: Font.body.bold,
+                  color: isDark ? t.textPrimary : Colors.secondary,
                 }}
               >
                 Añadir serie
@@ -563,7 +566,7 @@ export default function VistaEjercicio() {
               activeOpacity={0.88}
               className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4 py-3"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#111827",
+                backgroundColor: isDark ? t.border : Colors.primary,
                 opacity:
                   guardando ||
                     (esCompuesto ? seriesComp.length <= 1 : series.length <= 1)
@@ -571,12 +574,12 @@ export default function VistaEjercicio() {
                     : 1,
               }}
             >
-              <MinusCircle size={18} color={isDark ? "#e5e7eb" : "#fff"} />
+              <MinusCircle size={18} color={isDark ? t.textPrimary : Colors.secondary} />
               <Text
                 style={{
-                  color: isDark ? "#e5e7eb" : "#fff",
-                  fontSize: 14,
-                  fontWeight: "700",
+                  ...TextStyle.body,
+                  fontFamily: Font.body.bold,
+                  color: isDark ? t.textPrimary : Colors.secondary,
                 }}
               >
                 Quitar serie
@@ -588,35 +591,23 @@ export default function VistaEjercicio() {
             onPress={handleGuardar}
             disabled={guardando}
             activeOpacity={0.9}
-            className="w-full flex-row items-center justify-center gap-2 rounded-2xl px-4 py-4 shadow-md"
+            className="w-full flex-row items-center justify-center gap-2 rounded-2xl px-4 py-4"
             style={{
-              backgroundColor: "#22c55e",
+              backgroundColor: Colors.accent,
               opacity: guardando ? 0.7 : 1,
             }}
           >
             {guardando ? (
               <>
-                <Loader2 size={18} color="#fff" className="animate-spin" />
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 15,
-                    fontWeight: "800",
-                  }}
-                >
+                <Loader2 size={18} color={Colors.secondary} className="animate-spin" />
+                <Text style={{ ...TextStyle.button, color: Colors.secondary }}>
                   Guardando...
                 </Text>
               </>
             ) : (
               <>
-                <Check size={20} color="#fff" />
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 15,
-                    fontWeight: "800",
-                  }}
-                >
+                <Check size={20} color={Colors.secondary} />
+                <Text style={{ ...TextStyle.button, color: Colors.secondary }}>
                   Guardar sesión
                 </Text>
               </>
@@ -655,13 +646,11 @@ export default function VistaEjercicio() {
                   activeOpacity={0.88}
                   style={{
                     opacity: guardando ? 0.6 : isPremium ? 1 : 0.65,
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.10)"
-                      : "rgba(0,0,0,0.08)",
+                    backgroundColor: isDark ? t.borderStrong : t.border,
                   }}
                   className={"p-4 rounded-full items-center justify-center "}
                 >
-                  <Sparkles size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+                  <Sparkles size={22} color={isDark ? t.textPrimary : Colors.primary} />
                 </TouchableOpacity>
               </Animated.View>
 
@@ -672,13 +661,11 @@ export default function VistaEjercicio() {
                   activeOpacity={0.88}
                   style={{
                     opacity: guardando ? 0.6 : isPremium ? 1 : 0.65,
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.10)"
-                      : "rgba(0,0,0,0.08)",
+                    backgroundColor: isDark ? t.borderStrong : t.border,
                   }}
                   className={"p-4 rounded-full items-center justify-center "}
                 >
-                  <Dumbbell size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+                  <Dumbbell size={22} color={isDark ? t.textPrimary : Colors.primary} />
                 </TouchableOpacity>
               </Animated.View>
 
@@ -696,7 +683,7 @@ export default function VistaEjercicio() {
                     }}
                     className={"p-4 rounded-full items-center justify-center "}
                   >
-                    <Info size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+                    <Info size={22} color={isDark ? t.textPrimary : Colors.primary} />
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -708,13 +695,11 @@ export default function VistaEjercicio() {
                   activeOpacity={0.88}
                   style={{
                     opacity: guardando ? 0.6 : 1,
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.10)"
-                      : "rgba(0,0,0,0.08)",
+                    backgroundColor: isDark ? t.borderStrong : t.border,
                   }}
                   className={"p-4 rounded-full items-center justify-center "}
                 >
-                  <LineChart size={22} color={isDark ? "#e5e7eb" : "#111827"} />
+                  <LineChart size={22} color={isDark ? t.textPrimary : Colors.primary} />
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -726,14 +711,14 @@ export default function VistaEjercicio() {
             activeOpacity={0.9}
             style={{
               opacity: guardando ? 0.6 : 1,
-              backgroundColor: isDark ? "#1a2538" : "#111827",
+              backgroundColor: isDark ? Colors.dark.surface : Colors.primary,
             }}
             className={"p-3 rounded-full items-center justify-center mr-1 "}
           >
             {fabOpen ? (
-              <ChevronDown size={22} color="#e5e7eb" />
+              <ChevronDown size={22} color={Colors.secondary} />
             ) : (
-              <ChevronUp size={22} color="#e5e7eb" />
+              <ChevronUp size={22} color={Colors.secondary} />
             )}
           </TouchableOpacity>
         </View>

@@ -1,13 +1,14 @@
 // src/shared/components/rutinas-manuales/DiaRutinaView.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, Image, Pressable } from "react-native";
 import { useColorScheme } from "nativewind";
 import DraggableFlatList, {
   RenderItemParams,
 } from "react-native-draggable-flatlist";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { kgToLb } from "@/shared/utils/kgToLb";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 import type {
   CompuestoItem,
@@ -111,6 +112,7 @@ export default function DiaRutinaView({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const { usuario } = useUsuarioStore();
   const weightUnit = (usuario?.medidaPeso ?? "KG").toUpperCase();
@@ -176,11 +178,6 @@ export default function DiaRutinaView({
     selectItem(activeKey === key ? null : item);
   };
 
-  const frameGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBg = isDark ? "#020617" : "#ffffff";
-  const cardBorder = isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.12)";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-
   const onDragEnd = useCallback(
     ({ data: newData }: { data: Item[] }) => {
       setIsDragging(false);
@@ -217,7 +214,6 @@ export default function DiaRutinaView({
       const principal = ejerciciosDelItem[0];
       const imageSize = esCompuesto ? 60 : 110;
 
-      // ✅ Muestra el nombre real del compuesto — con fallback defensivo
       const tituloItem = esCompuesto
         ? (cmp!.nombreCompuesto?.trim() || `Compuesto (${ejerciciosDelItem.length})`)
         : principal?.ejercicioInfo?.nombre;
@@ -227,123 +223,100 @@ export default function DiaRutinaView({
           style={{
             width: "95%",
             borderRadius: 16,
-            padding: 1,
             alignSelf: "center",
             flex: 1,
+            overflow: "hidden",
+            borderWidth: isSelected ? 1.5 : 1,
+            borderColor: isSelected ? Colors.accentBorder : t.border,
           }}
         >
-          {isSelected && (
-            <LinearGradient
-              colors={frameGradient as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
-            />
-          )}
-
-          <View style={{ borderRadius: 16, overflow: "hidden" }}>
-            <Pressable
-              onPress={() => toggleSelectByItem(item)}
-              onLongPress={drag}
-              delayLongPress={250}
+          <Pressable
+            onPress={() => toggleSelectByItem(item)}
+            onLongPress={drag}
+            delayLongPress={250}
+            style={{
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              backgroundColor: isDark ? Colors.primary : Colors.secondary,
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+          >
+            <View
               style={{
-                borderRadius: 16,
-                padding: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                backgroundColor: cardBg,
-                borderWidth: 1,
-                borderColor: isSelected ? "transparent" : cardBorder,
+                minWidth: 120,
+                flexDirection: esCompuesto ? "row" : "column",
+                gap: esCompuesto ? 8 : 0,
               }}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
             >
-              <View
+              {ejerciciosDelItem.map((ej) => (
+                <View
+                  key={`${key}-${ej.ejercicioId}`}
+                  style={{
+                    width: imageSize,
+                    height: imageSize,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    borderColor: t.border,
+                    backgroundColor: isDark ? Colors.primary : Colors.secondary,
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ej.ejercicioInfo?.idGif ?? ""}.gif`,
+                    }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                  />
+                </View>
+              ))}
+            </View>
+
+            <View style={{ flex: 1, minWidth: 0 as any }}>
+              <Text
+                numberOfLines={1}
                 style={{
-                  minWidth: 120,
-                  flexDirection: esCompuesto ? "row" : "column",
-                  gap: esCompuesto ? 8 : 0,
+                  fontSize: 14,
+                  fontWeight: "700",
+                  fontFamily: Font.body.bold,
+                  color: t.textPrimary,
                 }}
               >
-                {ejerciciosDelItem.map((ej) => (
-                  <View
-                    key={`${key}-${ej.ejercicioId}`}
-                    style={{
-                      width: imageSize,
-                      height: imageSize,
-                      borderRadius: 12,
-                      overflow: "hidden",
-                      borderWidth: 1,
-                      borderColor: cardBorder,
-                      backgroundColor: isDark ? "#020617" : "#ffffff",
-                    }}
-                  >
-                    <Image
-                      source={{
-                        uri: `https://res.cloudinary.com/dcn4vq1n4/image/upload/v1752248579/ejercicios/${ej.ejercicioInfo?.idGif ?? ""
-                          }.gif`,
-                      }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="contain"
-                    />
-                  </View>
-                ))}
-              </View>
+                {tituloItem}
+              </Text>
 
-              <View style={{ flex: 1, minWidth: 0 as any }}>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "700",
-                    color: textPrimary,
-                  }}
-                >
-                  {tituloItem}
-                </Text>
-
-                <View
-                  style={{
-                    marginTop: 6,
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 8,
-                  }}
-                >
-                  {esCompuesto ? (
-                    <>
-                      <Chip isDark={isDark}>
-                        {cmp!.tipoCompuesto ?? "-"}
-                      </Chip>
-                      <Chip isDark={isDark}>
-                        Descanso: {cmp!.descansoCompuesto ?? 0}s
-                      </Chip>
-                      <Chip isDark={isDark}>
-                        {ejerciciosDelItem.length} ejercicios
-                      </Chip>
-                    </>
-                  ) : (
-                    <>
-                      <Chip isDark={isDark}>
-                        Series: {principal?.seriesSugeridas ?? "-"}
-                      </Chip>
-                      <Chip isDark={isDark}>
-                        Reps: {principal?.repeticionesSugeridas ?? "-"}
-                      </Chip>
-                      <Chip isDark={isDark}>
-                        Peso: {formatWeight(principal?.pesoSugerido)}
-                      </Chip>
-                    </>
-                  )}
-                </View>
+              <View
+                style={{
+                  marginTop: 6,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                {esCompuesto ? (
+                  <>
+                    <Chip isDark={isDark}>{cmp!.tipoCompuesto ?? "-"}</Chip>
+                    <Chip isDark={isDark}>Descanso: {cmp!.descansoCompuesto ?? 0}s</Chip>
+                    <Chip isDark={isDark}>{ejerciciosDelItem.length} ejercicios</Chip>
+                  </>
+                ) : (
+                  <>
+                    <Chip isDark={isDark}>Series: {principal?.seriesSugeridas ?? "-"}</Chip>
+                    <Chip isDark={isDark}>Reps: {principal?.repeticionesSugeridas ?? "-"}</Chip>
+                    <Chip isDark={isDark}>Peso: {formatWeight(principal?.pesoSugerido)}</Chip>
+                  </>
+                )}
               </View>
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
         </View>
       );
     },
-    [activeKey, cardBg, cardBorder, frameGradient, formatWeight, isDark, textPrimary]
+    [activeKey, formatWeight, isDark, t]
   );
 
   if (data.length === 0) {
@@ -373,13 +346,8 @@ export default function DiaRutinaView({
   );
 }
 
-function Chip({
-  children,
-  isDark,
-}: {
-  children: React.ReactNode;
-  isDark: boolean;
-}) {
+function Chip({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
+  const t = scheme(isDark);
   return (
     <View
       style={{
@@ -387,15 +355,15 @@ function Chip({
         paddingVertical: 6,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.12)",
-        backgroundColor: isDark ? "#020617" : "#ffffff",
+        borderColor: t.border,
+        backgroundColor: isDark ? Colors.primary : Colors.secondary,
       }}
     >
       <Text
         style={{
           fontSize: 12,
-          color: isDark ? "#cbd5e1" : "#475569",
-          fontWeight: "600",
+          fontFamily: Font.body.semiBold,
+          color: t.textSecondary,
         }}
       >
         {children as any}
@@ -405,10 +373,12 @@ function Chip({
 }
 
 function Explicacion() {
+  const { colorScheme } = useColorScheme();
+  const t = scheme(colorScheme === "dark");
   return (
     <View style={{ alignItems: "center", gap: 6 }}>
-      <Text style={{ color: "#64748b" }}>Aún no hay ejercicios en este día.</Text>
-      <Text style={{ color: "#94a3b8", fontSize: 12 }}>
+      <Text style={{ color: t.textSecondary }}>Aún no hay ejercicios en este día.</Text>
+      <Text style={{ color: t.textTertiary, fontSize: 12 }}>
         Añade ejercicios o compuestos para empezar.
       </Text>
     </View>

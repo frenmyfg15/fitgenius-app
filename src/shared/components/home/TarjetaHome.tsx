@@ -439,6 +439,7 @@ const HeroEjercicio = memo(function HeroEjercicio({
       : imagenPorGrupo(ejercicio.ejercicio?.grupoMuscular);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -460,6 +461,27 @@ const HeroEjercicio = memo(function HeroEjercicio({
     loop.start();
     return () => loop.stop();
   }, [pulseAnim]);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1800),
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 650,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shimmerAnim]);
 
   const statPills = useMemo(() => {
     if (isCompuesto) {
@@ -549,16 +571,31 @@ const HeroEjercicio = memo(function HeroEjercicio({
       </View>
 
       {/* ── Botón full-width ── */}
-      <Animated.View style={[heroStyles.ctaWrapper, { transform: [{ scale: pulseAnim }] }]}>
-        <LinearGradient
-          colors={["#39FF14", "#2DB800"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={heroStyles.ctaButton}
-        >
-          <Text style={heroStyles.ctaText}>Empezar</Text>
-          <ChevronRight size={18} color="#fff" strokeWidth={2.5} />
-        </LinearGradient>
+      <Animated.View style={[heroStyles.ctaOuter, { transform: [{ scale: pulseAnim }] }]}>
+        <View style={heroStyles.ctaWrapper}>
+          <View style={heroStyles.ctaButton}>
+            <Text style={heroStyles.ctaText}>Empezar</Text>
+            <ChevronRight size={18} color="#111111" strokeWidth={2.5} />
+          </View>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              heroStyles.shimmer,
+              {
+                transform: [
+                  {
+                    translateX: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-360, 360],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={heroStyles.shimmerInner} />
+          </Animated.View>
+        </View>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -572,7 +609,7 @@ const heroStyles = StyleSheet.create({
   },
   imageWrapper: {
     width: "100%",
-    height: 190,
+    height: 260,
   },
   image: {
     width: "100%",
@@ -589,7 +626,7 @@ const heroStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 90,
+    height: 120,
   },
   tagBadge: {
     position: "absolute",
@@ -637,10 +674,18 @@ const heroStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  ctaWrapper: {
+  ctaOuter: {
     marginHorizontal: tokens.spacing.lg,
     marginBottom: tokens.spacing.lg,
     marginTop: tokens.spacing.xs,
+    borderRadius: tokens.radius.full,
+    shadowColor: "#39FF14",
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  ctaWrapper: {
     borderRadius: tokens.radius.full,
     overflow: "hidden",
   },
@@ -650,12 +695,25 @@ const heroStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 15,
+    backgroundColor: "#39FF14",
   },
   ctaText: {
-    color: "#FFFFFF",
+    color: "#111111",
     fontSize: 15,
     fontWeight: "800",
     letterSpacing: 0.3,
+  },
+  shimmer: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 44,
+  },
+  shimmerInner: {
+    flex: 1,
+    width: 44,
+    backgroundColor: "rgba(255,255,255,0.38)",
+    transform: [{ skewX: "-20deg" }],
   },
 });
 

@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useColorScheme } from "nativewind";
 import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -104,8 +105,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   label: {
-    fontSize: 11,
-    fontWeight: "700",
+    ...TextStyle.caption,
+    fontFamily: Font.body.bold,
   },
   indicator: {
     position: "absolute",

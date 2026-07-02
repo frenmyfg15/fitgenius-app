@@ -28,6 +28,8 @@ import type {
 } from "@/features/type/crearRutina";
 import FormularioEjercicio from "@/shared/components/rutinas-manuales/FormularioEjercicio";
 import BuscadorEjercicio from "@/shared/components/ui/BuscadorEjercicio";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 const TIPOS: TipoCompuesto[] = ["SUPERSET", "DROPSET", "CIRCUITO"];
 
@@ -73,30 +75,22 @@ export default function EditarCompuestoSheet({
     const insets = useSafeAreaInsets();
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-    // Distingue cierre por confirmación vs cancelación
     const confirmedRef = useRef(false);
     const snapPoints = useMemo(() => ["100%"], []);
     const topInset = Math.max(insets.top, 12);
 
-    // ─── Estado local ─────────────────────────────────────────────────────────────
     const [nombre, setNombre] = useState(nombreInicial);
     const [tipo, setTipo] = useState<TipoCompuesto>(tipoInicial);
     const [descanso, setDescanso] = useState(descansoInicial);
     const [hijos, setHijos] = useState<HijoEditable[]>([]);
 
-    // Hijo que se está editando
     const [hijoEditando, setHijoEditando] = useState<HijoEditable | null>(null);
-
-    // Mostrar buscador para añadir nuevo hijo
     const [mostrarBuscador, setMostrarBuscador] = useState(false);
-
-    // Ejercicio nuevo seleccionado del buscador, pendiente de pasar por FormularioEjercicio
     const [nuevoEjercicio, setNuevoEjercicio] = useState<{
         id: number;
         info: EjercicioVisualInfo;
     } | null>(null);
 
-    // ─── Sincronizar estado cuando se abre ───────────────────────────────────────
     useEffect(() => {
         if (!visible) return;
         setNombre(nombreInicial);
@@ -114,7 +108,6 @@ export default function EditarCompuestoSheet({
         setMostrarBuscador(false);
     }, [visible]);
 
-    // ─── Bottom sheet ─────────────────────────────────────────────────────────────
     useEffect(() => {
         if (visible) {
             confirmedRef.current = false;
@@ -127,11 +120,10 @@ export default function EditarCompuestoSheet({
         }
     }, [visible]);
 
-    // onDismiss distingue confirmación vs cancelación
     const handleDismiss = useCallback(() => {
         if (confirmedRef.current) {
             confirmedRef.current = false;
-            return; // fue confirmación — el padre ya gestiona el cierre
+            return;
         }
         onCancel();
     }, [onCancel]);
@@ -149,16 +141,10 @@ export default function EditarCompuestoSheet({
         []
     );
 
-    // ─── Colores ──────────────────────────────────────────────────────────────────
-    const cardBg = isDark ? "#0f172a" : "#ffffff";
-    const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-    const textSecondary = isDark ? "#94a3b8" : "#64748b";
-    const accentColor = isDark ? "#10b981" : "#059669";
-    const surface = isDark ? "#1e293b" : "#f1f5f9";
-    const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-    const placeholderColor = isDark ? "#64748b" : "#94a3b8";
-
-    // ─── Acciones sobre hijos ─────────────────────────────────────────────────────
+    const t = scheme(isDark);
+    const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+    const surface = isDark ? Colors.dark.surfaceAlt : t.surface;
+    const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
     const handleEliminarHijo = (ejercicioId: number) => {
         if (hijos.length <= MIN_HIJOS) {
@@ -208,8 +194,6 @@ export default function EditarCompuestoSheet({
         setNuevoEjercicio(null);
     };
 
-    // ─── Confirmar edición completa ───────────────────────────────────────────────
-
     const handleConfirmar = () => {
         if (!nombre.trim()) {
             Toast.show({
@@ -229,7 +213,6 @@ export default function EditarCompuestoSheet({
             return;
         }
 
-        // Marca confirmación ANTES de dismiss para que handleDismiss no llame onCancel
         confirmedRef.current = true;
         bottomSheetModalRef.current?.dismiss();
         onConfirm({
@@ -241,8 +224,6 @@ export default function EditarCompuestoSheet({
             ejercicios: hijos.map((h, i) => ({ ...h, orden: i + 1 })),
         });
     };
-
-    // ─── Render ───────────────────────────────────────────────────────────────────
 
     return (
         <>
@@ -266,7 +247,7 @@ export default function EditarCompuestoSheet({
                     ...(Platform.OS === "android" ? { elevation: 9999 } : null),
                 }}
                 handleIndicatorStyle={{
-                    backgroundColor: isDark ? "#334155" : "#e2e8f0",
+                    backgroundColor: t.border,
                     width: 40,
                 }}
                 backgroundStyle={{ backgroundColor: cardBg }}
@@ -291,7 +272,7 @@ export default function EditarCompuestoSheet({
                     >
                         <View>
                             <Text
-                                style={{ fontSize: 18, fontWeight: "800", color: textPrimary }}
+                                style={{ fontSize: 18, fontWeight: "800", fontFamily: Font.body.bold, color: t.textPrimary }}
                             >
                                 Editar compuesto
                             </Text>
@@ -299,7 +280,8 @@ export default function EditarCompuestoSheet({
                                 style={{
                                     fontSize: 10,
                                     fontWeight: "800",
-                                    color: textSecondary,
+                                    fontFamily: Font.body.bold,
+                                    color: t.textSecondary,
                                     letterSpacing: 1,
                                     marginTop: 2,
                                 }}
@@ -308,7 +290,7 @@ export default function EditarCompuestoSheet({
                             </Text>
                         </View>
                         <Pressable onPress={onCancel} hitSlop={10}>
-                            <X size={20} color={textSecondary} />
+                            <X size={20} color={t.textSecondary} />
                         </Pressable>
                     </View>
 
@@ -317,7 +299,8 @@ export default function EditarCompuestoSheet({
                         style={{
                             fontSize: 12,
                             fontWeight: "700",
-                            color: textSecondary,
+                            fontFamily: Font.body.bold,
+                            color: t.textSecondary,
                             marginBottom: 8,
                         }}
                     >
@@ -327,13 +310,13 @@ export default function EditarCompuestoSheet({
                         value={nombre}
                         onChangeText={setNombre}
                         placeholder="Ej: Superset Pecho y Tríceps"
-                        placeholderTextColor={placeholderColor}
+                        placeholderTextColor={t.textTertiary}
                         style={{
                             borderRadius: 16,
                             paddingHorizontal: 14,
                             paddingVertical: 12,
                             backgroundColor: surface,
-                            color: textPrimary,
+                            color: t.textPrimary,
                             fontSize: 14,
                             marginBottom: 16,
                         }}
@@ -344,7 +327,8 @@ export default function EditarCompuestoSheet({
                         style={{
                             fontSize: 12,
                             fontWeight: "700",
-                            color: textSecondary,
+                            fontFamily: Font.body.bold,
+                            color: t.textSecondary,
                             marginBottom: 8,
                         }}
                     >
@@ -361,11 +345,11 @@ export default function EditarCompuestoSheet({
                         <Picker
                             selectedValue={tipo}
                             onValueChange={(v) => setTipo(v as TipoCompuesto)}
-                            dropdownIconColor={textSecondary}
-                            style={{ height: 54, color: textPrimary }}
+                            dropdownIconColor={t.textSecondary}
+                            style={{ height: 54, color: t.textPrimary }}
                         >
-                            {TIPOS.map((t) => (
-                                <Picker.Item key={t} label={t} value={t} color={textPrimary} />
+                            {TIPOS.map((tp) => (
+                                <Picker.Item key={tp} label={tp} value={tp} color={t.textPrimary} />
                             ))}
                         </Picker>
                     </View>
@@ -375,7 +359,8 @@ export default function EditarCompuestoSheet({
                         style={{
                             fontSize: 12,
                             fontWeight: "700",
-                            color: textSecondary,
+                            fontFamily: Font.body.bold,
+                            color: t.textSecondary,
                             marginBottom: 8,
                         }}
                     >
@@ -383,19 +368,19 @@ export default function EditarCompuestoSheet({
                     </Text>
                     <TextInput
                         value={String(descanso)}
-                        onChangeText={(t) => {
-                            const n = Number(t.replace(/[^\d]/g, ""));
+                        onChangeText={(v) => {
+                            const n = Number(v.replace(/[^\d]/g, ""));
                             setDescanso(Number.isFinite(n) ? n : 0);
                         }}
                         placeholder="60"
                         keyboardType="numeric"
-                        placeholderTextColor={placeholderColor}
+                        placeholderTextColor={t.textTertiary}
                         style={{
                             borderRadius: 16,
                             paddingHorizontal: 14,
                             paddingVertical: 12,
                             backgroundColor: surface,
-                            color: textPrimary,
+                            color: t.textPrimary,
                             fontSize: 14,
                             marginBottom: 24,
                         }}
@@ -414,7 +399,8 @@ export default function EditarCompuestoSheet({
                             style={{
                                 fontSize: 11,
                                 fontWeight: "800",
-                                color: textSecondary,
+                                fontFamily: Font.body.bold,
+                                color: t.textSecondary,
                                 letterSpacing: 1,
                             }}
                         >
@@ -429,12 +415,12 @@ export default function EditarCompuestoSheet({
                                 paddingHorizontal: 12,
                                 paddingVertical: 6,
                                 borderRadius: 999,
-                                backgroundColor: accentColor,
+                                backgroundColor: ACTION_GREEN,
                             }}
                         >
                             <Plus size={14} color="#fff" />
                             <Text
-                                style={{ fontSize: 12, fontWeight: "700", color: "#ffffff" }}
+                                style={{ fontSize: 12, fontWeight: "700", fontFamily: Font.body.bold, color: "#ffffff" }}
                             >
                                 Añadir
                             </Text>
@@ -448,7 +434,7 @@ export default function EditarCompuestoSheet({
                                 style={{
                                     borderRadius: 16,
                                     borderWidth: 1,
-                                    borderColor: cardBorder,
+                                    borderColor: t.border,
                                     backgroundColor: surface,
                                     padding: 12,
                                     flexDirection: "row",
@@ -463,7 +449,7 @@ export default function EditarCompuestoSheet({
                                         height: 56,
                                         borderRadius: 12,
                                         overflow: "hidden",
-                                        backgroundColor: isDark ? "#020617" : "#e2e8f0",
+                                        backgroundColor: isDark ? Colors.primary : t.surface,
                                     }}
                                 >
                                     <Image
@@ -483,14 +469,15 @@ export default function EditarCompuestoSheet({
                                         style={{
                                             fontSize: 13,
                                             fontWeight: "700",
-                                            color: textPrimary,
+                                            fontFamily: Font.body.bold,
+                                            color: t.textPrimary,
                                             marginBottom: 4,
                                         }}
                                     >
                                         {hijo.ejercicioInfo?.nombre ?? "Ejercicio"}
                                     </Text>
                                     <Text
-                                        style={{ fontSize: 11, color: textSecondary }}
+                                        style={{ fontSize: 11, color: t.textSecondary }}
                                     >
                                         {hijo.seriesSugeridas ?? "-"} series ·{" "}
                                         {hijo.repeticionesSugeridas ?? "-"} reps ·{" "}
@@ -507,14 +494,12 @@ export default function EditarCompuestoSheet({
                                             width: 36,
                                             height: 36,
                                             borderRadius: 10,
-                                            backgroundColor: isDark
-                                                ? "rgba(255,255,255,0.06)"
-                                                : "#e2e8f0",
+                                            backgroundColor: isDark ? t.border : t.surface,
                                             alignItems: "center",
                                             justifyContent: "center",
                                         }}
                                     >
-                                        <Pencil size={16} color={textSecondary} />
+                                        <Pencil size={16} color={t.textSecondary} />
                                     </Pressable>
                                     <Pressable
                                         onPress={() => handleEliminarHijo(hijo.ejercicioId)}
@@ -547,11 +532,11 @@ export default function EditarCompuestoSheet({
                             justifyContent: "center",
                             flexDirection: "row",
                             gap: 8,
-                            backgroundColor: accentColor,
+                            backgroundColor: ACTION_GREEN,
                         }}
                     >
                         <CheckCircle2 size={20} color="#fff" />
-                        <Text style={{ fontSize: 14, fontWeight: "800", color: "#ffffff" }}>
+                        <Text style={{ fontSize: 14, fontWeight: "800", fontFamily: Font.body.bold, color: "#ffffff" }}>
                             Guardar cambios
                         </Text>
                     </Pressable>
@@ -605,7 +590,6 @@ export default function EditarCompuestoSheet({
                         onSelect={(id, ejercicio) => {
                             if (!ejercicio) return;
 
-                            // Evitar duplicados
                             const yaExiste = hijos.some((h) => h.ejercicioId === id);
                             if (yaExiste) {
                                 Toast.show({

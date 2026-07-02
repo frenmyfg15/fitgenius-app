@@ -14,7 +14,6 @@ export default function ThemeToggle({ text = true }: Props) {
   const { colorScheme, setColorScheme } = useColorScheme();
   const [loading, setLoading] = useState(false);
 
-  // Al montar, recuperar la preferencia guardada y aplicarla
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((saved) => {
       if (saved === "light" || saved === "dark") {
@@ -37,22 +36,13 @@ export default function ThemeToggle({ text = true }: Props) {
   };
 
   return (
-    <View
-      className="rounded-full"
-      style={{
-        shadowColor: "#0f172a",
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 6,
-      }}
-    >
+    <View className="rounded-full">
       <Pressable
         onPress={toggle}
         hitSlop={10}
         disabled={loading}
-        className={`px-3 py-2 flex-row items-center gap-2 rounded-full 
-          bg-slate-200 dark:bg-slate-800 
+        className={`px-3 py-2 flex-row items-center gap-2 rounded-full
+          bg-slate-200 dark:bg-slate-800
           ${loading ? "opacity-50" : "active:opacity-80"}`}
         accessibilityRole="button"
         accessibilityLabel={`Cambiar a tema ${next}`}

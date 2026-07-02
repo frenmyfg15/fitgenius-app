@@ -26,8 +26,9 @@ import {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import type { Item } from "@/features/type/crearRutina";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
-// Mínimo de ejercicios necesarios para poder preguntar a la IA
 const MIN_EJERCICIOS_PARA_IA = 2;
 
 type Props = {
@@ -51,7 +52,6 @@ type Props = {
   puedeSubir?: boolean;
   puedeBajar?: boolean;
   modoEdicion?: boolean;
-  /** Número total de ejercicios en la rutina (todos los días) */
   totalEjercicios?: number;
 };
 
@@ -86,20 +86,16 @@ export default function RutinaControls({
 
   const snapPoints = useMemo(() => ["45%", "70%"], []);
 
-  const cardBg = isDark ? "#0f172a" : "#ffffff";
-  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = isDark ? "#10b981" : "#059669";
+  const t = scheme(isDark);
+  const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+  const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
   const fabBase =
-    "p-4 rounded-full shadow-lg items-center justify-center " +
+    "p-4 rounded-full items-center justify-center " +
     (isDark
       ? "bg-slate-900 border border-white/20"
       : "bg-white border border-neutral-200");
 
-  const iconColor = isDark ? "#f8fafc" : "#1e293b";
-
-  // La IA solo está disponible cuando hay suficientes ejercicios
   const puedeUsarIA = totalEjercicios >= MIN_EJERCICIOS_PARA_IA;
 
   useEffect(() => {
@@ -143,7 +139,7 @@ export default function RutinaControls({
           activeOpacity={0.7}
           style={styles.secondaryFab}
         >
-          <Cog size={24} color={iconColor} />
+          <Cog size={24} color={t.textPrimary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -153,7 +149,7 @@ export default function RutinaControls({
           style={[
             styles.mainFab,
             {
-              backgroundColor: isDark ? "#10b981" : "#059669",
+              backgroundColor: ACTION_GREEN,
               opacity: creando || !puedeCrear ? 0.6 : 1,
             },
           ]}
@@ -177,7 +173,7 @@ export default function RutinaControls({
         backdropComponent={renderBackdrop}
         backgroundStyle={{ backgroundColor: cardBg }}
         handleIndicatorStyle={{
-          backgroundColor: isDark ? "#334155" : "#e2e8f0",
+          backgroundColor: t.border,
           width: 40,
         }}
         style={{
@@ -191,11 +187,11 @@ export default function RutinaControls({
       >
         <BottomSheetView style={styles.sheetContent}>
           <View style={styles.menuHeader}>
-            <Text style={[styles.menuTitle, { color: textPrimary }]}>
+            <Text style={[styles.menuTitle, { color: t.textPrimary }]}>
               Acciones de Rutina
             </Text>
             <Pressable onPress={closeMenu} hitSlop={10}>
-              <X size={20} color={textSecondary} />
+              <X size={20} color={t.textSecondary} />
             </Pressable>
           </View>
 
@@ -203,16 +199,16 @@ export default function RutinaControls({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <Text style={styles.sectionLabel}>AÑADIR</Text>
+            <Text style={[styles.sectionLabel, { color: t.textSecondary }]}>AÑADIR</Text>
             <View style={styles.row}>
               <MenuOption
-                icon={<Plus size={20} color={iconColor} />}
+                icon={<Plus size={20} color={t.textPrimary} />}
                 label="Ejercicio"
                 onPress={() => executeAction(onAgregarEjercicio)}
                 isDark={isDark}
               />
               <MenuOption
-                icon={<Plus size={20} color={iconColor} />}
+                icon={<Plus size={20} color={t.textPrimary} />}
                 label="Compuesto"
                 onPress={() => executeAction(onAgregarCompuesto)}
                 isDark={isDark}
@@ -238,10 +234,10 @@ export default function RutinaControls({
 
             {haySeleccion && (
               <>
-                <Text style={styles.sectionLabel}>SELECCIÓN</Text>
+                <Text style={[styles.sectionLabel, { color: t.textSecondary }]}>SELECCIÓN</Text>
                 <View style={styles.row}>
                   <MenuOption
-                    icon={<Pencil size={18} color={iconColor} />}
+                    icon={<Pencil size={18} color={t.textPrimary} />}
                     label="Editar"
                     onPress={() => executeAction(onEditarSeleccion)}
                     isDark={isDark}
@@ -251,7 +247,7 @@ export default function RutinaControls({
                     icon={
                       <Plus
                         size={18}
-                        color={iconColor}
+                        color={t.textPrimary}
                         style={{ transform: [{ rotate: "180deg" }] }}
                       />
                     }
@@ -261,7 +257,7 @@ export default function RutinaControls({
                   />
                   <MenuOption
                     disabled={!puedeBajar}
-                    icon={<Plus size={18} color={iconColor} />}
+                    icon={<Plus size={18} color={t.textPrimary} />}
                     label="Bajar"
                     onPress={() => executeAction(onBajarSeleccion)}
                     isDark={isDark}
@@ -276,17 +272,17 @@ export default function RutinaControls({
               </>
             )}
 
-            <Text style={styles.sectionLabel}>HERRAMIENTAS</Text>
+            <Text style={[styles.sectionLabel, { color: t.textSecondary }]}>HERRAMIENTAS</Text>
             <View style={styles.row}>
               <MenuOption
-                icon={<Cog size={18} color={iconColor} />}
+                icon={<Cog size={18} color={t.textPrimary} />}
                 label="Copiar Día"
                 onPress={() => executeAction(onCopiarDia)}
                 isDark={isDark}
               />
               <MenuOption
                 disabled={!puedePegar}
-                icon={<Cog size={18} color={iconColor} />}
+                icon={<Cog size={18} color={t.textPrimary} />}
                 label="Pegar"
                 onPress={() => executeAction(onPegarAppend)}
                 isDark={isDark}
@@ -299,9 +295,8 @@ export default function RutinaControls({
               />
             </View>
 
-            {/* Hint visible cuando la IA está bloqueada */}
             {!puedeUsarIA && (
-              <Text style={[styles.iaHint, { color: textSecondary }]}>
+              <Text style={[styles.iaHint, { color: t.textSecondary }]}>
                 💡 Añade al menos {MIN_EJERCICIOS_PARA_IA} ejercicios a la rutina para activar el chat con IA.
               </Text>
             )}
@@ -327,6 +322,7 @@ function MenuOption({
   disabled?: boolean;
   tooltip?: string;
 }) {
+  const t = scheme(isDark);
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -337,13 +333,16 @@ function MenuOption({
       <View
         style={[
           styles.optionIcon,
-          { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" },
+          {
+            backgroundColor: isDark ? t.border : t.surface,
+            borderColor: t.border,
+          },
         ]}
       >
         {icon}
       </View>
       <Text
-        style={[styles.optionLabel, { color: isDark ? "#cbd5e1" : "#475569" }]}
+        style={[styles.optionLabel, { color: t.textSecondary }]}
         numberOfLines={1}
       >
         {label}
@@ -368,21 +367,11 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
   },
   secondaryFab: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2.5,
   },
   sheetContent: {
     flex: 1,
@@ -399,6 +388,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 18,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
   scrollContent: {
     paddingBottom: 24,
@@ -406,7 +396,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#94a3b8",
+    fontFamily: Font.body.bold,
     letterSpacing: 1,
     marginBottom: 12,
     marginTop: 8,
@@ -429,16 +419,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
   },
   optionLabel: {
     fontSize: 10,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     textAlign: "center",
   },
   iaHint: {
     fontSize: 12,
     fontWeight: "500",
+    fontFamily: Font.body.medium,
     textAlign: "center",
     marginTop: 4,
     paddingHorizontal: 8,

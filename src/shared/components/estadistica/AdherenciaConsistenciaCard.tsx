@@ -3,58 +3,8 @@ import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
-
-// ── Tokens (mismo sistema compartido que IMCVisual) ───────────────────────────
-const tokens = {
-  color: {
-    // Frame gradient — 3 colores igual que IMCVisual
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
-
-    // Card interior
-    cardBgDark: "rgba(15,24,41,1)",   // opaco, igual que IMCVisual
-    cardBgLight: "#FFFFFF",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-
-    // KPI cards
-    kpiBgDark: "rgba(255,255,255,0.05)",
-    kpiBgLight: "rgba(255,255,255,0.80)",
-    kpiBorderDark: "rgba(255,255,255,0.09)",
-    kpiBorderLight: "#E2E8F0",
-
-    // Filas de progreso
-    rowBgDark: "rgba(15,23,42,0.85)",
-    rowBgLight: "rgba(248,250,252,0.9)",
-    rowBorderDark: "rgba(148,163,184,0.25)",
-    rowBorderLight: "#E2E8F0",
-
-    // Track de barra
-    barTrackDark: "rgba(15,23,42,0.9)",
-    barTrackLight: "#E5E7EB",
-
-    // Separador nota
-    emptyBorderDark: "rgba(255,255,255,0.10)",
-    emptyBorderLight: "rgba(0,0,0,0.06)",
-
-    // Texto
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#64748B",
-    textSecondaryLight: "#64748B",
-    textMutedDark: "#94A3B8",
-    textMutedLight: "#475569",
-  },
-  radius: { lg: 16, md: 12, sm: 8, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
-} as const;
-
-const GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 type Props = {
@@ -96,25 +46,8 @@ export default function AdherenciaConsistenciaCard({
   );
 
   return (
-    <View style={styles.root}>
-      <LinearGradient
-        colors={GRADIENT as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.frame}
-      >
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
-            },
-          ]}
-        >
-          <CardBody isDark={isDark} kpis={kpis} adhe={adhe} cons={cons} />
-        </View>
-      </LinearGradient>
+    <View style={[styles.card, { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary }]}>
+      <CardBody isDark={isDark} kpis={kpis} adhe={adhe} cons={cons} />
     </View>
   );
 }
@@ -128,34 +61,30 @@ function CardBody({
   adhe: number;
   cons: number;
 }) {
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const dotColor = isDark ? "#22C55E" : "#16A34A";
+  const t = scheme(isDark);
 
   return (
     <View style={styles.cardBody}>
-      {/* Header — misma tipografía que IMCVisual */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>
+          <Text style={[styles.headerTitle, { color: t.textPrimary }]}>
             Progreso general
           </Text>
-          <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
+          <Text style={[styles.headerSubtitle, { color: t.textSecondary }]}>
             Resumen de adherencia y consistencia
           </Text>
         </View>
 
         <View style={styles.headerRight}>
           <View style={styles.headerRightRow}>
-            <View style={[styles.headerDot, { backgroundColor: dotColor }]} />
-            <Text style={[styles.headerRightText, { color: textSecondary }]}>
+            <View style={[styles.headerDot, { backgroundColor: Colors.accent }]} />
+            <Text style={[styles.headerRightText, { color: t.textSecondary }]}>
               Últimos días
             </Text>
           </View>
         </View>
       </View>
 
-      {/* KPIs */}
       <View style={styles.kpiRow}>
         {kpis.map((k) => (
           <View key={k.label} style={styles.kpiCol}>
@@ -169,7 +98,6 @@ function CardBody({
         ))}
       </View>
 
-      {/* Barras de progreso */}
       <View style={styles.progressStack}>
         <ProgressRow
           isDark={isDark}
@@ -178,8 +106,8 @@ function CardBody({
           description="Porcentaje de sesiones completadas sobre las planificadas."
           fromColor={isDark ? "#22C55E" : "#16A34A"}
           toColor={isDark ? "#A3E635" : "#4ADE80"}
-          textPrimary={textPrimary}
-          textSecondary={textSecondary}
+          textPrimary={t.textPrimary}
+          textSecondary={t.textSecondary}
           labelRight={getLabel(adhe)}
         />
         <ProgressRow
@@ -189,24 +117,14 @@ function CardBody({
           description="Qué tan estable ha sido tu rutina semana a semana."
           fromColor={isDark ? "#A855F7" : "#8B5CF6"}
           toColor={isDark ? "#EC4899" : "#F97316"}
-          textPrimary={textPrimary}
-          textSecondary={textSecondary}
+          textPrimary={t.textPrimary}
+          textSecondary={t.textSecondary}
           labelRight={getLabel(cons)}
         />
       </View>
 
-      {/* Nota */}
-      <View
-        style={[
-          styles.note,
-          {
-            borderTopColor: isDark
-              ? tokens.color.emptyBorderDark
-              : tokens.color.emptyBorderLight,
-          },
-        ]}
-      >
-        <Text style={[styles.noteText, { color: textSecondary }]}>
+      <View style={[styles.note, { borderTopColor: t.border }]}>
+        <Text style={[styles.noteText, { color: t.textSecondary }]}>
           Intenta mantener una adherencia alta con una consistencia estable: es la
           combinación ideal para progresar y evitar altibajos extremos.
         </Text>
@@ -229,19 +147,19 @@ function Metric({
       ? isDark ? "#4ADE80" : "#16A34A"
       : isDark ? "#A855F7" : "#7C3AED";
 
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textSecondaryLight;
+  const t = scheme(isDark);
 
   return (
     <View
       style={[
         styles.metric,
         {
-          backgroundColor: isDark ? tokens.color.kpiBgDark : tokens.color.kpiBgLight,
-          borderColor: isDark ? tokens.color.kpiBorderDark : tokens.color.kpiBorderLight,
+          backgroundColor: isDark ? t.border : t.surface,
+          borderColor: t.border,
         },
       ]}
     >
-      <Text style={[styles.metricLabel, { color: textMuted }]}>{label}</Text>
+      <Text style={[styles.metricLabel, { color: t.textTertiary }]}>{label}</Text>
       <Text style={[styles.metricValue, { color: colorNum }]}>{value}</Text>
     </View>
   );
@@ -262,6 +180,7 @@ function ProgressRow({
   textSecondary: string;
   labelRight: string;
 }) {
+  const t = scheme(isDark);
   const pct = Math.max(4, Math.min(100, value));
 
   return (
@@ -269,8 +188,8 @@ function ProgressRow({
       style={[
         styles.progressRow,
         {
-          backgroundColor: isDark ? tokens.color.rowBgDark : tokens.color.rowBgLight,
-          borderColor: isDark ? tokens.color.rowBorderDark : tokens.color.rowBorderLight,
+          backgroundColor: isDark ? Colors.dark.surface : t.surface,
+          borderColor: t.border,
         },
       ]}
     >
@@ -290,13 +209,10 @@ function ProgressRow({
         <View
           style={[
             styles.progressTrack,
-            {
-              backgroundColor: isDark
-                ? tokens.color.barTrackDark
-                : tokens.color.barTrackLight,
-            },
+            { backgroundColor: isDark ? Colors.dark.surfaceAlt : t.surface },
           ]}
         >
+          {/* LinearGradient kept — legitimate progress bar fill, not a border trick */}
           <LinearGradient
             colors={[fromColor, toColor]}
             start={{ x: 0, y: 0 }}
@@ -319,54 +235,35 @@ function ProgressRow({
   );
 }
 
-// ── Estilos estáticos ─────────────────────────────────────────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: { width: "100%", maxWidth: 520 },
-
-  // Frame — valores exactos de IMCVisual
-  frame: {
-    borderRadius: tokens.radius.lg,
-    padding: 1.5,
-    overflow: "hidden",
-  },
-
-  // Card interior — sombra añadida igual que IMCVisual
   card: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
+    width: "100%",
+    maxWidth: 520,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
 
-  cardBody: {
-    borderRadius: tokens.radius.lg - 1,
-  },
+  cardBody: { borderRadius: 16 },
 
-  // Header — fontSize 13 + letterSpacing 0.2, igual que IMCVisual
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: tokens.spacing.xl,
-    paddingTop: tokens.spacing.xl,
-    paddingBottom: tokens.spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 13,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.2,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  headerRight: {
-    alignItems: "flex-end",
-  },
+  headerSubtitle: { fontSize: 11, fontFamily: Font.body.regular, marginTop: 2 },
+  headerRight: { alignItems: "flex-end" },
   headerRightRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -377,61 +274,61 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 999,
   },
-  headerRightText: { fontSize: 11 },
+  headerRightText: { fontSize: 11, fontFamily: Font.body.regular },
 
-  // KPI row
   kpiRow: {
     flexDirection: "row",
-    gap: tokens.spacing.md,
-    paddingHorizontal: tokens.spacing.xl,
-    paddingBottom: tokens.spacing.md,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   kpiCol: { flex: 1 },
 
   metric: {
-    borderRadius: tokens.radius.md,
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
   },
-  metricLabel: { fontSize: 12 },
+  metricLabel: { fontSize: 12, fontFamily: Font.body.regular },
   metricValue: {
-    marginTop: tokens.spacing.xs,
+    marginTop: 4,
     fontSize: 28,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
     lineHeight: 32,
   },
 
-  // Progress stack
   progressStack: {
-    paddingHorizontal: tokens.spacing.xl,
-    paddingBottom: tokens.spacing.lg,
-    gap: tokens.spacing.md,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    gap: 12,
   },
 
   progressRow: {
-    borderRadius: tokens.radius.md,
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
   },
   progressHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: tokens.spacing.sm,
+    marginBottom: 8,
   },
   progressTitle: {
     fontSize: 13,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   progressRight: { alignItems: "flex-end" },
-  progressValue: { fontSize: 13, fontWeight: "700" },
-  progressHint: { fontSize: 11, marginTop: 1 },
+  progressValue: { fontSize: 13, fontWeight: "700", fontFamily: Font.body.bold },
+  progressHint: { fontSize: 11, fontFamily: Font.body.regular, marginTop: 1 },
 
   progressBarBlock: {
-    marginTop: tokens.spacing.xs,
-    marginBottom: tokens.spacing.sm,
+    marginTop: 4,
+    marginBottom: 8,
   },
   progressTrack: {
     height: 10,
@@ -445,17 +342,16 @@ const styles = StyleSheet.create({
   progressTicks: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: tokens.spacing.xs,
+    marginTop: 4,
   },
-  progressTick: { fontSize: 10 },
-  progressDesc: { fontSize: 11 },
+  progressTick: { fontSize: 10, fontFamily: Font.body.regular },
+  progressDesc: { fontSize: 11, fontFamily: Font.body.regular },
 
-  // Nota inferior
   note: {
     borderTopWidth: 1,
-    paddingHorizontal: tokens.spacing.xl,
-    paddingTop: tokens.spacing.md,
-    paddingBottom: tokens.spacing.lg,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  noteText: { fontSize: 11 },
+  noteText: { fontSize: 11, fontFamily: Font.body.regular },
 });

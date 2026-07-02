@@ -2,7 +2,6 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
@@ -25,6 +24,8 @@ import {
 
 import PremiumUpsellModal from "@/shared/components/premium/PremiumUpsellModal";
 import DiaRutinaView from "@/shared/components/rutinas-manuales/DiaRutinaView";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 /* ---------- Overlay reutilizable ---------- */
 const Overlay: React.FC<{
@@ -67,6 +68,7 @@ const normalizarDetalles = (detalles: any | undefined): DetallesSeguro => ({
 export default function CrearRutinaScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const h = useCrearRutinaState();
   const selectedOrden =
@@ -133,10 +135,11 @@ export default function CrearRutinaScreen() {
                     style={{
                       color: isDark ? "#fde68a" : "#92400e",
                       fontWeight: "800",
+                      fontFamily: Font.body.bold,
                     }}
                   >
                     Editando rutina:{" "}
-                    <Text style={{ fontWeight: "900" }}>
+                    <Text style={{ fontWeight: "900", fontFamily: Font.body.bold }}>
                       {h.state.nombre || "Sin título"}
                     </Text>
                   </Text>
@@ -145,6 +148,7 @@ export default function CrearRutinaScreen() {
                       marginTop: 4,
                       color: isDark ? "#fbbf24" : "#b45309",
                       fontSize: 12,
+                      fontFamily: Font.body.regular,
                     }}
                   >
                     Realiza cambios y guarda cuando estés listo. Puedes cancelar
@@ -158,11 +162,9 @@ export default function CrearRutinaScreen() {
                     borderRadius: 10,
                     paddingHorizontal: 12,
                     paddingVertical: 8,
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.08)"
-                      : "#ffffff",
+                    backgroundColor: isDark ? t.border : Colors.secondary,
                     borderWidth: 1,
-                    borderColor: isDark ? "rgba(255,255,255,0.12)" : "#fcd34d",
+                    borderColor: isDark ? t.border : "#fcd34d",
                     alignSelf: "flex-start",
                   }}
                   accessibilityLabel="Cancelar edición"
@@ -171,6 +173,7 @@ export default function CrearRutinaScreen() {
                     style={{
                       color: isDark ? "#fde68a" : "#92400e",
                       fontWeight: "700",
+                      fontFamily: Font.body.bold,
                     }}
                   >
                     Cancelar
@@ -200,47 +203,20 @@ export default function CrearRutinaScreen() {
                     h.setSelectedIndex(null);
                   }}
                   style={{
-                    position: "relative",
                     borderRadius: 999,
-                    overflow: "hidden",
                     paddingVertical: 8,
                     paddingHorizontal: 14,
                     minWidth: 52,
                     alignItems: "center",
                     justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: t.borderStrong,
+                    backgroundColor: active ? Colors.secondary : (isDark ? t.border : t.surface),
                   }}
                 >
-                  {active ? (
-                    <LinearGradient
-                      colors={[
-                        "rgb(0,255,64)",
-                        "rgb(94,230,157)",
-                        "rgb(178,0,255)",
-                      ]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        borderRadius: 999,
-                      }}
-                    />
-                  ) : (
-                    <View
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        borderRadius: 999,
-                        backgroundColor: "rgba(255,255,255,0.06)",
-                        borderWidth: 1,
-                        borderColor: "rgba(255,255,255,0.15)",
-                      }}
-                    />
-                  )}
-
                   <Text
                     style={{
-                      color: active ? "#fff" : h.ui.textPrimary,
+                      color: active ? "#0f172a" : h.ui.textPrimary,
                       fontWeight: "700",
                       fontSize: 13,
                       textAlign: "center",
@@ -564,9 +540,8 @@ export default function CrearRutinaScreen() {
             h.isEdit ? "editar rutinas manuales" : "crear rutinas manuales"
           }
           onGoPremium={() => {
-            h.setPremiumModalVisible(false)
-          }
-          }
+            h.setPremiumModalVisible(false);
+          }}
         />
       </View>
     </SafeAreaView>

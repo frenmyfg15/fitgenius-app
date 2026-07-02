@@ -9,6 +9,8 @@ import Svg, {
 } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 const FACTORES: Record<string, number> = {
   sedentario: 1.2,
@@ -20,51 +22,7 @@ const FACTORES: Record<string, number> = {
 const R = 64;
 const C = 2 * Math.PI * R;
 
-const tokens = {
-  color: {
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
-
-    cardBgDark: "rgba(15,24,41,1)",
-    cardBgLight: "#FFFFFF",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-
-    chipBgDark: "rgba(148,163,184,0.12)",
-    chipBgLight: "#F1F5F9",
-    chipBorderDark: "rgba(255,255,255,0.06)",
-    chipBorderLight: "rgba(0,0,0,0.06)",
-
-    metricBgDark: "rgba(15,24,41,0.55)",
-    metricBgLight: "#FFFFFF",
-    metricBorderDark: "rgba(255,255,255,0.06)",
-    metricBorderLight: "rgba(0,0,0,0.06)",
-
-    ringTrackDark: "rgba(148,163,184,0.22)",
-    ringTrackLight: "#E5E7EB",
-
-    barTrackDark: "rgba(148,163,184,0.18)",
-    barTrackLight: "#E5E7EB",
-    barBorderDark: "rgba(255,255,255,0.06)",
-    barBorderLight: "#E5E7EB",
-
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#94A3B8",
-    textSecondaryLight: "#475569",
-    textMutedDark: "#64748B",
-    textMutedLight: "#6B7280",
-  },
-  radius: { lg: 16, md: 12, sm: 10, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
-} as const;
-
-const GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
+const VIZ_GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
 
 type GastoCaloricoProps = {
   peso?: number | string | null;
@@ -118,32 +76,19 @@ function Metric({
   value: string;
   isDark: boolean;
 }) {
+  const t = scheme(isDark);
   return (
     <View
       style={[
         styles.metric,
         {
-          backgroundColor: isDark ? tokens.color.metricBgDark : tokens.color.metricBgLight,
-          borderColor: isDark ? tokens.color.metricBorderDark : tokens.color.metricBorderLight,
+          backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+          borderColor: t.border,
         },
       ]}
     >
-      <Text
-        style={[
-          styles.metricLabel,
-          { color: isDark ? tokens.color.textSecondaryDark : tokens.color.textMutedLight },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[
-          styles.metricValue,
-          { color: isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight },
-        ]}
-      >
-        {value}
-      </Text>
+      <Text style={[styles.metricLabel, { color: t.textTertiary }]}>{label}</Text>
+      <Text style={[styles.metricValue, { color: t.textPrimary }]}>{value}</Text>
     </View>
   );
 }
@@ -157,6 +102,8 @@ export default function GastoCalorico({
 }: GastoCaloricoProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  const t = scheme(isDark);
 
   const actividad = useMemo(() => mapActividad(actividadInicial), [actividadInicial]);
 
@@ -182,175 +129,161 @@ export default function GastoCalorico({
   const pct = gasto ? Math.min(gasto / maxRef, 1) : 0;
   const dash = C * (1 - pct);
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-  const textMuted = isDark ? tokens.color.textMutedDark : tokens.color.textMutedLight;
-
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={GRADIENT as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.frame}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
+        ]}
       >
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-              borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
-            },
-          ]}
-        >
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: textPrimary }]}>Gasto calórico diario</Text>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: t.textPrimary }]}>Gasto calórico diario</Text>
 
-            <View
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
-                  borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
-                },
-              ]}
-            >
-              {hasData ? (
-                <Text style={[styles.chipText, { color: textSecondary }]}>
-                  Actividad:{" "}
-                  <Text style={[styles.chipTextStrong, { color: textPrimary }]}>
-                    {actividad!.label}
-                  </Text>
+          <View
+            style={[
+              styles.chip,
+              {
+                backgroundColor: isDark ? t.border : t.surface,
+                borderColor: t.border,
+              },
+            ]}
+          >
+            {hasData ? (
+              <Text style={[styles.chipText, { color: t.textSecondary }]}>
+                Actividad:{" "}
+                <Text style={[styles.chipTextStrong, { color: t.textPrimary }]}>
+                  {actividad!.label}
                 </Text>
-              ) : (
-                <Text style={[styles.chipText, { color: textSecondary }]}>Datos insuficientes</Text>
-              )}
-            </View>
-          </View>
-
-          {!hasData ? (
-            <Text style={[styles.emptyText, { color: textSecondary }]}>
-              Completa tu{" "}
-              <Text style={[styles.emptyTextStrong, { color: textPrimary }]}>
-                peso, altura, edad, sexo y nivel de actividad
-              </Text>{" "}
-              para estimar tu gasto calórico diario.
-            </Text>
-          ) : (
-            <>
-              <View style={styles.metricsRow}>
-                <Metric label="Tasa basal (TMB)" value={`${tmb} kcal`} isDark={isDark} />
-                <Metric
-                  label="Factor actividad"
-                  value={`× ${stripTrailingZeros(factor!)}`}
-                  isDark={isDark}
-                />
-              </View>
-
-              <View style={styles.mainRow}>
-                <View style={styles.ringBox} accessibilityLabel="Progreso de gasto calórico">
-                  <Svg
-                    width="100%"
-                    height="100%"
-                    viewBox="0 0 180 180"
-                    style={styles.ringSvg}
-                    accessibilityLabel="Anillo de progreso"
-                  >
-                    <Circle
-                      cx="90"
-                      cy="90"
-                      r={R}
-                      stroke={isDark ? tokens.color.ringTrackDark : tokens.color.ringTrackLight}
-                      strokeWidth={12}
-                      fill="transparent"
-                    />
-                    <Defs>
-                      <SvgLinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0%" stopColor={tokens.color.gradientStart} />
-                        <Stop offset="50%" stopColor={tokens.color.gradientMid} />
-                        <Stop offset="100%" stopColor={tokens.color.gradientEnd} />
-                      </SvgLinearGradient>
-                    </Defs>
-                    <Circle
-                      cx="90"
-                      cy="90"
-                      r={R}
-                      stroke="url(#ringGrad)"
-                      strokeWidth={12}
-                      fill="transparent"
-                      strokeDasharray={C}
-                      strokeDashoffset={dash}
-                      strokeLinecap="round"
-                    />
-                  </Svg>
-
-                  <View style={styles.ringCenter} pointerEvents="none">
-                    <Text style={[styles.ringKicker, { color: textMuted }]}>Estimado</Text>
-                    <Text style={[styles.ringValue, { color: textPrimary }]}>{gasto}</Text>
-                    <Text style={[styles.ringUnit, { color: textMuted }]}>kcal / día</Text>
-                  </View>
-                </View>
-
-                <View style={styles.content}>
-                  <Text style={[styles.body, { color: textSecondary }]}>
-                    Energía total que tu cuerpo{" "}
-                    <Text style={[styles.bodyStrong, { color: textPrimary }]}>gasta a diario</Text>{" "}
-                    según tu nivel actual de actividad.
-                  </Text>
-
-                  <View style={styles.refsRow}>
-                    {[
-                      { label: "Ligero", val: 2200 },
-                      { label: "Promedio", val: 2600 },
-                      { label: "Alto", val: 3000 },
-                    ].map((r) => (
-                      <View
-                        key={r.label}
-                        style={[
-                          styles.refChip,
-                          {
-                            backgroundColor: isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight,
-                            borderColor: isDark ? tokens.color.chipBorderDark : tokens.color.chipBorderLight,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.refChipText, { color: textSecondary }]}>
-                          {r.label}: {r.val} kcal
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <View
-                    style={[
-                      styles.barTrack,
-                      {
-                        backgroundColor: isDark ? tokens.color.barTrackDark : tokens.color.barTrackLight,
-                        borderColor: isDark ? tokens.color.barBorderDark : tokens.color.barBorderLight,
-                      },
-                    ]}
-                    accessibilityRole="progressbar"
-                    accessibilityLabel="Barra de referencia"
-                    accessibilityValue={{ min: 0, max: maxRef, now: gasto ?? 0 }}
-                  >
-                    <LinearGradient
-                      colors={["#8bff62", "#39ff14", "#a855f7"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={[styles.barFill, { width: `${pct * 100}%` }]}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              <Text style={[styles.footnote, { color: textMuted }]}>
-                Basado en la fórmula de Mifflin–St Jeor. Este valor es una estimación y puede variar
-                según múltiples factores.
               </Text>
-            </>
-          )}
+            ) : (
+              <Text style={[styles.chipText, { color: t.textSecondary }]}>Datos insuficientes</Text>
+            )}
+          </View>
         </View>
-      </LinearGradient>
+
+        {!hasData ? (
+          <Text style={[styles.emptyText, { color: t.textSecondary }]}>
+            Completa tu{" "}
+            <Text style={[styles.emptyTextStrong, { color: t.textPrimary }]}>
+              peso, altura, edad, sexo y nivel de actividad
+            </Text>{" "}
+            para estimar tu gasto calórico diario.
+          </Text>
+        ) : (
+          <>
+            <View style={styles.metricsRow}>
+              <Metric label="Tasa basal (TMB)" value={`${tmb} kcal`} isDark={isDark} />
+              <Metric
+                label="Factor actividad"
+                value={`× ${stripTrailingZeros(factor!)}`}
+                isDark={isDark}
+              />
+            </View>
+
+            <View style={styles.mainRow}>
+              <View style={styles.ringBox} accessibilityLabel="Progreso de gasto calórico">
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 180 180"
+                  style={styles.ringSvg}
+                  accessibilityLabel="Anillo de progreso"
+                >
+                  <Circle
+                    cx="90"
+                    cy="90"
+                    r={R}
+                    stroke={isDark ? t.border : t.surface}
+                    strokeWidth={12}
+                    fill="transparent"
+                  />
+                  <Defs>
+                    <SvgLinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                      <Stop offset="0%" stopColor={VIZ_GRADIENT[0]} />
+                      <Stop offset="50%" stopColor={VIZ_GRADIENT[1]} />
+                      <Stop offset="100%" stopColor={VIZ_GRADIENT[2]} />
+                    </SvgLinearGradient>
+                  </Defs>
+                  <Circle
+                    cx="90"
+                    cy="90"
+                    r={R}
+                    stroke="url(#ringGrad)"
+                    strokeWidth={12}
+                    fill="transparent"
+                    strokeDasharray={C}
+                    strokeDashoffset={dash}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+
+                <View style={styles.ringCenter} pointerEvents="none">
+                  <Text style={[styles.ringKicker, { color: t.textTertiary }]}>Estimado</Text>
+                  <Text style={[styles.ringValue, { color: t.textPrimary }]}>{gasto}</Text>
+                  <Text style={[styles.ringUnit, { color: t.textTertiary }]}>kcal / día</Text>
+                </View>
+              </View>
+
+              <View style={styles.content}>
+                <Text style={[styles.body, { color: t.textSecondary }]}>
+                  Energía total que tu cuerpo{" "}
+                  <Text style={[styles.bodyStrong, { color: t.textPrimary }]}>gasta a diario</Text>{" "}
+                  según tu nivel actual de actividad.
+                </Text>
+
+                <View style={styles.refsRow}>
+                  {[
+                    { label: "Ligero", val: 2200 },
+                    { label: "Promedio", val: 2600 },
+                    { label: "Alto", val: 3000 },
+                  ].map((r) => (
+                    <View
+                      key={r.label}
+                      style={[
+                        styles.refChip,
+                        {
+                          backgroundColor: isDark ? t.border : t.surface,
+                          borderColor: t.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.refChipText, { color: t.textSecondary }]}>
+                        {r.label}: {r.val} kcal
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View
+                  style={[
+                    styles.barTrack,
+                    {
+                      backgroundColor: isDark ? t.border : t.surface,
+                      borderColor: t.border,
+                    },
+                  ]}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel="Barra de referencia"
+                  accessibilityValue={{ min: 0, max: maxRef, now: gasto ?? 0 }}
+                >
+                  <LinearGradient
+                    colors={["#8bff62", "#39ff14", "#a855f7"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.barFill, { width: `${pct * 100}%` }]}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <Text style={[styles.footnote, { color: t.textTertiary }]}>
+              Basado en la fórmula de Mifflin–St Jeor. Este valor es una estimación y puede variar
+              según múltiples factores.
+            </Text>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -360,191 +293,168 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 520,
   },
-
-  frame: {
-    borderRadius: tokens.radius.lg,
-    padding: 1.5,
+  card: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
+    padding: 20,
     overflow: "hidden",
   },
-
-  card: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
-    padding: tokens.spacing.xl,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
-
   title: {
     fontSize: 13,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.2,
   },
-
   chip: {
-    borderRadius: tokens.radius.sm,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
     maxWidth: 220,
   },
-
   chipText: {
     fontSize: 11,
+    fontFamily: Font.body.regular,
     lineHeight: 14,
   },
-
   chipTextStrong: {
     fontWeight: "700",
+    fontFamily: Font.body.bold,
   },
-
   emptyText: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     fontSize: 13,
+    fontFamily: Font.body.regular,
     lineHeight: 20,
   },
-
   emptyTextStrong: {
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
-
   metricsRow: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     flexDirection: "row",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
-
   metric: {
     flex: 1,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: tokens.spacing.md,
+    padding: 12,
   },
-
   metricLabel: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
-
   metricValue: {
     marginTop: 2,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.1,
   },
-
   mainRow: {
-    marginTop: tokens.spacing.lg,
+    marginTop: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.lg,
+    gap: 16,
   },
-
   ringBox: {
     width: 160,
     height: 160,
     position: "relative",
     flexShrink: 0,
   },
-
   ringSvg: {
     position: "absolute",
     inset: 0,
     transform: [{ rotate: "-90deg" }],
   },
-
   ringCenter: {
     position: "absolute",
     inset: 0,
     alignItems: "center",
     justifyContent: "center",
   },
-
   ringKicker: {
     fontSize: 11,
     lineHeight: 12,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
-
   ringValue: {
     fontSize: 22,
     lineHeight: 26,
     fontWeight: "900",
+    fontFamily: Font.title.bold,
     letterSpacing: -0.4,
     marginTop: 2,
   },
-
   ringUnit: {
     fontSize: 11,
     lineHeight: 12,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     marginTop: 0,
   },
-
   content: {
     flex: 1,
     minWidth: 0,
   },
-
   body: {
     fontSize: 13,
     lineHeight: 20,
+    fontFamily: Font.body.regular,
   },
-
   bodyStrong: {
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
-
   refsRow: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
-
   refChip: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
   },
-
   refChipText: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
-
   barTrack: {
-    marginTop: tokens.spacing.md,
+    marginTop: 12,
     height: 10,
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
     overflow: "hidden",
     borderWidth: 1,
   },
-
   barFill: {
     height: "100%",
   },
-
   footnote: {
-    marginTop: tokens.spacing.lg,
+    marginTop: 16,
     fontSize: 11,
     lineHeight: 16,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
 });

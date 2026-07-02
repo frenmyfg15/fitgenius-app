@@ -1,4 +1,4 @@
-﻿// src/shared/components/home/CoachHistorialSection.tsx
+// src/shared/components/home/CoachHistorialSection.tsx
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -9,6 +9,8 @@ import {
 import { useColorScheme } from "nativewind";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 import { useOverlayPresenter } from "@/shared/overlay/useOverlayPresenter";
 import { useAnalisisStore } from "@/features/store/useAnalisisStore";
 import AnalisisDiarioModal from "./AnalisisDiarioModal";
@@ -19,13 +21,13 @@ import type { MoodDiario, MoodSemanal } from "@/features/api/coach.api";
 
 const MOOD_DIARIO_COLOR: Record<MoodDiario, string> = {
   FUEGO:    "#F97316",
-  SOLIDO:   "#39FF14",
+  SOLIDO:   Colors.accent,
   RECUPERA: "#3B82F6",
 };
 
 const MOOD_SEMANAL_COLOR: Record<MoodSemanal, string> = {
-  SEMANA_ELITE:     "#39FF14",
-  SEMANA_SOLIDA:    "#39FF14",
+  SEMANA_ELITE:     Colors.accent,
+  SEMANA_SOLIDA:    Colors.accent,
   SEMANA_IRREGULAR: "#F59E0B",
   SEMANA_RECUPERA:  "#3B82F6",
 };
@@ -103,6 +105,8 @@ export default function CoachHistorialSection({
 
   const weeks = buildCalendarWeeks(year, month);
 
+  const t = scheme(isDark);
+
   const goBack = useCallback(() => {
     if (month === 0) { setYear((y) => y - 1); setMonth(11); }
     else setMonth((m) => m - 1);
@@ -135,22 +139,6 @@ export default function CoachHistorialSection({
     );
   }, [semanalOverlay, onGoPremium]);
 
-  // ── Tokens ────────────────────────────────────────────────────────────────────
-
-  const c = {
-    bg:          isDark ? "#111111"                  : "#F8FAFC",
-    primary:     isDark ? "#F1F5F9"                  : "#0F172A",
-    secondary:   isDark ? "#94A3B8"                  : "#475569",
-    muted:       isDark ? "rgba(148,163,184,0.35)"   : "rgba(100,116,139,0.35)",
-    dimmed:      isDark ? "rgba(148,163,184,0.20)"   : "rgba(100,116,139,0.22)",
-    todayBg:     isDark ? "rgba(57,255,20,0.14)"      : "rgba(57,255,20,0.10)",
-    todayBorder: isDark ? "rgba(57,255,20,0.50)"      : "rgba(57,255,20,0.45)",
-    weekBar:     isDark ? "rgba(255,255,255,0.06)"   : "rgba(0,0,0,0.05)",
-    weekBarActive: (color: string) => color + (isDark ? "33" : "22"),
-    headerBtn:   isDark ? "rgba(255,255,255,0.07)"   : "rgba(0,0,0,0.06)",
-    accent:      "#39FF14",
-  };
-
   // ── Derived ───────────────────────────────────────────────────────────────────
 
   const hasDataInMonth = weeks.some((week) =>
@@ -166,35 +154,35 @@ export default function CoachHistorialSection({
   return (
     <View style={styles.root}>
       {/* Intro */}
-      <Text style={[styles.introTitle, { color: c.primary }]}>
+      <Text style={[styles.introTitle, { color: t.textPrimary }]}>
         Historial del Coach IA
       </Text>
-      <Text style={[styles.introDesc, { color: c.secondary }]}>
+      <Text style={[styles.introDesc, { color: t.textSecondary }]}>
         Cada día de entrenamiento completado genera un análisis. Toca los días o semanas marcados para verlo.
       </Text>
 
       {/* Month navigation */}
       <View style={styles.nav}>
         <TouchableOpacity
-          style={[styles.navBtn, { backgroundColor: c.headerBtn }]}
+          style={[styles.navBtn, { backgroundColor: t.border }]}
           onPress={goBack}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronLeft size={16} color={c.secondary} strokeWidth={2.5} />
+          <ChevronLeft size={16} color={t.textSecondary} strokeWidth={2.5} />
         </TouchableOpacity>
 
-        <Text style={[styles.navTitle, { color: c.primary }]}>
+        <Text style={[styles.navTitle, { color: t.textPrimary }]}>
           {MESES_ES[month]} {year}
         </Text>
 
         <TouchableOpacity
-          style={[styles.navBtn, { backgroundColor: c.headerBtn }]}
+          style={[styles.navBtn, { backgroundColor: t.border }]}
           onPress={goForward}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronRight size={16} color={c.secondary} strokeWidth={2.5} />
+          <ChevronRight size={16} color={t.textSecondary} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -203,18 +191,18 @@ export default function CoachHistorialSection({
         <View style={styles.legendLeft}>
           {([
             ["#F97316", "Fuego"],
-            ["#39FF14", "Sólido"],
+            [Colors.accent, "Sólido"],
             ["#3B82F6", "Recupera"],
           ] as [string, string][]).map(([color, label]) => (
             <View key={label} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: color }]} />
-              <Text style={[styles.legendLabel, { color: c.muted }]}>{label}</Text>
+              <Text style={[styles.legendLabel, { color: t.textTertiary }]}>{label}</Text>
             </View>
           ))}
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendWeekBar, { backgroundColor: c.secondary + "55" }]} />
-          <Text style={[styles.legendLabel, { color: c.muted }]}>Semana</Text>
+          <View style={[styles.legendWeekBar, { backgroundColor: t.textSecondary + "55" }]} />
+          <Text style={[styles.legendLabel, { color: t.textTertiary }]}>Semana</Text>
         </View>
       </View>
 
@@ -224,14 +212,14 @@ export default function CoachHistorialSection({
         <View style={styles.weekColSpacer} />
         {DIAS_ES.map((d) => (
           <View key={d} style={styles.dayCell}>
-            <Text style={[styles.dowLabel, { color: c.muted }]}>{d}</Text>
+            <Text style={[styles.dowLabel, { color: t.textTertiary }]}>{d}</Text>
           </View>
         ))}
       </View>
 
       {/* Weeks */}
       {!hasDataInMonth && (
-        <Text style={[styles.emptyMonth, { color: c.muted }]}>
+        <Text style={[styles.emptyMonth, { color: t.textTertiary }]}>
           Sin análisis este mes
         </Text>
       )}
@@ -249,8 +237,8 @@ export default function CoachHistorialSection({
                 styles.weekIndicator,
                 {
                   backgroundColor: weekColor
-                    ? c.weekBarActive(weekColor)
-                    : c.weekBar,
+                    ? weekColor + (isDark ? "33" : "22")
+                    : t.border,
                 },
               ]}
               activeOpacity={weekColor ? 0.7 : 1}
@@ -261,7 +249,7 @@ export default function CoachHistorialSection({
                 style={[
                   styles.weekDot,
                   {
-                    backgroundColor: weekColor ?? c.dimmed,
+                    backgroundColor: weekColor ?? t.textDisabled,
                     opacity: weekColor ? 1 : 0.4,
                   },
                 ]}
@@ -282,8 +270,8 @@ export default function CoachHistorialSection({
                   style={[
                     styles.dayCell,
                     isToday && {
-                      backgroundColor: c.todayBg,
-                      borderColor:     c.todayBorder,
+                      backgroundColor: Colors.accentSubtle,
+                      borderColor:     Colors.accentStrong,
                       borderWidth:     1,
                       borderRadius:    10,
                     },
@@ -296,10 +284,10 @@ export default function CoachHistorialSection({
                       styles.dayNumber,
                       {
                         color: isToday
-                          ? c.accent
+                          ? Colors.accent
                           : inMonth
-                          ? c.primary
-                          : c.dimmed,
+                          ? t.textPrimary
+                          : t.textDisabled,
                         fontWeight: isToday ? "800" : inMonth ? "500" : "400",
                       },
                     ]}
@@ -350,6 +338,7 @@ const styles = StyleSheet.create({
   navTitle: {
     fontSize:   16,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.2,
   },
   dowRow: {
@@ -363,6 +352,7 @@ const styles = StyleSheet.create({
   dowLabel: {
     fontSize:      11,
     fontWeight:    "700",
+    fontFamily:    Font.body.bold,
     letterSpacing: 0.4,
     textAlign:     "center",
   },
@@ -392,7 +382,8 @@ const styles = StyleSheet.create({
     gap:            3,
   },
   dayNumber: {
-    fontSize: 14,
+    fontSize:   14,
+    fontFamily: Font.body.regular,
   },
   dayDot: {
     width:        5,
@@ -406,6 +397,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize:      18,
     fontWeight:    "800",
+    fontFamily:    Font.title.bold,
     letterSpacing: -0.3,
     marginBottom:  6,
   },
@@ -413,6 +405,7 @@ const styles = StyleSheet.create({
     fontSize:     13,
     lineHeight:   20,
     fontWeight:   "500",
+    fontFamily:   Font.body.medium,
     marginBottom: 20,
   },
   legend: {
@@ -444,11 +437,13 @@ const styles = StyleSheet.create({
   legendLabel: {
     fontSize:   11,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   emptyMonth: {
     textAlign:  "center",
     fontSize:   13,
     fontWeight: "500",
+    fontFamily: Font.body.medium,
     paddingVertical: 20,
   },
 });

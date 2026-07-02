@@ -1,4 +1,4 @@
-﻿// src/features/fit/screens/CambiarContrasenaScreen.tsx
+// src/features/fit/screens/CambiarContrasenaScreen.tsx
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -11,13 +11,14 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react-native";
 import { cambiarContrasena } from "@/features/api/usuario.api";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 /* ---------------- Validación ---------------- */
 
@@ -34,44 +35,7 @@ const schema = z
     message: "Las contraseñas no coinciden",
   });
 
-/* ---------------- Tokens ---------------- */
-
-const tokens = {
-  color: {
-    pageBgDark: "#111111",
-    pageBgLight: "#ffffff",
-
-    frameGradient: ["#39FF14", "#A855F7"] as string[],
-
-    cardBgDark: "#0f172a",
-    cardBgLight: "#ffffff",
-
-    cardBorderDark: "rgba(255,255,255,0.10)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-
-    inputBgDark: "rgba(255,255,255,0.03)",
-    inputBgLight: "#ffffff",
-
-    inputBorderDark: "rgba(255,255,255,0.15)",
-    inputBorderLight: "#e5e7eb",
-
-    textPrimaryDark: "#e5e7eb",
-    textPrimaryLight: "#0f172a",
-
-    textSecondaryDark: "#94a3b8",
-    textSecondaryLight: "#64748b",
-  },
-  radius: {
-    lg: 16,
-    pill: 999,
-  },
-  spacing: {
-    md: 16,
-    lg: 24,
-    xl: 32,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 120,
-  },
-} as const;
+const TAB_BAR_SAFE = Platform.OS === "ios" ? 140 : 120;
 
 /* ---------------- Screen ---------------- */
 
@@ -89,13 +53,8 @@ export default function CambiarContrasenaScreen() {
   const [showNueva, setShowNueva] = useState(false);
   const [showConfirmar, setShowConfirmar] = useState(false);
 
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
+  const t = scheme(isDark);
+  const bg = isDark ? Colors.primary : Colors.secondary;
 
   const onSubmit = useCallback(async () => {
     const parsed = schema.safeParse({
@@ -145,17 +104,12 @@ export default function CambiarContrasenaScreen() {
   }: {
     label: string;
     value: string;
-    onChangeText: (t: string) => void;
+    onChangeText: (v: string) => void;
     visible: boolean;
     toggle: () => void;
   }) => (
-    <View style={{ marginBottom: tokens.spacing.lg }}>
-      <Text
-        style={[
-          styles.label,
-          { color: textPrimary, marginBottom: 6 },
-        ]}
-      >
+    <View style={{ marginBottom: 24 }}>
+      <Text style={[styles.label, { color: t.textPrimary, marginBottom: 6 }]}>
         {label}
       </Text>
 
@@ -165,30 +119,22 @@ export default function CambiarContrasenaScreen() {
           onChangeText={onChangeText}
           secureTextEntry={!visible}
           autoCapitalize="none"
-          placeholderTextColor={textSecondary}
+          placeholderTextColor={t.textSecondary}
           style={[
             styles.input,
             {
-              backgroundColor: isDark
-                ? tokens.color.inputBgDark
-                : tokens.color.inputBgLight,
-              borderColor: isDark
-                ? tokens.color.inputBorderDark
-                : tokens.color.inputBorderLight,
-              color: textPrimary,
+              backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+              borderColor: isDark ? t.borderStrong : t.border,
+              color: t.textPrimary,
             },
           ]}
         />
 
-        <Pressable
-          onPress={toggle}
-          style={styles.eye}
-          accessibilityRole="button"
-        >
+        <Pressable onPress={toggle} style={styles.eye} accessibilityRole="button">
           {visible ? (
-            <EyeOff size={18} color={textSecondary} />
+            <EyeOff size={18} color={t.textSecondary} />
           ) : (
-            <Eye size={18} color={textSecondary} />
+            <Eye size={18} color={t.textSecondary} />
           )}
         </Pressable>
       </View>
@@ -201,106 +147,78 @@ export default function CambiarContrasenaScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: isDark
-            ? tokens.color.pageBgDark
-            : tokens.color.pageBgLight,
-        }}
+        style={{ flex: 1, backgroundColor: bg }}
         contentContainerStyle={{
-          paddingHorizontal: tokens.spacing.md,
-          paddingTop: tokens.spacing.xl,
-          paddingBottom: tokens.spacing.tabBarSafe,
+          paddingHorizontal: 16,
+          paddingTop: 32,
+          paddingBottom: TAB_BAR_SAFE,
           flexGrow: 1,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={{ marginBottom: tokens.spacing.lg }}>
-          <Text style={[styles.title, { color: textPrimary }]}>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={[styles.title, { color: t.textPrimary }]}>
             Cambiar contraseña
           </Text>
-          <Text style={[styles.subtitle, { color: textSecondary }]}>
+          <Text style={[styles.subtitle, { color: t.textSecondary }]}>
             Actualiza tus credenciales de forma segura.
           </Text>
         </View>
 
         {/* Card */}
         <View style={{ maxWidth: 520, alignSelf: "center", width: "100%" }}>
-          <LinearGradient
-            colors={tokens.color.frameGradient as any}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.frame}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary },
+            ]}
           >
-            <View
+            <Field
+              label="Contraseña actual"
+              value={actual}
+              onChangeText={setActual}
+              visible={showActual}
+              toggle={() => setShowActual((v) => !v)}
+            />
+
+            <Field
+              label="Nueva contraseña"
+              value={nueva}
+              onChangeText={setNueva}
+              visible={showNueva}
+              toggle={() => setShowNueva((v) => !v)}
+            />
+
+            <Field
+              label="Confirmar nueva contraseña"
+              value={confirmar}
+              onChangeText={setConfirmar}
+              visible={showConfirmar}
+              toggle={() => setShowConfirmar((v) => !v)}
+            />
+
+            <Pressable
+              onPress={onSubmit}
+              disabled={cargando}
               style={[
-                styles.card,
+                styles.button,
                 {
-                  backgroundColor: isDark
-                    ? tokens.color.cardBgDark
-                    : tokens.color.cardBgLight,
-                  borderColor: isDark
-                    ? tokens.color.cardBorderDark
-                    : tokens.color.cardBorderLight,
+                  backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+                  opacity: cargando ? 0.6 : 1,
                 },
               ]}
             >
-              <Field
-                label="Contraseña actual"
-                value={actual}
-                onChangeText={setActual}
-                visible={showActual}
-                toggle={() => setShowActual((v) => !v)}
-              />
-
-              <Field
-                label="Nueva contraseña"
-                value={nueva}
-                onChangeText={setNueva}
-                visible={showNueva}
-                toggle={() => setShowNueva((v) => !v)}
-              />
-
-              <Field
-                label="Confirmar nueva contraseña"
-                value={confirmar}
-                onChangeText={setConfirmar}
-                visible={showConfirmar}
-                toggle={() => setShowConfirmar((v) => !v)}
-              />
-
-              <LinearGradient
-                colors={tokens.color.frameGradient as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ padding: 1, borderRadius: tokens.radius.pill }}
-              >
-                <Pressable
-                  onPress={onSubmit}
-                  disabled={cargando}
-                  style={[
-                    styles.button,
-                    {
-                      backgroundColor: isDark
-                        ? "#0f172a"
-                        : "#ffffff",
-                      opacity: cargando ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  {cargando ? (
-                    <ActivityIndicator />
-                  ) : (
-                    <Text style={{ color: textPrimary, fontWeight: "600" }}>
-                      Cambiar contraseña
-                    </Text>
-                  )}
-                </Pressable>
-              </LinearGradient>
-            </View>
-          </LinearGradient>
+              {cargando ? (
+                <ActivityIndicator />
+              ) : (
+                <Text style={[styles.buttonText, { color: t.textPrimary }]}>
+                  Cambiar contraseña
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -310,27 +228,27 @@ export default function CambiarContrasenaScreen() {
 /* ---------------- Styles ---------------- */
 
 const styles = StyleSheet.create({
-  frame: {
-    borderRadius: 16,
-    padding: 1,
-    overflow: "hidden",
-  },
   card: {
-    borderRadius: 15,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
     padding: 24,
+    overflow: "hidden",
   },
   title: {
     fontSize: 22,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
   },
   subtitle: {
     fontSize: 13,
+    fontFamily: Font.body.regular,
     marginTop: 4,
   },
   label: {
     fontSize: 13,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   input: {
     borderWidth: 1,
@@ -339,6 +257,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingRight: 44,
     fontSize: 14,
+    fontFamily: Font.body.regular,
   },
   eye: {
     position: "absolute",
@@ -349,7 +268,13 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
     alignItems: "center",
     paddingVertical: 14,
+  },
+  buttonText: {
+    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
 });

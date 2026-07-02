@@ -1,16 +1,16 @@
-﻿import React, { useMemo } from "react";
-import { View, TouchableOpacity, ScrollView, Text } from "react-native";
+import React, { useMemo } from "react";
+import { View, TouchableOpacity, ScrollView, Text, StyleSheet } from "react-native";
 import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 
-// 👇 Subcomponentes de compuestos
 import GraficoVolumenPorSerieCompuestos from "./GraficoVolumenPorSerieCompuestos";
 import EstadisticasRendimientoCompuestos from "./EstadisticasRendimientoCompuestos";
 import VisualizacionesSugeridasCompuestos from "./VisualizacionesSugeridasCompuestos";
 
-/** ================= Tipos mínimos usados en el panel ================= */
 type EjercicioMini = {
   id: number;
   nombre: string;
@@ -49,16 +49,9 @@ type UltimaSesionCompuesta = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  /** Pásame exactamente lo que llega en `ultimaSesion` del backend para compuestos */
   ultimaSesion?: UltimaSesionCompuesta | null;
 };
 
-/**
- * PanelEstadisticasCompuestos
- * - Normaliza `detallesSeriesCompuestas` a una lista plana por registro, preservando `serieNumero`.
- * - Llama SIEMPRE a los hooks antes de cualquier return condicional para evitar
- *   “Rendered more hooks than during the previous render”.
- */
 export default function PanelEstadisticasCompuestos({
   visible,
   onClose,
@@ -66,8 +59,8 @@ export default function PanelEstadisticasCompuestos({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
-  // ✅ Hook SIEMPRE se ejecuta, independientemente de `visible`
   const registrosPlanos = useMemo(() => {
     const detalles = ultimaSesion?.detallesSeriesCompuestas ?? [];
     return detalles.flatMap((det) =>
@@ -88,7 +81,6 @@ export default function PanelEstadisticasCompuestos({
 
   const hayDatos = (registrosPlanos?.length ?? 0) > 0;
 
-  // 🔒 Chequeo defensivo de imports (no afecta hooks)
   if (
     !GraficoVolumenPorSerieCompuestos ||
     !EstadisticasRendimientoCompuestos ||
@@ -100,38 +92,21 @@ export default function PanelEstadisticasCompuestos({
     );
   }
 
-  // ⛔ Return condicional DESPUÉS de los hooks
   if (!visible) return null;
 
   return (
-    <View
-      className="absolute inset-0 z-40 flex-col justify-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.35)" }}
-    >
-      {/* Contenedor del panel */}
+    <View style={styles.container}>
       <View
-        className={
-          "h-[95%] rounded-t-3xl p-6 " +
-          (isDark
-            ? "bg-[#111111]/95 border-t border-white/10"
-            : "bg-white/95 border-t border-neutral-200")
-        }
-        style={{
-          shadowColor: "#000",
-          shadowOpacity: 0.2,
-          shadowOffset: { width: 0, height: -4 },
-          shadowRadius: 8,
-        }}
+        style={[
+          styles.panel,
+          {
+            backgroundColor: isDark ? Colors.primary : Colors.secondary,
+            borderColor: t.border,
+          },
+        ]}
       >
-        {/* Header con botón cerrar */}
-        <View className="flex-row justify-between items-center mb-4">
-          <Text
-            className={
-              isDark
-                ? "text-white font-extrabold text-lg"
-                : "text-neutral-900 font-extrabold text-lg"
-            }
-          >
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: t.textPrimary }]}>
             Estadísticas del ejercicio compuesto
           </Text>
 
@@ -139,19 +114,18 @@ export default function PanelEstadisticasCompuestos({
             onPress={onClose}
             accessibilityLabel="Cerrar panel de estadísticas (compuestos)"
             activeOpacity={0.8}
-            className={"p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")}
+            style={[styles.closeBtn, { backgroundColor: isDark ? t.borderStrong : t.surface }]}
           >
-            <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
+            <X size={20} color={t.textPrimary} />
           </TouchableOpacity>
         </View>
 
-        {/* Contenido scrollable */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 60 }}
         >
           {hayDatos ? (
-            <View className="flex-col gap-3">
+            <View style={{ gap: 12 }}>
               <GraficoVolumenPorSerieCompuestos registros={registrosPlanos} />
               <EstadisticasRendimientoCompuestos registros={registrosPlanos} />
               <VisualizacionesSugeridasCompuestos registros={registrosPlanos} />
@@ -171,3 +145,42 @@ export default function PanelEstadisticasCompuestos({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 40,
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  panel: {
+    height: "95%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerTitle: {
+    ...TextStyle.h3,
+    fontFamily: Font.title.semiBold,
+    flex: 1,
+    marginRight: 12,
+  },
+  closeBtn: {
+    padding: 8,
+    borderRadius: 999,
+  },
+});

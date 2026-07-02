@@ -10,42 +10,10 @@ import {
   StyleSheet,
 } from "react-native";
 import { useColorScheme } from "nativewind";
-import { LinearGradient } from "expo-linear-gradient";
 import { X } from "lucide-react-native";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
-// ── Tokens (mismo sistema que IMCVisual) ──────────────────────────────────────
-const tokens = {
-  color: {
-    gradientStart: "rgb(0,255,64)",
-    gradientMid: "rgb(94,230,157)",
-    gradientEnd: "rgb(178,0,255)",
-
-    cardBgDark: "rgba(15,24,41,1)",
-    cardBgLight: "#FFFFFF",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-
-    badgeBgDark: "rgba(148,163,184,0.12)",
-    badgeBgLight: "#F1F5F9",
-    badgeBorderDark: "rgba(255,255,255,0.06)",
-    badgeBorderLight: "rgba(0,0,0,0.06)",
-
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "#64748B",
-    textSecondaryLight: "#52525B",
-  },
-  radius: { lg: 16, md: 10, full: 999 },
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20 },
-} as const;
-
-const GRADIENT = [
-  tokens.color.gradientStart,
-  tokens.color.gradientMid,
-  tokens.color.gradientEnd,
-] as const;
-
-// ── Escala RPE — 10 niveles con etiqueta clínica ──────────────────────────────
 const RPE_SCALE = [
   { v: 1, label: "Reposo", color: "#60A5FA" },
   { v: 2, label: "Muy ligero", color: "#67E8F9" },
@@ -62,7 +30,6 @@ const RPE_SCALE = [
 const getRPE = (n: number | null) =>
   RPE_SCALE.find((r) => r.v === n) ?? null;
 
-// ── Barra de intensidad animada ───────────────────────────────────────────────
 function IntensityBar({ value, color }: { value: number | null; color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
   const pct = value != null ? value / 10 : 0;
@@ -102,7 +69,6 @@ const bar = StyleSheet.create({
   },
 });
 
-// ── Botón individual del selector ─────────────────────────────────────────────
 function RPEButton({
   item,
   selected,
@@ -124,24 +90,15 @@ function RPEButton({
     onPress();
   };
 
-  const dimBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)";
-  const dimBorder = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)";
-
   return (
     <Animated.View style={{ transform: [{ scale }], flex: 1, alignItems: "center" }}>
       <TouchableOpacity onPress={handlePress} activeOpacity={0.85} style={{ alignItems: "center", width: "100%" }}>
-        {/* Número */}
         <View
           style={[
             btn.circle,
             {
-              backgroundColor: selected ? item.color : dimBg,
-              borderColor: selected ? item.color : dimBorder,
-              shadowColor: selected ? item.color : "transparent",
-              shadowOpacity: selected ? 0.45 : 0,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 3 },
-              elevation: selected ? 4 : 0,
+              backgroundColor: selected ? item.color : isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
+              borderColor: selected ? item.color : isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)",
             },
           ]}
         >
@@ -149,12 +106,12 @@ function RPEButton({
             style={[
               btn.number,
               {
+                fontFamily: Font.body.semiBold,
                 color: selected
                   ? "#0f172a"
                   : isDark
                     ? "rgba(241,245,249,0.55)"
                     : "rgba(15,23,42,0.45)",
-                fontWeight: selected ? "800" : "600",
               },
             ]}
           >
@@ -162,7 +119,6 @@ function RPEButton({
           </Text>
         </View>
 
-        {/* Dot indicador activo */}
         <View
           style={[
             btn.dot,
@@ -198,7 +154,6 @@ const btn = StyleSheet.create({
   },
 });
 
-// ── Props ─────────────────────────────────────────────────────────────────────
 type Props = {
   visible: boolean;
   nivelEstres: number | null;
@@ -208,7 +163,6 @@ type Props = {
   loading?: boolean;
 };
 
-// ── Modal principal ───────────────────────────────────────────────────────────
 const NivelEstresModal: React.FC<Props> = ({
   visible,
   nivelEstres,
@@ -219,170 +173,141 @@ const NivelEstresModal: React.FC<Props> = ({
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const rpe = useMemo(() => getRPE(nivelEstres), [nivelEstres]);
   const accent = rpe?.color ?? (isDark ? "rgba(255,255,255,0.20)" : "#9CA3AF");
   const label = rpe?.label ?? "Selecciona un nivel";
 
-  const textPrimary = isDark ? tokens.color.textPrimaryDark : tokens.color.textPrimaryLight;
-  const textSecondary = isDark ? tokens.color.textSecondaryDark : tokens.color.textSecondaryLight;
-
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable
-        onPress={onClose}
-        style={s.overlay}
-      >
-        <Pressable onPress={() => { }} style={s.wrapper}>
-
-          {/* ── Borde gradiente (idéntico a IMCVisual) ── */}
-          <LinearGradient
-            colors={GRADIENT as any}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.frame}
+      <Pressable onPress={onClose} style={s.overlay}>
+        <Pressable onPress={() => {}} style={s.wrapper}>
+          <View
+            style={[
+              s.card,
+              {
+                backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+              },
+            ]}
           >
+            {/* Header */}
+            <View style={s.header}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.title, { color: t.textPrimary }]}>
+                  Esfuerzo percibido
+                </Text>
+                <Text style={[s.subtitle, { color: t.textSecondary }]}>
+                  Escala RPE · ¿Cómo ha sido este entreno?
+                </Text>
+              </View>
+
+              {rpe && (
+                <View
+                  style={[
+                    s.badge,
+                    {
+                      backgroundColor: isDark ? t.border : t.surface,
+                      borderColor: t.border,
+                    },
+                  ]}
+                >
+                  <Text style={[s.badgeText, { color: t.textPrimary }]}>
+                    {label}
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={onClose}
+                hitSlop={10}
+                style={[
+                  s.closeBtn,
+                  { backgroundColor: isDark ? t.border : t.surface },
+                ]}
+              >
+                <X size={16} color={t.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Valor grande + barra */}
+            <View style={s.valueBlock}>
+              <Text style={[s.valueText, { color: accent }]}>
+                {nivelEstres ?? "--"}
+              </Text>
+
+              <View style={{ flex: 1 }}>
+                <View style={s.valueLabelRow}>
+                  <Text style={[s.valueLabel, { color: t.textSecondary }]}>
+                    {label}
+                  </Text>
+                  <Text style={[s.valueSub, { color: t.textSecondary }]}>
+                    / 10
+                  </Text>
+                </View>
+                <IntensityBar value={nivelEstres} color={accent} />
+              </View>
+            </View>
+
+            {/* Selector RPE */}
             <View
               style={[
-                s.card,
+                s.selector,
                 {
-                  backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-                  borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+                  backgroundColor: isDark ? t.border : t.surface,
+                  borderColor: t.border,
                 },
               ]}
             >
-
-              {/* ── Header ── */}
-              <View style={s.header}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.title, { color: textPrimary }]}>
-                    Esfuerzo percibido
-                  </Text>
-                  <Text style={[s.subtitle, { color: textSecondary }]}>
-                    Escala RPE · ¿Cómo ha sido este entreno?
-                  </Text>
-                </View>
-
-                {/* Badge categoría (mismo estilo que IMCVisual) */}
-                {rpe && (
-                  <View
-                    style={[
-                      s.badge,
-                      {
-                        backgroundColor: isDark ? tokens.color.badgeBgDark : tokens.color.badgeBgLight,
-                        borderColor: isDark ? tokens.color.badgeBorderDark : tokens.color.badgeBorderLight,
-                      },
-                    ]}
-                  >
-                    <Text style={[s.badgeText, { color: textPrimary }]}>
-                      {label}
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  onPress={onClose}
-                  hitSlop={10}
-                  style={[
-                    s.closeBtn,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "rgba(0,0,0,0.05)",
-                    },
-                  ]}
-                >
-                  <X size={16} color={textSecondary} />
-                </TouchableOpacity>
+              <View style={s.buttonsRow}>
+                {RPE_SCALE.map((item) => (
+                  <RPEButton
+                    key={item.v}
+                    item={item}
+                    selected={nivelEstres === item.v}
+                    isDark={isDark}
+                    onPress={() => onChangeNivelEstres(item.v)}
+                  />
+                ))}
               </View>
 
-              {/* ── Valor grande + barra de intensidad ── */}
-              <View style={s.valueBlock}>
-                <Text style={[s.valueText, { color: accent }]}>
-                  {nivelEstres ?? "--"}
+              <View style={s.scaleLabels}>
+                <Text style={[s.scaleLabel, { color: t.textSecondary }]}>
+                  Reposo
                 </Text>
-
-                <View style={{ flex: 1 }}>
-                  <View style={s.valueLabelRow}>
-                    <Text style={[s.valueLabel, { color: textSecondary }]}>
-                      {label}
-                    </Text>
-                    <Text style={[s.valueSub, { color: textSecondary }]}>
-                      / 10
-                    </Text>
-                  </View>
-                  <IntensityBar value={nivelEstres} color={accent} />
-                </View>
+                <Text style={[s.scaleLabel, { color: t.textSecondary }]}>
+                  Máximo esfuerzo
+                </Text>
               </View>
+            </View>
 
-              {/* ── Selector RPE pro ── */}
-              <View
+            {/* Footer */}
+            <View style={s.footer}>
+              <Text style={[s.footerText, { color: t.textSecondary }]}>
+                Usaremos este dato para ajustar tus cargas futuras.
+              </Text>
+
+              <TouchableOpacity
+                onPress={onConfirm}
+                disabled={loading || !nivelEstres}
+                activeOpacity={0.88}
                 style={[
-                  s.selector,
+                  s.confirmBtn,
                   {
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(0,0,0,0.025)",
-                    borderColor: isDark
-                      ? "rgba(255,255,255,0.07)"
-                      : "rgba(0,0,0,0.07)",
+                    backgroundColor: accent,
+                    opacity: loading || !nivelEstres ? 0.45 : 1,
                   },
                 ]}
               >
-                {/* Fila de botones */}
-                <View style={s.buttonsRow}>
-                  {RPE_SCALE.map((item) => (
-                    <RPEButton
-                      key={item.v}
-                      item={item}
-                      selected={nivelEstres === item.v}
-                      isDark={isDark}
-                      onPress={() => onChangeNivelEstres(item.v)}
-                    />
-                  ))}
-                </View>
-
-                {/* Leyenda extremos */}
-                <View style={s.scaleLabels}>
-                  <Text style={[s.scaleLabel, { color: textSecondary }]}>
-                    Reposo
-                  </Text>
-                  <Text style={[s.scaleLabel, { color: textSecondary }]}>
-                    Máximo esfuerzo
-                  </Text>
-                </View>
-              </View>
-
-              {/* ── Footer: info + CTA ── */}
-              <View style={s.footer}>
-                <Text style={[s.footerText, { color: textSecondary }]}>
-                  Usaremos este dato para ajustar tus cargas futuras.
+                {loading && (
+                  <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 6 }} />
+                )}
+                <Text style={s.confirmBtnText}>
+                  {loading ? "Guardando…" : "Guardar"}
                 </Text>
-
-                <TouchableOpacity
-                  onPress={onConfirm}
-                  disabled={loading || !nivelEstres}
-                  activeOpacity={0.88}
-                  style={[
-                    s.confirmBtn,
-                    {
-                      backgroundColor: accent,
-                      opacity: loading || !nivelEstres ? 0.45 : 1,
-                    },
-                  ]}
-                >
-                  {loading && (
-                    <ActivityIndicator size="small" color="#0f172a" style={{ marginRight: 6 }} />
-                  )}
-                  <Text style={s.confirmBtnText}>
-                    {loading ? "Guardando…" : "Guardar"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
+              </TouchableOpacity>
             </View>
-          </LinearGradient>
-
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -391,11 +316,10 @@ const NivelEstresModal: React.FC<Props> = ({
 
 export default NivelEstresModal;
 
-// ── Estilos estáticos ─────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.60)",
+    backgroundColor: Colors.dark.overlay,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -404,57 +328,39 @@ const s = StyleSheet.create({
     width: "100%",
     maxWidth: 440,
   },
-
-  // Frame gradiente (igual que IMCVisual)
-  frame: {
-    borderRadius: tokens.radius.lg,
-    padding: 1.5,
-    overflow: "hidden",
-  },
-
-  // Card interior
   card: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
-    padding: tokens.spacing.xl,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-    gap: tokens.spacing.lg,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
+    padding: 20,
+    gap: 16,
   },
-
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   title: {
-    fontSize: 13,
-    fontWeight: "700",
+    ...TextStyle.label,
+    fontFamily: Font.body.bold,
     letterSpacing: 0.2,
   },
   subtitle: {
-    fontSize: 11,
+    ...TextStyle.caption,
+    fontFamily: Font.body.regular,
     marginTop: 2,
     letterSpacing: 0.1,
   },
-
-  // Badge (mismo sistema IMCVisual)
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: tokens.radius.md,
+    borderRadius: 10,
     borderWidth: 1,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
+    ...TextStyle.caption,
+    fontFamily: Font.body.bold,
   },
-
-  // Botón cerrar
   closeBtn: {
     width: 28,
     height: 28,
@@ -462,16 +368,15 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // Valor grande
   valueBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
   valueText: {
     fontSize: 44,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
     letterSpacing: -2,
     lineHeight: 48,
     minWidth: 60,
@@ -483,21 +388,19 @@ const s = StyleSheet.create({
     gap: 4,
   },
   valueLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    ...TextStyle.label,
+    fontFamily: Font.body.semiBold,
   },
   valueSub: {
-    fontSize: 11,
-    fontWeight: "500",
+    ...TextStyle.caption,
+    fontFamily: Font.body.medium,
   },
-
-  // Selector contenedor
   selector: {
-    borderRadius: tokens.radius.md,
+    borderRadius: 10,
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 8,
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   buttonsRow: {
     flexDirection: "row",
@@ -511,12 +414,10 @@ const s = StyleSheet.create({
   },
   scaleLabel: {
     fontSize: 9,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     letterSpacing: 0.3,
     textTransform: "uppercase",
   },
-
-  // Footer
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -524,19 +425,20 @@ const s = StyleSheet.create({
   },
   footerText: {
     flex: 1,
-    fontSize: 11,
+    ...TextStyle.caption,
+    fontFamily: Font.body.regular,
     lineHeight: 16,
   },
   confirmBtn: {
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
     paddingHorizontal: 20,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
   },
   confirmBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0f172a",
+    ...TextStyle.bodySm,
+    fontFamily: Font.body.bold,
+    color: Colors.primary,
   },
 });

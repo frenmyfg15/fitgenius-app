@@ -1,6 +1,6 @@
 ﻿// File: src/shared/components/ejercicio/CoachFeedbackModal.tsx
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
-import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import { View, Text, Platform, TouchableOpacity, Pressable, StyleSheet, Animated, Easing } from "react-native";
 import {
   X,
   Loader2,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   BottomSheetModal,
   BottomSheetScrollView,
@@ -29,24 +28,14 @@ import type {
 } from "@/features/api/coach.api";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { kgToLb } from "@/shared/utils/kgToLb";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
-// ── Tokens ────────────────────────────────────────────────────────────────────
-
-const tokens = {
-  color: {
-    frameGradient: ["#39FF14", "#A855F7"] as string[],
-    ctaBg: "#22C55E",
-    ctaText: "#FFFFFF",
-    subiendo: "#22C55E",
-    bajando: "#EF4444",
-    estable: "#94A3B8",
-    estancado: "#F97316",
-    progresar: "#22C55E",
-    mantener: "#3B82F6",
-    descargar: "#F97316",
-  },
-  radius: { lg: 18, md: 12, sm: 6, full: 999 },
-  spacing: { xs: 2, sm: 6, md: 12, lg: 16 },
+const STATUS_COLORS = {
+  subiendo: "#22C55E",
+  bajando: "#EF4444",
+  estable: "#94A3B8",
+  estancado: "#F97316",
 } as const;
 
 const categoriaLabel: Record<CoachSuggestion["categoria"], string> = {
@@ -111,6 +100,7 @@ export default function CoachFeedbackModal({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const insets = useSafeAreaInsets();
   const usuario = useUsuarioStore((s) => s.usuario);
 
@@ -153,9 +143,9 @@ export default function CoachFeedbackModal({
   const esUpsell = coach?.ok === false;
   const primeraSugerencia = coach?.data?.sugerencias?.[0];
 
-  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
-  const textSecondary = isDark ? "#64748B" : "#4B5563";
-  const textMuted = isDark ? "#6B7280" : "#6B7280";
+  const textPrimary = t.textPrimary;
+  const textSecondary = t.textSecondary;
+  const textMuted = t.textTertiary;
   const toggleActivo = !autoDisabled;
 
   return (
@@ -169,8 +159,8 @@ export default function CoachFeedbackModal({
       enableContentPanningGesture={false}
       enableOverDrag={false}
       topInset={topInset}
-      handleIndicatorStyle={{ backgroundColor: isDark ? "#64748b" : "#94a3b8" }}
-      backgroundStyle={{ backgroundColor: isDark ? "#111111" : "#ffffff" }}
+      handleIndicatorStyle={{ backgroundColor: t.textSecondary }}
+      backgroundStyle={{ backgroundColor: isDark ? Colors.primary : Colors.secondary }}
       style={styles.modalZIndex}
       containerStyle={styles.modalZIndex}
     >
@@ -179,22 +169,14 @@ export default function CoachFeedbackModal({
           <View
             style={[
               styles.headerIcon,
-              {
-                backgroundColor: isDark
-                  ? "rgba(34,197,94,0.12)"
-                  : "rgba(22,163,74,0.08)",
-              },
+              { backgroundColor: Colors.accentSubtle },
             ]}
           >
-            <Sparkles size={16} color={isDark ? "#BBF7D0" : "#16A34A"} strokeWidth={2.5} />
+            <Sparkles size={16} color={Colors.accent} strokeWidth={2.5} />
           </View>
           <View>
             <Text
-              className={
-                isDark
-                  ? "text-white font-bold text-base"
-                  : "text-neutral-900 font-bold text-base"
-              }
+              style={{ ...TextStyle.body, fontFamily: Font.body.bold, color: t.textPrimary }}
             >
               Coach Premium
             </Text>
@@ -206,63 +188,20 @@ export default function CoachFeedbackModal({
 
         <View className="flex-row items-center gap-2">
           {typeof autoDisabled === "boolean" && (
-            <Pressable
-              onPress={() => onToggleAutoDisabled?.(!autoDisabled)}
-              style={[
-                styles.togglePill,
-                {
-                  backgroundColor: toggleActivo
-                    ? isDark
-                      ? "rgba(34,197,94,0.15)"
-                      : "rgba(34,197,94,0.10)"
-                    : isDark
-                      ? "rgba(255,255,255,0.07)"
-                      : "rgba(0,0,0,0.05)",
-                  borderColor: toggleActivo
-                    ? "rgba(34,197,94,0.35)"
-                    : isDark
-                      ? "rgba(255,255,255,0.10)"
-                      : "rgba(0,0,0,0.08)",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.toggleDot,
-                  {
-                    backgroundColor: toggleActivo
-                      ? "#22C55E"
-                      : isDark
-                        ? "#475569"
-                        : "#CBD5E1",
-                  },
-                ]}
-              />
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: "600",
-                  color: toggleActivo
-                    ? "#22C55E"
-                    : isDark
-                      ? "#64748B"
-                      : "#94A3B8",
-                  letterSpacing: 0.2,
-                }}
-              >
-                {toggleActivo ? "Mostrar al entrar" : "No mostrar"}
-              </Text>
-            </Pressable>
+            <AutoShowToggle
+              active={toggleActivo}
+              onToggle={() => onToggleAutoDisabled?.(!autoDisabled)}
+              isDark={isDark}
+              t={t}
+            />
           )}
 
           <TouchableOpacity
             onPress={handleClosePress}
             activeOpacity={0.85}
-            className={
-              "p-2 rounded-full " + (isDark ? "bg-white/10" : "bg-neutral-200")
-            }
+            style={{ padding: 8, borderRadius: 999, backgroundColor: isDark ? t.borderStrong : t.surface }}
           >
-            <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
+            <X size={20} color={t.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -300,6 +239,69 @@ export default function CoachFeedbackModal({
         ) : null}
       </BottomSheetScrollView>
     </BottomSheetModal>
+  );
+}
+
+// ── AutoShowToggle ────────────────────────────────────────────────────────────
+
+function AutoShowToggle({
+  active,
+  onToggle,
+  isDark,
+  t,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  isDark: boolean;
+  t: ReturnType<typeof scheme>;
+}) {
+  const anim = useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: active ? 1 : 0,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [active, anim]);
+
+  const trackColor = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [isDark ? t.border : t.surface, Colors.accent],
+  });
+
+  // Recorrido del thumb = ancho track - ancho thumb - 2×inset = 40 - 18 - 4
+  const thumbTranslateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 18],
+  });
+
+  return (
+    <Pressable
+      onPress={onToggle}
+      hitSlop={8}
+      style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+    >
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: "600",
+          color: active ? Colors.accent : t.textSecondary,
+          letterSpacing: 0.2,
+        }}
+      >
+        {active ? "On" : "Off"}
+      </Text>
+      <Animated.View style={[styles.switchTrack, { backgroundColor: trackColor }]}>
+        <Animated.View
+          style={[
+            styles.switchThumb,
+            { transform: [{ translateX: thumbTranslateX }] },
+          ]}
+        />
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -409,10 +411,10 @@ function ContenidoPremium({
             },
           ]}
         >
-          <AlertCircle size={14} color={tokens.color.estancado} strokeWidth={2} />
+          <AlertCircle size={14} color={STATUS_COLORS.estancado} strokeWidth={2} />
           <Text
             style={{
-              color: tokens.color.estancado,
+              color: STATUS_COLORS.estancado,
               fontSize: 12,
               fontWeight: "600",
               flex: 1,
@@ -688,10 +690,10 @@ function MetricConTendencia({
 }) {
   const colorTendencia =
     tendencia === "SUBIENDO"
-      ? tokens.color.subiendo
+      ? STATUS_COLORS.subiendo
       : tendencia === "BAJANDO"
-      ? tokens.color.bajando
-      : tokens.color.estable;
+      ? STATUS_COLORS.bajando
+      : STATUS_COLORS.estable;
 
   const IconTendencia =
     tendencia === "SUBIENDO"
@@ -823,34 +825,31 @@ function ContenidoUpsell({
 }: any) {
   return (
     <View style={{ gap: 16 }}>
-      <LinearGradient
-        colors={tokens.color.frameGradient as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.upsellFrame}
+      <View
+        style={[
+          styles.upsellCard,
+          {
+            backgroundColor: isDark ? Colors.primary : Colors.secondary,
+            borderWidth: 1.5,
+            borderColor: Colors.accentBorder,
+          },
+        ]}
       >
-        <View
-          style={[
-            styles.upsellCard,
-            { backgroundColor: isDark ? "#111111" : "#ffffff" },
-          ]}
+        <Text
+          style={{
+            color: textPrimary,
+            fontFamily: Font.body.bold,
+            fontSize: 15,
+            marginBottom: 4,
+          }}
         >
-          <Text
-            style={{
-              color: textPrimary,
-              fontWeight: "800",
-              fontSize: 15,
-              marginBottom: 4,
-            }}
-          >
-            {primeraSugerencia?.titulo ?? "Coach Premium"}
-          </Text>
-          <Text style={{ color: textSecondary, fontSize: 13 }}>
-            {primeraSugerencia?.mensaje ??
-              "Análisis inteligente de tu progreso."}
-          </Text>
-        </View>
-      </LinearGradient>
+          {primeraSugerencia?.titulo ?? "Coach Premium"}
+        </Text>
+        <Text style={{ color: textSecondary, fontSize: 13 }}>
+          {primeraSugerencia?.mensaje ??
+            "Análisis inteligente de tu progreso."}
+        </Text>
+      </View>
       <Text
         style={{
           color: textMuted,
@@ -886,19 +885,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  togglePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
+  switchTrack: {
+    width: 40,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
   },
-  toggleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  switchThumb: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
   moodBanner: {
     flexDirection: "row",
@@ -970,23 +975,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
   },
-  upsellFrame: {
-    padding: 1.5,
-    borderRadius: 16,
-  },
   upsellCard: {
     padding: 16,
     borderRadius: 14.5,
   },
   ctaButton: {
-    backgroundColor: tokens.color.ctaBg,
+    backgroundColor: Colors.accent,
     paddingVertical: 14,
     borderRadius: 99,
     alignItems: "center",
   },
   ctaText: {
-    color: "#FFF",
-    fontWeight: "800",
+    color: Colors.secondary,
+    fontFamily: Font.body.bold,
     fontSize: 14,
   },
 });

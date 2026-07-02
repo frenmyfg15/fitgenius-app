@@ -17,6 +17,8 @@ import {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 export type TipoCompuesto = "SUPERSET" | "DROPSET" | "CIRCUITO";
 
@@ -46,7 +48,6 @@ export default function FormularioCompuesto({
   const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  // ✅ Distingue cierre por confirmación vs cancelación
   const confirmedRef = useRef(false);
 
   const snapPoints = useMemo(() => ["100%"], []);
@@ -75,26 +76,22 @@ export default function FormularioCompuesto({
     setDescanso(descansoInicial);
   }, [visible, nombreInicial, tipoInicial, descansoInicial]);
 
-  const cardBg = isDark ? "#0f172a" : "#ffffff";
-  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = isDark ? "#10b981" : "#059669";
-  const surface = isDark ? "#1e293b" : "#f1f5f9";
-  const placeholderColor = isDark ? "#64748b" : "#94a3b8";
+  const t = scheme(isDark);
+  const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+  const surface = isDark ? Colors.dark.surfaceAlt : t.surface;
+  const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
   const canSubmit = nombre.trim().length > 0;
 
-  // ✅ X cancela explícitamente
   const closeSheet = useCallback(() => {
     confirmedRef.current = false;
     bottomSheetModalRef.current?.dismiss();
   }, []);
 
-  // ✅ onDismiss distingue confirmación vs cancelación
   const handleDismiss = useCallback(() => {
     if (confirmedRef.current) {
       confirmedRef.current = false;
-      return; // fue confirmación — el padre ya cerró con visible=false
+      return;
     }
     onCancel();
   }, [onCancel]);
@@ -133,7 +130,7 @@ export default function FormularioCompuesto({
         ...(Platform.OS === "android" ? { elevation: 9999 } : null),
       }}
       handleIndicatorStyle={{
-        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        backgroundColor: t.border,
         width: 40,
       }}
       backgroundStyle={{
@@ -166,13 +163,14 @@ export default function FormularioCompuesto({
                 style={{
                   fontSize: 18,
                   fontWeight: "800",
-                  color: textPrimary,
+                  fontFamily: Font.body.bold,
+                  color: t.textPrimary,
                 }}
               >
                 {editar ? "Editar compuesto" : "Nuevo compuesto"}
               </Text>
               <Pressable onPress={closeSheet} hitSlop={10}>
-                <X size={20} color={textSecondary} />
+                <X size={20} color={t.textSecondary} />
               </Pressable>
             </View>
 
@@ -180,7 +178,8 @@ export default function FormularioCompuesto({
               style={{
                 fontSize: 11,
                 fontWeight: "800",
-                color: textSecondary,
+                fontFamily: Font.body.bold,
+                color: t.textSecondary,
                 letterSpacing: 1,
                 marginBottom: 12,
               }}
@@ -194,7 +193,8 @@ export default function FormularioCompuesto({
                   style={{
                     fontSize: 12,
                     fontWeight: "700",
-                    color: textSecondary,
+                    fontFamily: Font.body.bold,
+                    color: t.textSecondary,
                     marginBottom: 8,
                   }}
                 >
@@ -204,13 +204,13 @@ export default function FormularioCompuesto({
                   value={nombre}
                   onChangeText={setNombre}
                   placeholder="Ej: Superset Pecho y Tríceps"
-                  placeholderTextColor={placeholderColor}
+                  placeholderTextColor={t.textTertiary}
                   style={{
                     borderRadius: 16,
                     paddingHorizontal: 14,
                     paddingVertical: 12,
                     backgroundColor: surface,
-                    color: textPrimary,
+                    color: t.textPrimary,
                     fontSize: 14,
                   }}
                   accessibilityLabel="Nombre del compuesto"
@@ -222,7 +222,8 @@ export default function FormularioCompuesto({
                   style={{
                     fontSize: 12,
                     fontWeight: "700",
-                    color: textSecondary,
+                    fontFamily: Font.body.bold,
+                    color: t.textSecondary,
                     marginBottom: 8,
                   }}
                 >
@@ -238,18 +239,18 @@ export default function FormularioCompuesto({
                   <Picker
                     selectedValue={tipo}
                     onValueChange={(v) => setTipo(v as TipoCompuesto)}
-                    dropdownIconColor={textSecondary}
+                    dropdownIconColor={t.textSecondary}
                     style={{
                       height: 54,
-                      color: textPrimary,
+                      color: t.textPrimary,
                     }}
                   >
-                    {TIPOS.map((t) => (
+                    {TIPOS.map((tp) => (
                       <Picker.Item
-                        key={t}
-                        label={t}
-                        value={t}
-                        color={textPrimary}
+                        key={tp}
+                        label={tp}
+                        value={tp}
+                        color={t.textPrimary}
                       />
                     ))}
                   </Picker>
@@ -261,7 +262,8 @@ export default function FormularioCompuesto({
                   style={{
                     fontSize: 12,
                     fontWeight: "700",
-                    color: textSecondary,
+                    fontFamily: Font.body.bold,
+                    color: t.textSecondary,
                     marginBottom: 8,
                   }}
                 >
@@ -269,19 +271,19 @@ export default function FormularioCompuesto({
                 </Text>
                 <TextInput
                   value={String(descanso)}
-                  onChangeText={(t) => {
-                    const n = Number(t.replace(/[^\d]/g, ""));
+                  onChangeText={(v) => {
+                    const n = Number(v.replace(/[^\d]/g, ""));
                     setDescanso(Number.isFinite(n) ? n : 0);
                   }}
                   placeholder="60"
                   keyboardType="numeric"
-                  placeholderTextColor={placeholderColor}
+                  placeholderTextColor={t.textTertiary}
                   style={{
                     borderRadius: 16,
                     paddingHorizontal: 14,
                     paddingVertical: 12,
                     backgroundColor: surface,
-                    color: textPrimary,
+                    color: t.textPrimary,
                     fontSize: 14,
                   }}
                   accessibilityLabel="Descanso en segundos"
@@ -293,7 +295,6 @@ export default function FormularioCompuesto({
               <Pressable
                 onPress={() => {
                   if (!canSubmit) return;
-                  // ✅ Marca confirmación ANTES de dismiss
                   confirmedRef.current = true;
                   onConfirm(nombre.trim(), tipo, descanso);
                   bottomSheetModalRef.current?.dismiss();
@@ -305,7 +306,7 @@ export default function FormularioCompuesto({
                   borderRadius: 999,
                   paddingVertical: 12,
                   alignItems: "center",
-                  backgroundColor: accentColor,
+                  backgroundColor: ACTION_GREEN,
                   opacity: canSubmit ? 1 : 0.6,
                 }}
               >
@@ -313,6 +314,7 @@ export default function FormularioCompuesto({
                   style={{
                     fontSize: 14,
                     fontWeight: "800",
+                    fontFamily: Font.body.bold,
                     color: "#ffffff",
                   }}
                 >

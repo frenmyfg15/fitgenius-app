@@ -8,6 +8,8 @@ import {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 import MensajeVacio from "@/shared/components/ui/MensajeVacio";
 import GraficoPesoPorSerie from "./GraficoPesoPorSerie";
@@ -35,6 +37,7 @@ export default function PanelEstadisticas({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -93,10 +96,10 @@ export default function PanelEstadisticas({
       overDragResistanceFactor={0}
       topInset={topInset}
       handleIndicatorStyle={{
-        backgroundColor: isDark ? "#64748b" : "#94a3b8",
+        backgroundColor: t.textSecondary,
       }}
       backgroundStyle={{
-        backgroundColor: isDark ? "#111111" : "#ffffff",
+        backgroundColor: isDark ? Colors.primary : Colors.secondary,
       }}
       style={{
         zIndex: 1000,
@@ -109,7 +112,7 @@ export default function PanelEstadisticas({
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: isDark ? "#ffffff" : "#171717" }]}>
+        <Text style={[styles.headerTitle, { color: t.textPrimary }]}>
           Estadísticas del ejercicio
         </Text>
 
@@ -118,10 +121,10 @@ export default function PanelEstadisticas({
           activeOpacity={0.85}
           style={[
             styles.closeBtn,
-            { backgroundColor: isDark ? "rgba(255,255,255,0.10)" : "#e5e5e5" },
+            { backgroundColor: isDark ? t.borderStrong : t.surface },
           ]}
         >
-          <X size={20} color={isDark ? "#e5e7eb" : "#0f172a"} />
+          <X size={20} color={t.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -166,8 +169,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    ...TextStyle.h3,
+    fontFamily: Font.title.semiBold,
   },
   closeBtn: {
     padding: 8,

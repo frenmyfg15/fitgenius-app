@@ -18,6 +18,8 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { EjercicioVisualInfo } from "@/features/type/crearRutina";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 type Props = {
   compuesto: { id: number; info: EjercicioVisualInfo }[];
@@ -45,10 +47,9 @@ const ControlesCompuesto: React.FC<Props> = ({
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["85%"], []);
 
-  const cardBg = isDark ? "#0f172a" : "#ffffff";
-  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = isDark ? "#10b981" : "#059669";
+  const t = scheme(isDark);
+  const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+  const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
   const shouldCancelRef = useRef(false);
 
@@ -77,7 +78,6 @@ const ControlesCompuesto: React.FC<Props> = ({
     }
   }, [compuesto?.length]);
 
-  // ✅ Cuando el padre confirma → dismiss sin marcar shouldCancelRef
   useEffect(() => {
     if (!confirmado) return;
     shouldCancelRef.current = false;
@@ -89,11 +89,8 @@ const ControlesCompuesto: React.FC<Props> = ({
     bottomSheetModalRef.current?.dismiss();
   }, []);
 
-  // ✅ confirmado es la fuente de verdad para distinguir
-  // cierre por confirmación vs cierre por usuario
   const handleDismiss = useCallback(() => {
     if (confirmado) {
-      // fue confirmación programática — nunca cancelar
       onDismissed?.();
       return;
     }
@@ -102,7 +99,6 @@ const ControlesCompuesto: React.FC<Props> = ({
       onCancelar();
       return;
     }
-    // dismiss programático sin confirmación (ej: lista vaciada)
     onDismissed?.();
   }, [onCancelar, onDismissed, confirmado]);
 
@@ -113,13 +109,10 @@ const ControlesCompuesto: React.FC<Props> = ({
       snapPoints={snapPoints}
       enablePanDownToClose
       onDismiss={handleDismiss}
-      // ✅ onChange eliminado — era la fuente del bug
-      // se marcaba shouldCancelRef=true con cualquier index=-1
-      // incluyendo dismisses programáticos
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: cardBg }}
       handleIndicatorStyle={{
-        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        backgroundColor: t.border,
         width: 40,
       }}
       style={{
@@ -139,14 +132,16 @@ const ControlesCompuesto: React.FC<Props> = ({
       >
         <View style={styles.menuHeader}>
           <View>
-            <Text style={[styles.menuTitle, { color: textPrimary }]}>
+            <Text style={[styles.menuTitle, { color: t.textPrimary }]}>
               Ejercicio Compuesto
             </Text>
-            <Text style={styles.sectionLabel}>EJECUCIÓN CONSECUTIVA</Text>
+            <Text style={[styles.sectionLabel, { color: t.textSecondary }]}>
+              EJECUCIÓN CONSECUTIVA
+            </Text>
           </View>
 
           <Pressable onPress={close} style={styles.closeBtn} hitSlop={10}>
-            <X size={20} color={textSecondary} />
+            <X size={20} color={t.textSecondary} />
           </Pressable>
         </View>
 
@@ -162,10 +157,8 @@ const ControlesCompuesto: React.FC<Props> = ({
                 style={[
                   styles.exerciseCard,
                   {
-                    backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
-                    borderColor: isDark
-                      ? "rgba(255,255,255,0.05)"
-                      : "rgba(0,0,0,0.05)",
+                    backgroundColor: isDark ? Colors.dark.surfaceAlt : t.surface,
+                    borderColor: t.border,
                   },
                 ]}
               >
@@ -186,7 +179,7 @@ const ControlesCompuesto: React.FC<Props> = ({
                 >
                   <Text
                     numberOfLines={1}
-                    style={[styles.exerciseName, { color: textPrimary }]}
+                    style={[styles.exerciseName, { color: t.textPrimary }]}
                   >
                     {ej.info.nombre}
                   </Text>
@@ -202,14 +195,12 @@ const ControlesCompuesto: React.FC<Props> = ({
               style={[
                 styles.addCard,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.03)"
-                    : "#f8fafc",
+                  backgroundColor: isDark ? t.border : t.surface,
                 },
               ]}
             >
-              <Plus size={24} color={accentColor} />
-              <Text style={[styles.addText, { color: accentColor }]}>
+              <Plus size={24} color={ACTION_GREEN} />
+              <Text style={[styles.addText, { color: ACTION_GREEN }]}>
                 Añadir
               </Text>
             </Pressable>
@@ -228,11 +219,11 @@ const ControlesCompuesto: React.FC<Props> = ({
               justifyContent: "center",
               flexDirection: "row",
               gap: 8,
-              backgroundColor: accentColor,
+              backgroundColor: ACTION_GREEN,
             }}
           >
             <CheckCircle2 size={20} color="#fff" />
-            <Text style={{ fontSize: 14, fontWeight: "800", color: "#ffffff" }}>
+            <Text style={{ fontSize: 14, fontWeight: "800", fontFamily: Font.body.bold, color: "#ffffff" }}>
               Confirmar
             </Text>
           </Pressable>
@@ -257,11 +248,12 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 18,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
   sectionLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#94a3b8",
+    fontFamily: Font.body.bold,
     letterSpacing: 1,
     marginTop: 4,
   },
@@ -294,6 +286,7 @@ const styles = StyleSheet.create({
   exerciseName: {
     fontSize: 9,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     textAlign: "center",
   },
   addCard: {
@@ -310,6 +303,7 @@ const styles = StyleSheet.create({
   addText: {
     fontSize: 10,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
   },
 });
 

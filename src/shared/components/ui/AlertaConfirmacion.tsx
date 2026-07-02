@@ -7,8 +7,11 @@ import {
   Pressable,
   ActivityIndicator,
   TouchableWithoutFeedback,
+  StyleSheet,
 } from "react-native";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 interface AlertaConfirmacionProps {
   visible: boolean;
@@ -33,13 +36,7 @@ const AlertaConfirmacion: React.FC<AlertaConfirmacionProps> = ({
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  const bg = isDark ? "#020617" : "#f9fafb";
-  const surface = isDark ? "rgba(15,23,42,0.96)" : "#ffffff";
-  const border = isDark ? "rgba(148,163,184,0.25)" : "rgba(15,23,42,0.06)";
-  const textPrimary = isDark ? "#e5e7eb" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#6b7280";
-  const accent = "#3b82f6";
+  const t = scheme(isDark);
 
   return (
     <Modal
@@ -50,135 +47,72 @@ const AlertaConfirmacion: React.FC<AlertaConfirmacionProps> = ({
     >
       <TouchableWithoutFeedback onPress={loading ? undefined : onCancelar}>
         <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(15,23,42,0.8)",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 24,
-          }}
+          style={styles.overlay}
           accessibilityViewIsModal
           accessibilityLabel="Diálogo de confirmación"
         >
-          <View
-            style={{
-              maxWidth: 480,
-              width: "100%",
-              backgroundColor: surface,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: border,
-              shadowColor: "#000",
-              shadowOpacity: isDark ? 0.25 : 0.08,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: 10 },
-              elevation: 6,
-            }}
-          >
+          <TouchableWithoutFeedback>
             <View
-              style={{
-                padding: 24,
-                gap: 16,
-              }}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+                  borderColor: t.border,
+                },
+              ]}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: textPrimary,
-                  textAlign: "center",
-                }}
-              >
-                {titulo}
-              </Text>
+              <View style={styles.content}>
+                <Text style={[styles.title, { color: t.textPrimary }]}>
+                  {titulo}
+                </Text>
 
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: textSecondary,
-                  textAlign: "center",
-                  lineHeight: 20,
-                }}
-              >
-                {mensaje}
-              </Text>
+                <Text style={[styles.message, { color: t.textSecondary }]}>
+                  {mensaje}
+                </Text>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "flex-end",
-                  gap: 12,
-                }}
-              >
-                {/* Botón Cancelar (neutral) */}
-                <Pressable
-                  onPress={onCancelar}
-                  disabled={loading}
-                  role="button"
-                  accessibilityLabel="Cancelar"
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: isDark
-                      ? "rgba(148,163,184,0.12)"
-                      : "#f3f4f6",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255,255,255,0.10)"
-                      : "#e5e7eb",
-                    opacity: pressed || loading ? 0.85 : 1,
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: textPrimary,
-                    }}
+                <View style={styles.actions}>
+                  <Pressable
+                    onPress={onCancelar}
+                    disabled={loading}
+                    role="button"
+                    accessibilityLabel="Cancelar"
+                    style={({ pressed }) => [
+                      styles.btnCancel,
+                      {
+                        backgroundColor: isDark ? t.border : t.surface,
+                        borderColor: t.border,
+                        opacity: pressed || loading ? 0.85 : 1,
+                      },
+                    ]}
                   >
-                    {textoCancelar}
-                  </Text>
-                </Pressable>
-
-                {/* Botón Confirmar (acción principal) */}
-                <Pressable
-                  onPress={onConfirmar}
-                  disabled={loading}
-                  role="button"
-                  accessibilityLabel="Confirmar"
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: accent,
-                    opacity: pressed || loading ? 0.85 : 1,
-                    minWidth: 100,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: "#000",
-                    shadowOpacity: 0.2,
-                    shadowRadius: 4,
-                    shadowOffset: { width: 0, height: 2 },
-                  })}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text
-                      style={{
-                        color: "#ffffff",
-                        fontSize: 14,
-                        fontWeight: "700",
-                      }}
-                    >
-                      {textoConfirmar}
+                    <Text style={[styles.btnCancelText, { color: t.textPrimary }]}>
+                      {textoCancelar}
                     </Text>
-                  )}
-                </Pressable>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={onConfirmar}
+                    disabled={loading}
+                    role="button"
+                    accessibilityLabel="Confirmar"
+                    style={({ pressed }) => [
+                      styles.btnConfirm,
+                      {
+                        backgroundColor: Colors.accent,
+                        opacity: pressed || loading ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={Colors.primary} />
+                    ) : (
+                      <Text style={styles.btnConfirmText}>{textoConfirmar}</Text>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
@@ -186,3 +120,61 @@ const AlertaConfirmacion: React.FC<AlertaConfirmacionProps> = ({
 };
 
 export default AlertaConfirmacion;
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: Colors.dark.overlay,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  card: {
+    maxWidth: 480,
+    width: "100%",
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  content: {
+    padding: 24,
+    gap: 16,
+  },
+  title: {
+    ...TextStyle.h3,
+    fontFamily: Font.title.semiBold,
+    textAlign: "center",
+  },
+  message: {
+    ...TextStyle.body,
+    fontFamily: Font.body.regular,
+    textAlign: "center",
+  },
+  actions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  btnCancel: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  btnCancelText: {
+    ...TextStyle.body,
+    fontFamily: Font.body.semiBold,
+  },
+  btnConfirm: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnConfirmText: {
+    ...TextStyle.body,
+    fontFamily: Font.body.bold,
+    color: Colors.primary,
+  },
+});

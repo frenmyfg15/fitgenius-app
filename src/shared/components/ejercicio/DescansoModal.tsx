@@ -1,6 +1,8 @@
-﻿import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useColorScheme } from "nativewind";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font, TextStyle } from "@/shared/constants/typography";
 
 type Props = {
   visible: boolean;
@@ -11,51 +13,32 @@ type Props = {
 export default function DescansoModal({ visible, tiempo, onFinalizar }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   if (!visible) return null;
 
   return (
     <View
-      // Overlay
-      style={{
-        position: "absolute",
-        top: 0, right: 0, bottom: 0, left: 0,
-        backgroundColor: "rgba(0,0,0,0.25)",
-      }}
+      style={[styles.overlay, { backgroundColor: t.overlay }]}
       className="z-50 items-center justify-center px-6"
       accessibilityViewIsModal
       accessibilityLabel="Modal de descanso activo"
     >
       <View
-        className={
-          "w-full max-w-sm items-center justify-center rounded-2xl px-6 py-8 " +
-          (isDark ? "bg-[#111111]/90 border border-white/10" : "bg-white/95 border border-neutral-200")
-        }
-        style={{
-          shadowColor: "#000",
-          shadowOpacity: 0.25,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-        }}
+        style={[
+          styles.card,
+          {
+            backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+            borderColor: t.border,
+          },
+        ]}
       >
-        <Text
-          className={isDark ? "text-white font-semibold uppercase tracking-wide" : "text-neutral-900 font-semibold uppercase tracking-wide"}
-          style={{ fontSize: 16 }}
-        >
+        <Text style={[styles.title, { color: t.textPrimary }]}>
           Descanso activo
         </Text>
 
         <Text
-          className={isDark ? "text-white font-extrabold" : "text-neutral-900 font-extrabold"}
-          style={{
-            fontSize: 160, // ~ 10rem–12rem equivalente
-            lineHeight: 160,
-            textAlign: "center",
-            marginTop: 8,
-            textShadowColor: "rgba(0,0,0,0.25)",
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 6,
-          }}
+          style={[styles.timer, { color: t.textPrimary }]}
           accessibilityRole="text"
         >
           {tiempo}
@@ -66,18 +49,56 @@ export default function DescansoModal({ visible, tiempo, onFinalizar }: Props) {
           activeOpacity={0.9}
           accessibilityRole="button"
           accessibilityLabel="Finalizar descanso"
-          className="mt-3 rounded-full px-6 py-2"
-          style={{
-            backgroundColor: "#7c3aed", // neon-purple-500 aprox
-            shadowColor: "#000",
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-          }}
+          style={styles.btn}
         >
-          <Text className="text-white font-semibold">Finalizar</Text>
+          <Text style={styles.btnText}>Finalizar</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 384,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  title: {
+    ...TextStyle.label,
+    fontFamily: Font.body.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  timer: {
+    fontSize: 160,
+    lineHeight: 160,
+    fontFamily: Font.title.bold,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  btn: {
+    marginTop: 12,
+    borderRadius: 999,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    backgroundColor: Colors.accent,
+  },
+  btnText: {
+    ...TextStyle.body,
+    fontFamily: Font.body.semiBold,
+    color: Colors.primary,
+  },
+});

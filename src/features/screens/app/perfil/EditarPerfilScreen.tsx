@@ -17,6 +17,8 @@ import { useColorScheme } from "nativewind";
 import { equipamiento as opcionesEquipamiento } from "../../../../shared/constants/register/equipamiento";
 import { limitaciones as opcionesLimitaciones } from "../../../../shared/constants/register/limitaciones";
 import { useEditarPerfil } from "@/shared/hooks/useEditarPerfil";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 /* ---------- Tipos locales ---------- */
 interface EquipamientoOpcion {
@@ -98,64 +100,21 @@ const muscleFocusOptions = [
   { id: "BRAZOS", name: "Brazos" },
 ];
 
-/* ---------- Tokens UI ---------- */
-const tokens = {
-  color: {
-    pageBgDark: "#030712",
-    pageBgLight: "#f8fafc",
-
-    cardBgDark: "#0c1424",
-    cardBgLight: "#ffffff",
-
-    textPrimaryDark: "#e2e8f0",
-    textPrimaryLight: "#0f172a",
-    textSecondaryDark: "#64748b",
-    textSecondaryLight: "#94a3b8",
-    placeholderDark: "#475569",
-    placeholderLight: "#94a3b8",
-
-    inputBorderDark: "rgba(148,163,184,0.10)",
-    inputBorderLight: "rgba(15,23,42,0.08)",
-    inputBgDark: "rgba(15,23,42,0.6)",
-    inputBgLight: "#f1f5f9",
-
-    chipBorderDark: "rgba(148,163,184,0.10)",
-    chipBorderLight: "rgba(15,23,42,0.07)",
-    chipBgDark: "rgba(15,23,42,0.5)",
-    chipBgLight: "#f1f5f9",
-
-    // Verde — días y selecciones estándar
-    activeBg: "#22c55e",
-    activeBgTrans: "rgba(34,197,94,0.08)",
-    activeBorderTrans: "rgba(34,197,94,0.35)",
-    activeText: "#16a34a",
-    activeTextDark: "#4ade80",
-
-    // Púrpura — objetivo
-    purple: "#a855f7",
-    purpleTrans: "rgba(168,85,247,0.08)",
-    purpleBorder: "rgba(168,85,247,0.35)",
-    purpleText: "#a855f7",
-
-    // Equipamiento seleccionado — azul eléctrico
-    equipActiveBorder: "rgba(99,102,241,0.5)",
-    equipActiveBg: "rgba(99,102,241,0.07)",
-
-    // NINGUNO seleccionado — ámbar
-    ningunoActiveBorder: "rgba(245,158,11,0.45)",
-    ningunoActiveBg: "rgba(245,158,11,0.07)",
-    ningunoActiveText: "#d97706",
-
-    cta: "#22c55e",
-    ctaDisabled: "rgba(148,163,184,0.15)",
-    ctaText: "#ffffff",
-
-    dividerDark: "rgba(148,163,184,0.07)",
-    dividerLight: "rgba(15,23,42,0.06)",
-  },
-  radius: { xl: 20, lg: 16, md: 12, sm: 8, xs: 6 } as const,
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const,
+// paleta semántica del formulario — colores de estado intencionales
+const FORM = {
+  green: "#22C55E",
+  greenTrans: "rgba(34,197,94,0.08)",
+  greenBorder: "rgba(34,197,94,0.35)",
+  greenText: "#16A34A",
+  greenTextDark: "#4ADE80",
+  equipBorder: "rgba(99,102,241,0.50)",
+  equipBg: "rgba(99,102,241,0.07)",
+  ningunoText: "#D97706",
+  ninguno: "rgba(245,158,11,0.07)",
+  ningunoBorder: "rgba(245,158,11,0.45)",
 } as const;
+
+const PAGE_BG_DARK = "#030712";
 
 /* ---------- Helpers ---------- */
 function prettyLabel(v: string) {
@@ -179,59 +138,29 @@ function Section({
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   return (
     <View
       style={[
         styles.section,
         {
-          backgroundColor: isDark
-            ? tokens.color.cardBgDark
-            : tokens.color.cardBgLight,
-          borderColor: isDark
-            ? tokens.color.inputBorderDark
-            : tokens.color.inputBorderLight,
+          backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+          borderColor: t.border,
         },
       ]}
     >
       <View style={styles.sectionHeader}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color: isDark
-                ? tokens.color.textPrimaryDark
-                : tokens.color.textPrimaryLight,
-            },
-          ]}
-        >
+        <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>
           {title}
         </Text>
         {!!description && (
-          <Text
-            style={[
-              styles.sectionDesc,
-              {
-                color: isDark
-                  ? tokens.color.textSecondaryDark
-                  : tokens.color.textSecondaryLight,
-              },
-            ]}
-          >
+          <Text style={[styles.sectionDesc, { color: t.textSecondary }]}>
             {description}
           </Text>
         )}
       </View>
-      <View
-        style={[
-          styles.sectionDivider,
-          {
-            backgroundColor: isDark
-              ? tokens.color.dividerDark
-              : tokens.color.dividerLight,
-          },
-        ]}
-      />
+      <View style={[styles.sectionDivider, { backgroundColor: t.border }]} />
       {children}
     </View>
   );
@@ -242,38 +171,26 @@ function Chip({
   active,
   onPress,
   isDark,
-  variant = "green",
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
   isDark: boolean;
-  variant?: "green" | "days" | "purple";
 }) {
+  const t = scheme(isDark);
+
   let bgColor: string;
   let borderColor: string;
   let textColor: string;
 
   if (active) {
-    if (variant === "purple") {
-      bgColor = tokens.color.purpleTrans;
-      borderColor = tokens.color.purpleBorder;
-      textColor = tokens.color.purpleText;
-    } else {
-      bgColor = tokens.color.activeBgTrans;
-      borderColor = tokens.color.activeBorderTrans;
-      textColor = isDark
-        ? tokens.color.activeTextDark
-        : tokens.color.activeText;
-    }
+    bgColor = FORM.greenTrans;
+    borderColor = FORM.greenBorder;
+    textColor = isDark ? FORM.greenTextDark : FORM.greenText;
   } else {
-    bgColor = isDark ? tokens.color.chipBgDark : tokens.color.chipBgLight;
-    borderColor = isDark
-      ? tokens.color.chipBorderDark
-      : tokens.color.chipBorderLight;
-    textColor = isDark
-      ? tokens.color.textPrimaryDark
-      : tokens.color.textPrimaryLight;
+    bgColor = isDark ? t.border : t.surface;
+    borderColor = t.border;
+    textColor = t.textPrimary;
   }
 
   return (
@@ -300,54 +217,39 @@ function EquipCard({
   onPress: () => void;
   isDark: boolean;
 }) {
+  const t = scheme(isDark);
   const isNinguno = item.id === "NINGUNO";
 
   const borderColor = active
     ? isNinguno
-      ? tokens.color.ningunoActiveBorder
-      : tokens.color.equipActiveBorder
-    : isDark
-      ? tokens.color.chipBorderDark
-      : tokens.color.chipBorderLight;
+      ? FORM.ningunoBorder
+      : FORM.equipBorder
+    : t.border;
 
   const bgColor = active
     ? isNinguno
-      ? tokens.color.ningunoActiveBg
-      : tokens.color.equipActiveBg
+      ? FORM.ninguno
+      : FORM.equipBg
     : isDark
-      ? tokens.color.chipBgDark
-      : tokens.color.chipBgLight;
+      ? t.border
+      : t.surface;
 
   const labelColor = active
     ? isNinguno
-      ? tokens.color.ningunoActiveText
+      ? FORM.ningunoText
       : isDark
-        ? "#818cf8"
-        : "#4f46e5"
-    : isDark
-      ? tokens.color.textPrimaryDark
-      : tokens.color.textPrimaryLight;
+        ? "#818CF8"
+        : "#4F46E5"
+    : t.textPrimary;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      style={[
-        styles.equipCard,
-        { borderColor, backgroundColor: bgColor },
-      ]}
+      style={[styles.equipCard, { borderColor, backgroundColor: bgColor }]}
     >
-      <View
-        style={[
-          styles.equipIconBox,
-          {
-            borderColor: isDark
-              ? tokens.color.inputBorderDark
-              : tokens.color.inputBorderLight,
-          },
-        ]}
-      >
+      <View style={[styles.equipIconBox, { borderColor: t.border }]}>
         <Image
           source={item.imagen}
           resizeMode="contain"
@@ -365,6 +267,7 @@ function EquipCard({
 export default function EditarPerfil() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const {
     formData,
@@ -375,30 +278,15 @@ export default function EditarPerfil() {
     handleSubmit,
   } = useEditarPerfil();
 
-  const pageBg = isDark ? tokens.color.pageBgDark : tokens.color.pageBgLight;
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
-  const placeholder = isDark
-    ? tokens.color.placeholderDark
-    : tokens.color.placeholderLight;
-
-  // ── Lógica NINGUNO exclusivo ─────────────────────────────────────────────
   const handleEquipamientoToggle = (id: string) => {
     const current: string[] = formData.equipamiento || [];
 
     if (id === "NINGUNO") {
-      // Seleccionar NINGUNO → limpiar todo y dejar solo NINGUNO
-      // Si ya estaba seleccionado → deseleccionar
       const yaActivo = current.includes("NINGUNO");
       handleText("equipamiento", yaActivo ? [] : ["NINGUNO"]);
       return;
     }
 
-    // Seleccionar otro equipo → quitar NINGUNO si estaba
     const sinNinguno = current.filter((x) => x !== "NINGUNO");
     const yaActivo = sinNinguno.includes(id);
     const siguiente = yaActivo
@@ -410,17 +298,20 @@ export default function EditarPerfil() {
 
   return (
     <ScrollView
-      style={[styles.page, { backgroundColor: pageBg }]}
+      style={[
+        styles.page,
+        { backgroundColor: isDark ? PAGE_BG_DARK : "#F8FAFC" },
+      ]}
       contentContainerStyle={[
         styles.pageContent,
         { paddingBottom: Platform.OS === "ios" ? 140 : 130 },
       ]}
     >
       <View style={styles.header}>
-        <Text style={[styles.pageTitle, { color: textPrimary }]}>
+        <Text style={[styles.pageTitle, { color: t.textPrimary }]}>
           Editar perfil
         </Text>
-        <Text style={[styles.pageSubtitle, { color: textSecondary }]}>
+        <Text style={[styles.pageSubtitle, { color: t.textSecondary }]}>
           Ajusta tus preferencias para que tus planes se adapten mejor a ti.
         </Text>
       </View>
@@ -429,27 +320,23 @@ export default function EditarPerfil() {
         <Section title="Información general">
           <View style={styles.innerStack}>
             <View>
-              <Text style={[styles.fieldLabel, { color: textSecondary }]}>
+              <Text style={[styles.fieldLabel, { color: t.textSecondary }]}>
                 Peso objetivo (kg)
               </Text>
               <TextInput
                 keyboardType="numeric"
                 value={String(formData.pesoObjetivo ?? "")}
-                onChangeText={(t) =>
-                  handleText("pesoObjetivo", t.replace(",", "."))
+                onChangeText={(v) =>
+                  handleText("pesoObjetivo", v.replace(",", "."))
                 }
                 placeholder="Ej: 70"
-                placeholderTextColor={placeholder}
+                placeholderTextColor={t.textTertiary}
                 style={[
                   styles.input,
                   {
-                    color: textPrimary,
-                    backgroundColor: isDark
-                      ? tokens.color.inputBgDark
-                      : tokens.color.inputBgLight,
-                    borderColor: isDark
-                      ? tokens.color.inputBorderDark
-                      : tokens.color.inputBorderLight,
+                    color: t.textPrimary,
+                    backgroundColor: isDark ? Colors.dark.surfaceAlt : t.surface,
+                    borderColor: t.border,
                   },
                 ]}
               />
@@ -462,7 +349,7 @@ export default function EditarPerfil() {
 
                 return (
                   <View key={k} style={styles.selectorBlock}>
-                    <Text style={[styles.fieldLabel, { color: textSecondary }]}>
+                    <Text style={[styles.fieldLabel, { color: t.textSecondary }]}>
                       {cfg.label}
                     </Text>
                     <View style={styles.chipsRow}>
@@ -473,7 +360,6 @@ export default function EditarPerfil() {
                           active={value === v}
                           onPress={() => handleText(k, v)}
                           isDark={isDark}
-                          variant={k === "objetivo" ? "purple" : "green"}
                         />
                       ))}
                     </View>
@@ -518,7 +404,6 @@ export default function EditarPerfil() {
                   active={active}
                   onPress={() => toggleArrayValue("dias", d.id)}
                   isDark={isDark}
-                  variant="days"
                 />
               );
             })}
@@ -579,20 +464,20 @@ export default function EditarPerfil() {
             {
               backgroundColor:
                 !hayCambios || saving
-                  ? tokens.color.ctaDisabled
-                  : tokens.color.cta,
+                  ? "rgba(148,163,184,0.15)"
+                  : FORM.green,
             },
           ]}
         >
           {saving ? (
-            <ActivityIndicator color={tokens.color.ctaText} />
+            <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.ctaText}>Guardar cambios</Text>
           )}
         </Pressable>
 
         {hayCambios && (
-          <Text style={[styles.ctaHint, { color: textSecondary }]}>
+          <Text style={[styles.ctaHint, { color: t.textSecondary }]}>
             Tienes cambios sin guardar.
           </Text>
         )}
@@ -604,54 +489,76 @@ export default function EditarPerfil() {
 const styles = StyleSheet.create({
   page: { flex: 1 },
   pageContent: {
-    paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.xl,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
 
-  header: { marginBottom: tokens.spacing.xl },
-  pageTitle: { fontSize: 22, fontWeight: "700", letterSpacing: -0.5 },
-  pageSubtitle: { marginTop: 5, fontSize: 13, lineHeight: 19 },
+  header: { marginBottom: 20 },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    fontFamily: Font.title.bold,
+    letterSpacing: -0.5,
+  },
+  pageSubtitle: {
+    marginTop: 5,
+    fontSize: 13,
+    fontFamily: Font.body.regular,
+    lineHeight: 19,
+  },
 
-  stack: { gap: tokens.spacing.md },
+  stack: { gap: 12 },
 
   section: {
-    borderRadius: tokens.radius.xl,
-    padding: tokens.spacing.lg,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 0,
     borderWidth: 1,
   },
-  sectionHeader: { marginBottom: tokens.spacing.sm },
-  sectionTitle: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
-  sectionDesc: { marginTop: 3, fontSize: 12, lineHeight: 17 },
+  sectionHeader: { marginBottom: 8 },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Font.body.bold,
+    letterSpacing: -0.2,
+  },
+  sectionDesc: {
+    marginTop: 3,
+    fontSize: 12,
+    fontFamily: Font.body.regular,
+    lineHeight: 17,
+  },
   sectionDivider: {
     height: 1,
-    marginBottom: tokens.spacing.md,
+    marginBottom: 12,
   },
 
-  innerStack: { gap: tokens.spacing.lg },
-  selectorsStack: { gap: tokens.spacing.lg },
+  innerStack: { gap: 16 },
+  selectorsStack: { gap: 16 },
   selectorBlock: { gap: 6 },
 
   fieldLabel: {
     fontSize: 11,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     letterSpacing: 0.3,
     marginBottom: 6,
     textTransform: "uppercase",
   },
 
   input: {
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontSize: 14,
+    fontFamily: Font.body.regular,
     borderWidth: 1,
   },
 
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   chip: {
     paddingHorizontal: 13,
@@ -659,39 +566,44 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  chipText: { fontSize: 12, fontWeight: "600" },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
+  },
 
   equipGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.md,
+    gap: 12,
   },
   equipCard: {
     width: 100,
-    borderRadius: tokens.radius.md,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: tokens.spacing.sm,
+    padding: 8,
     alignItems: "center",
   },
   equipIconBox: {
     width: 52,
     height: 52,
-    borderRadius: tokens.radius.sm,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: tokens.spacing.sm,
+    marginBottom: 8,
     overflow: "hidden",
   },
   equipImage: { width: 46, height: 46 },
   equipLabel: {
     fontSize: 10,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     textAlign: "center",
     letterSpacing: 0.1,
   },
 
-  ctaWrap: { marginTop: tokens.spacing.xl, alignItems: "center" },
+  ctaWrap: { marginTop: 20, alignItems: "center" },
   cta: {
     paddingHorizontal: 36,
     paddingVertical: 13,
@@ -703,8 +615,13 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 14,
     fontWeight: "700",
-    color: tokens.color.ctaText,
+    fontFamily: Font.body.bold,
+    color: "#fff",
     letterSpacing: 0.2,
   },
-  ctaHint: { marginTop: 8, fontSize: 12 },
+  ctaHint: {
+    marginTop: 8,
+    fontSize: 12,
+    fontFamily: Font.body.regular,
+  },
 });

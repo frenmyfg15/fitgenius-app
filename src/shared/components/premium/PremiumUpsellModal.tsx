@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   Modal,
   View,
@@ -9,6 +9,10 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 import { Crown } from "lucide-react-native";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
+
+const PREMIUM_YELLOW = "#facc15";
 
 type PremiumUpsellModalProps = {
   visible: boolean;
@@ -29,6 +33,7 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const effectiveTitle = title ?? "Función premium";
   const effectiveDescription =
@@ -49,10 +54,8 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
           style={[
             styles.card,
             {
-              backgroundColor: isDark ? "#020617" : "#ffffff",
-              borderColor: isDark
-                ? "rgba(148,163,184,0.4)"
-                : "rgba(15,23,42,0.08)",
+              backgroundColor: isDark ? Colors.primary : Colors.secondary,
+              borderColor: t.border,
             },
           ]}
         >
@@ -69,12 +72,7 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
           </LinearGradient>
 
           <View style={styles.content}>
-            <Text
-              style={[
-                styles.description,
-                { color: isDark ? "#e5e7eb" : "#0f172a" },
-              ]}
-            >
+            <Text style={[styles.description, { color: t.textPrimary }]}>
               {effectiveDescription}
             </Text>
           </View>
@@ -85,19 +83,10 @@ const PremiumUpsellModal: React.FC<PremiumUpsellModalProps> = ({
               style={[
                 styles.button,
                 styles.secondaryButton,
-                {
-                  borderColor: isDark
-                    ? "rgba(148,163,184,0.6)"
-                    : "rgba(15,23,42,0.16)",
-                },
+                { borderColor: t.borderStrong },
               ]}
             >
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: isDark ? "#e5e7eb" : "#111827" },
-                ]}
-              >
+              <Text style={[styles.buttonText, { color: t.textPrimary }]}>
                 Más tarde
               </Text>
             </Pressable>
@@ -152,6 +141,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: "#111111",
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     fontSize: 16,
   },
   content: {
@@ -160,6 +150,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
+    fontFamily: Font.body.regular,
     lineHeight: 20,
   },
   actions: {
@@ -182,10 +173,11 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   primaryButton: {
-    backgroundColor: "#facc15",
+    backgroundColor: PREMIUM_YELLOW,
   },
   buttonText: {
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     fontSize: 13,
   },
 });

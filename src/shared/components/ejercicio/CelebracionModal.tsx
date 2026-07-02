@@ -13,40 +13,14 @@ import LottieView from "lottie-react-native";
 import type { CoachAnalysisData } from "@/features/api/coach.api";
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { kgToLb } from "@/shared/utils/kgToLb";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 /* Assets locales */
 const iconKcal = require("../../../../assets/fit/ejercicio/calorias.png");
 const iconExp = require("../../../../assets/fit/ejercicio/experiencia.png");
 const confettiAnim = require("../../../../assets/lootie/feliticitaciones.json");
 
-// ── Tokens ─────────────────────────────────────────────────────────────────────
-
-const tokens = {
-  color: {
-    accent: "#E8FF47",
-    accentSoft: "rgba(232,255,71,0.14)",
-
-    overlayDark: "#111111",
-    overlayLight: "#F8FAFC",
-
-    textPrimaryDark: "#F8FAFC",
-    textPrimaryLight: "#0F172A",
-
-    textSecondaryDark: "#94A3B8",
-    textSecondaryLight: "#64748B",
-
-    textMutedDark: "rgba(255,255,255,0.48)",
-    textMutedLight: "rgba(15,23,42,0.48)",
-
-    softBgDark: "rgba(255,255,255,0.05)",
-    softBgLight: "rgba(0,0,0,0.04)",
-
-    ctaBorderDark: "#22C55E",
-    ctaBorderLight: "rgba(15,23,42,0.18)",
-  },
-  radius: { xl: 28, full: 999 },
-  spacing: { sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 },
-} as const;
 
 // ── Escala RPE ─────────────────────────────────────────────────────────────────
 
@@ -324,25 +298,18 @@ const StatCard = memo(function StatCard({
   iconSymbol?: string;
   accentColor?: string;
 }) {
+  const t = scheme(isDark);
   return (
     <View
       style={[
         styles.statCard,
-        {
-          backgroundColor: isDark
-            ? tokens.color.softBgDark
-            : tokens.color.softBgLight,
-        },
+        { backgroundColor: isDark ? Colors.dark.surfaceAlt : t.surface },
       ]}
     >
       <View
         style={[
           styles.statIconWrap,
-          {
-            backgroundColor: accentColor
-              ? `${accentColor}22`
-              : tokens.color.accentSoft,
-          },
+          { backgroundColor: accentColor ? `${accentColor}22` : Colors.accentSubtle },
         ]}
       >
         {image ? (
@@ -356,8 +323,8 @@ const StatCard = memo(function StatCard({
           <Text
             style={{
               fontSize: 18,
-              color: accentColor ?? tokens.color.accent,
-              fontWeight: "900",
+              color: accentColor ?? Colors.accent,
+              fontFamily: Font.title.bold,
             }}
           >
             {iconSymbol}
@@ -366,52 +333,23 @@ const StatCard = memo(function StatCard({
           <View
             style={[
               styles.statIconDot,
-              { backgroundColor: accentColor ?? tokens.color.accent },
+              { backgroundColor: accentColor ?? Colors.accent },
             ]}
           />
         )}
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text
-          style={[
-            styles.statTitle,
-            {
-              color: isDark
-                ? tokens.color.textMutedDark
-                : tokens.color.textMutedLight,
-            },
-          ]}
-        >
+        <Text style={[styles.statTitle, { color: t.textSecondary }]}>
           {title}
         </Text>
 
-        <Text
-          style={[
-            styles.statValue,
-            {
-              color: accentColor
-                ? accentColor
-                : isDark
-                ? tokens.color.textPrimaryDark
-                : tokens.color.textPrimaryLight,
-            },
-          ]}
-        >
+        <Text style={[styles.statValue, { color: accentColor ?? t.textPrimary }]}>
           {value}
         </Text>
 
         {!!sub && (
-          <Text
-            style={[
-              styles.statSub,
-              {
-                color: isDark
-                  ? tokens.color.textSecondaryDark
-                  : tokens.color.textSecondaryLight,
-              },
-            ]}
-          >
+          <Text style={[styles.statSub, { color: t.textSecondary }]}>
             {sub}
           </Text>
         )}
@@ -490,6 +428,7 @@ export default function CelebracionModal({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const insets = useSafeAreaInsets();
   const usuario = useUsuarioStore((s) => s.usuario);
   const medidaPeso = (usuario?.medidaPeso ?? "KG").toUpperCase();
@@ -538,21 +477,12 @@ export default function CelebracionModal({
     [coachData, data.vol, data.unRM, medidaPeso]
   );
 
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
-
   return (
     <View
       style={[
         styles.overlay,
         {
-          backgroundColor: isDark
-            ? tokens.color.overlayDark
-            : tokens.color.overlayLight,
+          backgroundColor: isDark ? Colors.primary : Colors.secondary,
           paddingTop: insets.top + 10,
           paddingBottom: Math.max(insets.bottom, 18),
         },
@@ -571,10 +501,10 @@ export default function CelebracionModal({
       <View style={styles.inner}>
         {/* Hero */}
         <View style={styles.hero}>
-          <Text style={[styles.heroTitle, { color: textPrimary }]}>
+          <Text style={[styles.heroTitle, { color: t.textPrimary }]}>
             Sesión completada
           </Text>
-          <Text style={[styles.heroSubtitle, { color: textSecondary }]}>
+          <Text style={[styles.heroSubtitle, { color: t.textSecondary }]}>
             {heroSubtitle}
           </Text>
         </View>
@@ -619,7 +549,7 @@ export default function CelebracionModal({
               value={data.bestText}
               sub={data.bestSub ?? undefined}
               iconSymbol="↑"
-              accentColor="#22C55E"
+              accentColor={Colors.accent}
             />
           ) : (
             <StatCard
@@ -647,13 +577,11 @@ export default function CelebracionModal({
             style={[
               styles.cta,
               {
-                borderColor: isDark
-                  ? tokens.color.ctaBorderDark
-                  : tokens.color.ctaBorderLight,
+                borderColor: isDark ? Colors.accent : t.border,
               },
             ]}
           >
-            <Text style={[styles.ctaText, { color: textPrimary }]}>
+            <Text style={[styles.ctaText, { color: t.textPrimary }]}>
               Continuar
             </Text>
           </View>
@@ -683,7 +611,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 28,
     lineHeight: 32,
-    fontWeight: "900",
+    fontFamily: Font.title.bold,
     letterSpacing: -0.8,
     textAlign: "center",
   },
@@ -691,7 +619,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     textAlign: "center",
   },
   insightCard: {
@@ -724,7 +652,7 @@ const styles = StyleSheet.create({
   statIconWrap: {
     width: 46,
     height: 46,
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -735,7 +663,7 @@ const styles = StyleSheet.create({
   statIconDot: {
     width: 12,
     height: 12,
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
   },
   statTitle: {
     fontSize: 10,
@@ -758,11 +686,11 @@ const styles = StyleSheet.create({
   ctaWrap: {},
   cta: {
     height: 54,
-    borderRadius: tokens.radius.full,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    backgroundColor: "#22C55E",
+    backgroundColor: Colors.accent,
   },
   ctaText: {
     fontSize: 15,

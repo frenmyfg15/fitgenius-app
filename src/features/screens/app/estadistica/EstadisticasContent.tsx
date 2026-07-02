@@ -1,4 +1,4 @@
-﻿// src/features/screens/app/estadistica/EstadisticasContent.tsx
+// src/features/screens/app/estadistica/EstadisticasContent.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -10,9 +10,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useColorScheme } from "nativewind";
-import { LinearGradient } from "expo-linear-gradient";
 import { Lock } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 import {
   obtenerActividadReciente,
@@ -39,59 +40,10 @@ import DiasColorEstresCard from "@/shared/components/estadistica/DiasColorEstres
 import ProgresoSubjetivoEjerciciosCard from "@/shared/components/estadistica/ProgresoSubjetivoEjerciciosCard";
 import ProgresoMuscularCard from "@/shared/components/estadistica/ProgresoMuscularCard";
 
-const tokens = {
-  color: {
-    bgDark: "#111111",
-    bgLight: "#F8FAFC",
-    textPrimaryDark: "#F1F5F9",
-    textSecondaryDark: "#94A3B8",
-    textMutedDark: "#64748B",
-    textPrimaryLight: "#0F172A",
-    textSecondaryLight: "#475569",
-    textMutedLight: "#6B7280",
-    accent: "#39FF14",
-    cardBgDark: "rgba(15,24,41,1)",
-    cardBgLight: "#FFFFFF",
-    cardBorderDark: "rgba(255,255,255,0.08)",
-    cardBorderLight: "rgba(0,0,0,0.06)",
-    lockCardBgDark: "rgba(15,23,42,0.80)",
-    lockCardBgLight: "rgba(240,253,250,0.95)",
-    lockCardBorderDark: "rgba(255,255,255,0.16)",
-    lockCardBorderLight: "rgba(15,118,110,0.18)",
-    lockIconBgDark: "rgba(15,23,42,1)",
-    lockIconBgLight: "#FFFFFF",
-    lockIconBorderDark: "rgba(148,163,184,0.50)",
-    lockIconBorderLight: "rgba(16,185,129,0.35)",
-    lockIconDark: "#A7F3D0",
-    lockIconLight: "#047857",
-    lockTitleDark: "#F1F5F9",
-    lockTitleLight: "#065F46",
-    lockTextDark: "#9CA3AF",
-    lockTextLight: "#047857",
-    lockCtaDark: "#A7F3D0",
-    lockCtaLight: "#047857",
-    skelDark: "rgba(148,163,184,0.16)",
-    skelLight: "#E5E7EB",
-  },
-  spacing: {
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-    tabBarSafe: Platform.OS === "ios" ? 140 : 130,
-  },
-  radius: {
-    md: 14,
-    lg: 20,
-    full: 999,
-  },
-} as const;
-
-const PREMIUM_GRADIENT = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"] as const;
-
 function PremiumLockedCard({ title, description }: { title: string; description: string }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
   const navigation = useNavigation<any>();
 
   const handleGoPremium = useCallback(() => {
@@ -99,85 +51,62 @@ function PremiumLockedCard({ title, description }: { title: string; description:
   }, [navigation]);
 
   return (
-    <LinearGradient
-      colors={PREMIUM_GRADIENT as any}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.premiumFrame}
-    >
-      <View
+    <View style={[styles.premiumCard, { backgroundColor: isDark ? Colors.dark.surface : Colors.secondary }]}>
+      <View style={styles.lockSkeletonWrap} pointerEvents="none">
+        <View style={[styles.lockSkeletonTitle, { backgroundColor: isDark ? t.border : t.surface }]} />
+        <View style={[styles.lockSkeletonLine, { backgroundColor: isDark ? t.border : t.surface }]} />
+        <View style={[styles.lockSkeletonLineShort, { backgroundColor: isDark ? t.border : t.surface }]} />
+        <View style={styles.lockSkeletonRow}>
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={[
+                styles.lockSkeletonMiniCard,
+                {
+                  backgroundColor: isDark ? Colors.dark.surfaceAlt : Colors.secondary,
+                  borderColor: t.border,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={handleGoPremium}
         style={[
-          styles.premiumCard,
+          styles.lockCta,
           {
-            backgroundColor: isDark ? tokens.color.cardBgDark : tokens.color.cardBgLight,
-            borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
+            borderColor: Colors.accentBorder,
+            backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
           },
         ]}
       >
-        <View style={styles.lockSkeletonWrap} pointerEvents="none">
-          <View style={[styles.lockSkeletonTitle, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
-          <View style={[styles.lockSkeletonLine, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
-          <View style={[styles.lockSkeletonLineShort, { backgroundColor: isDark ? tokens.color.skelDark : tokens.color.skelLight }]} />
-          <View style={styles.lockSkeletonRow}>
-            {[0, 1, 2].map((i) => (
-              <View
-                key={i}
-                style={[
-                  styles.lockSkeletonMiniCard,
-                  {
-                    backgroundColor: isDark ? "rgba(15,24,41,0.55)" : "#FFFFFF",
-                    borderColor: isDark ? tokens.color.cardBorderDark : tokens.color.cardBorderLight,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={handleGoPremium}
+        <View
           style={[
-            styles.lockCta,
-            {
-              borderColor: isDark ? tokens.color.lockCardBorderDark : tokens.color.lockCardBorderLight,
-              backgroundColor: isDark ? tokens.color.lockCardBgDark : tokens.color.lockCardBgLight,
-            },
+            styles.lockIconWrap,
+            { backgroundColor: Colors.accentSubtle, borderColor: Colors.accentBorder },
           ]}
         >
-          <View
-            style={[
-              styles.lockIconWrap,
-              {
-                backgroundColor: isDark ? tokens.color.lockIconBgDark : tokens.color.lockIconBgLight,
-                borderColor: isDark ? tokens.color.lockIconBorderDark : tokens.color.lockIconBorderLight,
-              },
-            ]}
-          >
-            <Lock size={18} color={isDark ? tokens.color.lockIconDark : tokens.color.lockIconLight} strokeWidth={2} />
-          </View>
+          <Lock size={18} color={Colors.accent} strokeWidth={2} />
+        </View>
 
-          <View style={styles.lockTextWrap}>
-            <Text style={[styles.lockTitle, { color: isDark ? tokens.color.lockTitleDark : tokens.color.lockTitleLight }]}>
-              {title}
-            </Text>
-            <Text style={[styles.lockDesc, { color: isDark ? tokens.color.lockTextDark : tokens.color.lockTextLight }]}>
-              {description}
-            </Text>
-          </View>
+        <View style={styles.lockTextWrap}>
+          <Text style={[styles.lockTitle, { color: t.textPrimary }]}>{title}</Text>
+          <Text style={[styles.lockDesc, { color: t.textSecondary }]}>{description}</Text>
+        </View>
 
-          <Text style={[styles.lockMore, { color: isDark ? tokens.color.lockCtaDark : tokens.color.lockCtaLight }]}>
-            Ver más
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+        <Text style={[styles.lockMore, { color: Colors.accent }]}>Ver más</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 export default function EstadisticasContent() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const t = scheme(isDark);
 
   const usuario = useUsuarioStore((s) => s.usuario);
 
@@ -305,7 +234,7 @@ export default function EstadisticasContent() {
     loadAllStats({ showSkeleton: false });
   }, [workoutRev, routineRev, loadAllStats, estadisticasCache]);
 
-  const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
+  const bg = isDark ? Colors.primary : Colors.secondary;
 
   if (loading) return <EstadisticasSkeleton />;
 
@@ -316,7 +245,7 @@ export default function EstadisticasContent() {
           style={[
             styles.errorCard,
             {
-              backgroundColor: isDark ? "#141C2C" : "#FFF",
+              backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
               borderColor: isDark ? "rgba(239,68,68,0.2)" : "#FECACA",
             },
           ]}
@@ -324,8 +253,8 @@ export default function EstadisticasContent() {
           <Text style={[styles.errorTitle, { color: isDark ? "#F87171" : "#DC2626" }]}>
             Hubo un problema
           </Text>
-          <Text style={{ color: isDark ? "#CBD5E1" : "#334155" }}>{error}</Text>
-          <Text style={[styles.errorSubtitle, { color: isDark ? "#94A3B8" : "#EF4444" }]}>
+          <Text style={{ color: t.textPrimary, fontFamily: Font.body.regular }}>{error}</Text>
+          <Text style={[styles.errorSubtitle, { color: isDark ? t.textSecondary : "#EF4444" }]}>
             Revisa tu conexión o intenta de nuevo.
           </Text>
         </View>
@@ -342,14 +271,13 @@ export default function EstadisticasContent() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={isDark ? "#E5E7EB" : "#0F172A"}
-          colors={[tokens.color.accent]}
+          tintColor={t.textPrimary}
+          colors={[Colors.accent]}
           progressBackgroundColor={bg}
         />
       }
     >
       <View style={styles.cardsGap}>
-        {/* 1 — Qué hice */}
         {actividad && (
           <ActividadRecienteCard
             diasActivos={actividad?.diasActivos}
@@ -358,7 +286,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 2 — Cuánto quemé */}
         {calorias && (
           <CaloriasQuemadasCard
             total={calorias?.totalCalorias}
@@ -367,7 +294,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 3 — Qué trabajé */}
         {muscular && (
           <DistribucionMuscularCard
             distribucion={
@@ -382,7 +308,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 4 — Qué tan constante estoy */}
         {isPremium ? (
           adherencia && (
             <AdherenciaConsistenciaCard
@@ -399,7 +324,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 5 — Cuánto volumen acumulo */}
         {isPremium ? (
           cargaInterna && (
             <CargaInternaCard
@@ -415,7 +339,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 6 — Cómo me está afectando */}
         {isPremium ? (
           diasColorEstres && (
             <DiasColorEstresCard
@@ -431,7 +354,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 7 — Estoy mejorando por grupo */}
         {isPremium ? (
           progresoMuscular && (
             <ProgresoMuscularCard
@@ -447,7 +369,6 @@ export default function EstadisticasContent() {
           />
         )}
 
-        {/* 8 — Cómo lo percibo */}
         {isPremium ? (
           progresoSubjetivo && (
             <ProgresoSubjetivoEjerciciosCard
@@ -471,7 +392,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: tokens.spacing.tabBarSafe,
+    paddingBottom: Platform.OS === "ios" ? 140 : 130,
   },
   cardsGap: { gap: 20 },
   errorContainer: {
@@ -485,30 +406,24 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
     marginBottom: 8,
   },
   errorSubtitle: {
     marginTop: 12,
     fontSize: 13,
-  },
-  premiumFrame: {
-    borderRadius: tokens.radius.lg,
-    padding: 1.5,
-    overflow: "hidden",
+    fontFamily: Font.body.regular,
   },
   premiumCard: {
-    borderRadius: tokens.radius.lg - 1,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.accentBorder,
     padding: 20,
+    overflow: "hidden",
   },
   lockSkeletonWrap: { opacity: 0.95 },
   lockSkeletonTitle: { height: 16, width: "52%", borderRadius: 6 },
@@ -536,7 +451,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   lockTextWrap: { flex: 1, minWidth: 0 },
-  lockTitle: { fontSize: 13, fontWeight: "800", lineHeight: 16 },
-  lockDesc: { marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: "600" },
-  lockMore: { marginLeft: 8, fontSize: 11, fontWeight: "800" },
+  lockTitle: { fontSize: 13, fontWeight: "800", fontFamily: Font.body.bold, lineHeight: 16 },
+  lockDesc: { marginTop: 2, fontSize: 11, fontFamily: Font.body.semiBold, lineHeight: 14 },
+  lockMore: { marginLeft: 8, fontSize: 11, fontWeight: "800", fontFamily: Font.body.bold },
 });

@@ -1,4 +1,4 @@
-﻿// File: src/features/cuenta/Cuenta.tsx
+// File: src/features/cuenta/Cuenta.tsx
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   LogOut,
   Settings,
@@ -22,6 +23,8 @@ import {
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
 
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 import PremiumMiniCTACard from "@/shared/components/ui/PremiumCTA";
 import Experiencia from "@/shared/components/cuenta/Experiencia";
 import Perfil from "@/shared/components/cuenta/Perfil";
@@ -41,44 +44,10 @@ import {
 import { useUsuarioStore } from "@/features/store/useUsuarioStore";
 import { getMe } from "@/features/api/usuario.api";
 
-// ── Tokens ───────────────────────────────────────────────────────────────────
-const tokens = {
-  color: {
-    bgDark: "#111111",
-    bgLight: "#F8FAFC",
-
-    subCardBgDark: "rgba(15,24,41,0.60)",
-    subCardBgLight: "rgba(248,250,252,0.95)",
-    subCardBorderDark: "rgba(255,255,255,0.08)",
-    subCardBorderLight: "rgba(0,0,0,0.07)",
-
-    refreshBgDark: "rgba(255,255,255,0.06)",
-    refreshBgLight: "rgba(15,23,42,0.04)",
-    refreshBorderDark: "rgba(255,255,255,0.09)",
-    refreshBorderLight: "rgba(0,0,0,0.07)",
-
-    actionBgDark: "rgba(15,24,41,0.60)",
-    actionBgLight: "#FFFFFF",
-    actionBorderDark: "rgba(255,255,255,0.08)",
-    actionBorderLight: "rgba(0,0,0,0.08)",
-
-    textPrimaryDark: "#F1F5F9",
-    textPrimaryLight: "#0F172A",
-    textSecondaryDark: "rgba(241,245,249,0.70)",
-    textSecondaryLight: "rgba(15,23,42,0.70)",
-
-    iconDark: "#CBD5E1",
-    iconLight: "#475569",
-
-    danger: "#DC2626",
-    dangerBorder: "rgba(220,38,38,0.30)",
-
-    trialDark: "#86EFAC",
-    trialLight: "#166534",
-  },
-  radius: { lg: 14, md: 12 },
-  spacing: { sm: 8, md: 12, lg: 16, xl: 20, "2xl": 80 },
-} as const;
+// semantic status colors kept as literals
+const DANGER = "#DC2626";
+const DANGER_BORDER = "rgba(220,38,38,0.30)";
+const TRIAL = { dark: "#86EFAC", light: "#166534" };
 
 // ── Utils ────────────────────────────────────────────────────────────────────
 function formatDateMaybe(raw: any) {
@@ -277,58 +246,30 @@ export default function Cuenta() {
     !!trialEndText;
   const showSubscriptionCard = showCancelInfo || showRenewal || showTrial;
 
-  const bg = isDark ? tokens.color.bgDark : tokens.color.bgLight;
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
-  const iconColor = isDark ? tokens.color.iconDark : tokens.color.iconLight;
+  const t = scheme(isDark);
+  const bg = isDark ? Colors.primary : Colors.secondary;
 
   return (
-    <ScrollView
-      style={[styles.scroll, { backgroundColor: bg }]}
-      contentContainerStyle={[
-        styles.scrollContent,
-        {
-          backgroundColor: bg,
-          paddingBottom: Platform.OS === "ios" ? 150 : 130,
-        },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: bg }}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            backgroundColor: bg,
+            paddingBottom: Platform.OS === "ios" ? 150 : 130,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
-        <Text
-          style={[
-            styles.eyebrow,
-            {
-              color: textSecondary,
-            },
-          ]}
-        >
+        <Text style={[styles.eyebrow, { color: t.textSecondary }]}>
           CUENTA
         </Text>
-
-        <Text
-          style={[
-            styles.title,
-            {
-              color: textPrimary,
-            },
-          ]}
-        >
+        <Text style={[styles.title, { color: t.textPrimary }]}>
           Tu cuenta
         </Text>
-
-        <Text
-          style={[
-            styles.subtitle,
-            {
-              color: textSecondary,
-            },
-          ]}
-        >
+        <Text style={[styles.subtitle, { color: t.textSecondary }]}>
           Gestiona tu perfil, tu plan y la configuración de tu cuenta.
         </Text>
       </View>
@@ -372,35 +313,17 @@ export default function Cuenta() {
           style={[
             styles.subCard,
             {
-              backgroundColor: isDark
-                ? tokens.color.subCardBgDark
-                : tokens.color.subCardBgLight,
-              borderColor: isDark
-                ? tokens.color.subCardBorderDark
-                : tokens.color.subCardBorderLight,
+              backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+              borderColor: t.border,
             },
           ]}
         >
           {showCancelInfo && (
             <>
-              <Text
-                style={[
-                  styles.subTitle,
-                  {
-                    color: textPrimary,
-                  },
-                ]}
-              >
+              <Text style={[styles.subTitle, { color: t.textPrimary }]}>
                 Suscripción programada para cancelarse
               </Text>
-              <Text
-                style={[
-                  styles.subBody,
-                  {
-                    color: textSecondary,
-                  },
-                ]}
-              >
+              <Text style={[styles.subBody, { color: t.textSecondary }]}>
                 {periodEndText
                   ? `Se cancelará el ${periodEndText}.`
                   : "Se cancelará al final del periodo actual."}{" "}
@@ -411,24 +334,10 @@ export default function Cuenta() {
 
           {showRenewal && (
             <>
-              <Text
-                style={[
-                  styles.subTitle,
-                  {
-                    color: textPrimary,
-                  },
-                ]}
-              >
+              <Text style={[styles.subTitle, { color: t.textPrimary }]}>
                 Premium activo
               </Text>
-              <Text
-                style={[
-                  styles.subBody,
-                  {
-                    color: textSecondary,
-                  },
-                ]}
-              >
+              <Text style={[styles.subBody, { color: t.textSecondary }]}>
                 {periodEndText
                   ? `Próxima renovación: ${periodEndText}.`
                   : "Próxima renovación: al final del periodo actual."}
@@ -440,11 +349,7 @@ export default function Cuenta() {
             <Text
               style={[
                 styles.subTrial,
-                {
-                  color: isDark
-                    ? tokens.color.trialDark
-                    : tokens.color.trialLight,
-                },
+                { color: isDark ? TRIAL.dark : TRIAL.light },
               ]}
             >
               Tu prueba termina el {trialEndText}
@@ -455,19 +360,8 @@ export default function Cuenta() {
 
       <View style={styles.actionsWrapper}>
         <ActionButton onPress={() => go("EditarPerfil")} isDark={isDark}>
-          <Settings
-            size={17}
-            color={iconColor}
-            strokeWidth={2}
-          />
-          <Text
-            style={[
-              styles.actionText,
-              {
-                color: textPrimary,
-              },
-            ]}
-          >
+          <Settings size={17} color={t.textSecondary} strokeWidth={2} />
+          <Text style={[styles.actionText, { color: t.textPrimary }]}>
             Configuración
           </Text>
         </ActionButton>
@@ -475,19 +369,8 @@ export default function Cuenta() {
         {/* <ThemeActionRow isDark={isDark} /> */}
 
         <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
-          <Lock
-            size={17}
-            color={iconColor}
-            strokeWidth={2}
-          />
-          <Text
-            style={[
-              styles.actionText,
-              {
-                color: textPrimary,
-              },
-            ]}
-          >
+          <Lock size={17} color={t.textSecondary} strokeWidth={2} />
+          <Text style={[styles.actionText, { color: t.textPrimary }]}>
             Cambiar contraseña
           </Text>
         </ActionButton>
@@ -498,18 +381,12 @@ export default function Cuenta() {
             isDark={isDark}
             loading={reactivating}
           >
-            <RefreshCcw
-              size={17}
-              color={iconColor}
-              strokeWidth={2}
-            />
+            <RefreshCcw size={17} color={t.textSecondary} strokeWidth={2} />
             <Text
               style={[
                 styles.actionText,
                 styles.actionTextBold,
-                {
-                  color: textPrimary,
-                },
+                { color: t.textPrimary },
               ]}
             >
               {reactivating ? "Reactivando…" : "Reactivar suscripción"}
@@ -524,12 +401,12 @@ export default function Cuenta() {
             variant="danger"
             loading={canceling}
           >
-            <XOctagon size={17} color={tokens.color.danger} strokeWidth={2} />
+            <XOctagon size={17} color={DANGER} strokeWidth={2} />
             <Text
               style={[
                 styles.actionText,
                 styles.actionTextBold,
-                { color: tokens.color.danger },
+                { color: DANGER },
               ]}
             >
               {canceling ? "Cancelando…" : "Cancelar suscripción"}
@@ -538,31 +415,20 @@ export default function Cuenta() {
         )}
 
         <ActionButton
-          onPress={() => {
-            void refreshMe();
-          }}
+          onPress={() => { void refreshMe(); }}
           isDark={isDark}
           loading={refreshingMe}
         >
           {refreshingMe ? (
-            <ActivityIndicator
-              size="small"
-              color={textPrimary}
-            />
+            <ActivityIndicator size="small" color={t.textPrimary} />
           ) : (
-            <RefreshCcw
-              size={17}
-              color={iconColor}
-              strokeWidth={2}
-            />
+            <RefreshCcw size={17} color={t.textSecondary} strokeWidth={2} />
           )}
           <Text
             style={[
               styles.actionText,
               styles.actionTextBold,
-              {
-                color: textPrimary,
-              },
+              { color: t.textPrimary },
             ]}
           >
             {refreshingMe ? "Actualizando…" : "Actualizar estado"}
@@ -574,12 +440,12 @@ export default function Cuenta() {
           isDark={isDark}
           variant="danger"
         >
-          <UserX size={17} color={tokens.color.danger} strokeWidth={2} />
+          <UserX size={17} color={DANGER} strokeWidth={2} />
           <Text
             style={[
               styles.actionText,
               styles.actionTextBold,
-              { color: tokens.color.danger },
+              { color: DANGER },
             ]}
           >
             Dar de baja mi cuenta
@@ -588,31 +454,23 @@ export default function Cuenta() {
 
         <ActionButton onPress={cerrarSesion} isDark={isDark} loading={closing}>
           {closing ? (
-            <ActivityIndicator
-              size="small"
-              color={textPrimary}
-            />
+            <ActivityIndicator size="small" color={t.textPrimary} />
           ) : (
-            <LogOut
-              size={17}
-              color={iconColor}
-              strokeWidth={2}
-            />
+            <LogOut size={17} color={t.textSecondary} strokeWidth={2} />
           )}
           <Text
             style={[
               styles.actionText,
               styles.actionTextBold,
-              {
-                color: textPrimary,
-              },
+              { color: t.textPrimary },
             ]}
           >
             Cerrar sesión
           </Text>
         </ActionButton>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -630,6 +488,8 @@ function ActionButton({
   variant?: "default" | "danger";
   loading?: boolean;
 }) {
+  const t = scheme(isDark);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -638,15 +498,8 @@ function ActionButton({
       style={[
         styles.actionBtn,
         {
-          backgroundColor: isDark
-            ? tokens.color.actionBgDark
-            : tokens.color.actionBgLight,
-          borderColor:
-            variant === "danger"
-              ? tokens.color.dangerBorder
-              : isDark
-                ? tokens.color.actionBorderDark
-                : tokens.color.actionBorderLight,
+          backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+          borderColor: variant === "danger" ? DANGER_BORDER : t.border,
           opacity: loading ? 0.65 : 1,
         },
       ]}
@@ -658,35 +511,25 @@ function ActionButton({
 
 // ── Theme row ────────────────────────────────────────────────────────────────
 function ThemeActionRow({ isDark }: { isDark: boolean }) {
-  const textPrimary = isDark
-    ? tokens.color.textPrimaryDark
-    : tokens.color.textPrimaryLight;
-  const textSecondary = isDark
-    ? tokens.color.textSecondaryDark
-    : tokens.color.textSecondaryLight;
-  const iconColor = isDark ? tokens.color.iconDark : tokens.color.iconLight;
+  const t = scheme(isDark);
 
   return (
     <View
       style={[
         styles.actionBtn,
         {
-          backgroundColor: isDark
-            ? tokens.color.actionBgDark
-            : tokens.color.actionBgLight,
-          borderColor: isDark
-            ? tokens.color.actionBorderDark
-            : tokens.color.actionBorderLight,
+          backgroundColor: isDark ? Colors.dark.surface : Colors.secondary,
+          borderColor: t.border,
         },
       ]}
     >
       <View style={styles.themeRowLeft}>
-        <Palette size={17} color={iconColor} strokeWidth={2} />
+        <Palette size={17} color={t.textSecondary} strokeWidth={2} />
         <View style={styles.themeTextWrap}>
-          <Text style={[styles.actionText, { color: textPrimary }]}>
+          <Text style={[styles.actionText, { color: t.textPrimary }]}>
             Tema
           </Text>
-          <Text style={[styles.themeSubtext, { color: textSecondary }]}>
+          <Text style={[styles.themeSubtext, { color: t.textSecondary }]}>
             Cambia entre modo claro y oscuro
           </Text>
         </View>
@@ -707,80 +550,87 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 1.2,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
+    fontFamily: Font.title.bold,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "500",
+    fontFamily: Font.body.medium,
     maxWidth: "92%",
   },
 
   scrollContent: {
-    padding: tokens.spacing.xl,
-    paddingBottom: tokens.spacing["2xl"],
-    gap: tokens.spacing.xl,
+    padding: 20,
+    gap: 20,
   },
 
   subCard: {
-    padding: tokens.spacing.md,
-    borderRadius: tokens.radius.lg,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
     width: "100%",
     maxWidth: 450,
     alignSelf: "center",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   subTitle: {
     fontSize: 13,
     fontWeight: "800",
+    fontFamily: Font.body.bold,
     letterSpacing: 0.1,
   },
   subBody: {
     fontSize: 12,
     fontWeight: "500",
+    fontFamily: Font.body.medium,
     lineHeight: 18,
   },
   subTrial: {
     fontSize: 12,
     fontWeight: "700",
+    fontFamily: Font.body.bold,
   },
 
   actionsWrapper: {
-    gap: tokens.spacing.md,
-    paddingTop: tokens.spacing.sm,
+    gap: 12,
+    paddingTop: 8,
     width: "100%",
     maxWidth: 450,
     alignSelf: "center",
   },
 
   actionBtn: {
-    borderRadius: tokens.radius.lg,
+    borderRadius: 14,
     paddingVertical: 13,
-    paddingHorizontal: tokens.spacing.lg,
+    paddingHorizontal: 16,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   actionText: {
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   actionTextBold: {
     fontWeight: "800",
+    fontFamily: Font.body.bold,
   },
 
   themeRowLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.sm,
+    gap: 8,
   },
   themeTextWrap: {
     flex: 1,
@@ -790,6 +640,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 11,
     fontWeight: "500",
+    fontFamily: Font.body.medium,
     lineHeight: 15,
   },
 });

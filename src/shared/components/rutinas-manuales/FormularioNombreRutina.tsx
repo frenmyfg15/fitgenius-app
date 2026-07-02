@@ -16,6 +16,8 @@ import {
   BottomSheetBackdrop,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 type Props = {
   visible: boolean;
@@ -53,12 +55,10 @@ export default function FormularioNombreRutina({
   const [descripcion, setDescripcion] = useState(descripcionInicial);
   const [errors, setErrors] = useState<{ nombre?: string; descripcion?: string }>({});
 
-  const cardBg = isDark ? "#0f172a" : "#ffffff";
-  const textPrimary = isDark ? "#f1f5f9" : "#0f172a";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = isDark ? "#10b981" : "#059669";
-  const surface = isDark ? "#1e293b" : "#f1f5f9";
-  const placeholderColor = isDark ? "#64748b" : "#94a3b8";
+  const t = scheme(isDark);
+  const cardBg = isDark ? Colors.dark.surface : Colors.secondary;
+  const surface = isDark ? Colors.dark.surfaceAlt : t.surface;
+  const ACTION_GREEN = isDark ? "#10B981" : "#059669";
 
   useEffect(() => {
     if (visible) {
@@ -127,7 +127,7 @@ export default function FormularioNombreRutina({
         ...(Platform.OS === "android" ? { elevation: 9999 } : null),
       }}
       handleIndicatorStyle={{
-        backgroundColor: isDark ? "#334155" : "#e2e8f0",
+        backgroundColor: t.border,
         width: 40,
       }}
       backgroundStyle={{
@@ -160,13 +160,14 @@ export default function FormularioNombreRutina({
                 style={{
                   fontSize: 18,
                   fontWeight: "800",
-                  color: textPrimary,
+                  fontFamily: Font.body.bold,
+                  color: t.textPrimary,
                 }}
               >
                 Guardar Rutina
               </Text>
               <Pressable onPress={closeSheet} hitSlop={10}>
-                <X size={20} color={textSecondary} />
+                <X size={20} color={t.textSecondary} />
               </Pressable>
             </View>
 
@@ -176,7 +177,8 @@ export default function FormularioNombreRutina({
                   style={{
                     fontSize: 11,
                     fontWeight: "800",
-                    color: textSecondary,
+                    fontFamily: Font.body.bold,
+                    color: t.textSecondary,
                     letterSpacing: 1,
                     marginBottom: 8,
                   }}
@@ -191,13 +193,13 @@ export default function FormularioNombreRutina({
                     if (errors.nombre) setErrors((p) => ({ ...p, nombre: undefined }));
                   }}
                   placeholder="Ej. Push/Pull Legs"
-                  placeholderTextColor={placeholderColor}
+                  placeholderTextColor={t.textTertiary}
                   style={{
                     borderRadius: 16,
                     paddingHorizontal: 14,
                     paddingVertical: 12,
                     backgroundColor: surface,
-                    color: textPrimary,
+                    color: t.textPrimary,
                     fontSize: 14,
                   }}
                 />
@@ -213,7 +215,8 @@ export default function FormularioNombreRutina({
                   style={{
                     fontSize: 11,
                     fontWeight: "800",
-                    color: textSecondary,
+                    fontFamily: Font.body.bold,
+                    color: t.textSecondary,
                     letterSpacing: 1,
                     marginBottom: 8,
                   }}
@@ -227,7 +230,7 @@ export default function FormularioNombreRutina({
                     onDescripcionInput?.(v);
                   }}
                   placeholder="Describe el objetivo..."
-                  placeholderTextColor={placeholderColor}
+                  placeholderTextColor={t.textTertiary}
                   multiline
                   numberOfLines={3}
                   style={{
@@ -235,7 +238,7 @@ export default function FormularioNombreRutina({
                     paddingHorizontal: 14,
                     paddingVertical: 12,
                     backgroundColor: surface,
-                    color: textPrimary,
+                    color: t.textPrimary,
                     fontSize: 14,
                     minHeight: 96,
                     textAlignVertical: "top",
@@ -250,13 +253,14 @@ export default function FormularioNombreRutina({
                     borderRadius: 999,
                     paddingVertical: 14,
                     alignItems: "center",
-                    backgroundColor: accentColor,
+                    backgroundColor: ACTION_GREEN,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 14,
                       fontWeight: "800",
+                      fontFamily: Font.body.bold,
                       color: "#ffffff",
                     }}
                   >

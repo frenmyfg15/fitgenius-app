@@ -25,6 +25,7 @@ import { useRutinaViewer } from "@/shared/hooks/useRutinaViewer";
 import { HeaderBar } from "./HeaderBar";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Font } from "@/shared/constants/typography";
 
 type Props = {
   rutinas: Rutina;
@@ -36,19 +37,16 @@ type ActionLoading = "edit" | "use" | null;
 
 export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
   const {
-    // tema
     bg,
     border,
     textTitle,
     textMuted,
     surface,
-    // estado
     dias,
     day,
     option,
     confirmDelete,
     loading,
-    // acciones
     setDay,
     setOption,
     setConfirmDelete,
@@ -57,9 +55,7 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
     handleEliminarRutina,
   } = useRutinaViewer({ rutinas, setVer, onDelete });
 
-  // loading específico de acciones del menú (editar / usar)
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null);
-
   const isBusy = loading || actionLoading !== null;
 
   const subtitle =
@@ -73,18 +69,10 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
     <Modal
       visible
       animationType="slide"
-      presentationStyle={
-        Platform.OS === "ios" ? "fullScreen" : "fullScreen"
-      }
+      presentationStyle={Platform.OS === "ios" ? "fullScreen" : "fullScreen"}
       onRequestClose={() => !isBusy && setVer(false)}
     >
-      <SafeAreaView
-        edges={["top", "bottom"]}
-        style={{
-          flex: 1,
-          backgroundColor: bg,
-        }}
-      >
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: bg }}>
         {/* Header */}
         <HeaderBar
           borderColor={border}
@@ -95,34 +83,27 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
               accessibilityLabel="Cerrar"
               hitSlop={12}
               disabled={isBusy}
-              style={({ pressed }) => [
-                {
-                  height: 36,
-                  width: 36,
-                  borderRadius: 999,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: surface,
-                  opacity: isBusy ? 0.4 : pressed ? 0.85 : 1,
-                },
-              ]}
+              style={({ pressed }) => ({
+                height: 36,
+                width: 36,
+                borderRadius: 999,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: surface,
+                opacity: isBusy ? 0.4 : pressed ? 0.85 : 1,
+              })}
             >
               <X size={16} color={textTitle} />
             </Pressable>
           }
           center={
-            <View
-              style={{
-                minWidth: 0,
-                alignItems: "center",
-                paddingHorizontal: 8,
-              }}
-            >
+            <View style={{ minWidth: 0, alignItems: "center", paddingHorizontal: 8 }}>
               <Text
                 numberOfLines={1}
                 style={{
                   fontSize: 16,
                   fontWeight: "800",
+                  fontFamily: Font.body.bold,
                   color: textTitle,
                 }}
               >
@@ -131,6 +112,7 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
               <Text
                 style={{
                   fontSize: 11,
+                  fontFamily: Font.body.regular,
                   color: textMuted,
                   marginTop: 2,
                 }}
@@ -140,31 +122,22 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
             </View>
           }
           right={
-            <View
-              style={{
-                position: "relative",
-                zIndex: 100,
-                elevation: 12,
-                minWidth: 0,
-              }}
-            >
+            <View style={{ position: "relative", zIndex: 100, elevation: 12, minWidth: 0 }}>
               <Pressable
                 onPress={() => !isBusy && setOption((v) => !v)}
                 accessibilityRole="button"
                 accessibilityLabel="Opciones"
                 hitSlop={12}
                 disabled={isBusy}
-                style={({ pressed }) => [
-                  {
-                    height: 36,
-                    width: 36,
-                    borderRadius: 999,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: surface,
-                    opacity: isBusy ? 0.4 : pressed ? 0.85 : 1,
-                  },
-                ]}
+                style={({ pressed }) => ({
+                  height: 36,
+                  width: 36,
+                  borderRadius: 999,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: surface,
+                  opacity: isBusy ? 0.4 : pressed ? 0.85 : 1,
+                })}
               >
                 {actionLoading ? (
                   <Loader2 size={16} color={textTitle} />
@@ -187,11 +160,8 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
                       if (isBusy) return;
                       setOption(false);
                       setActionLoading("edit");
-                      try {
-                        await Promise.resolve(handleEditarRutina());
-                      } finally {
-                        setActionLoading(null);
-                      }
+                      try { await Promise.resolve(handleEditarRutina()); }
+                      finally { setActionLoading(null); }
                     },
                     disabled: isBusy,
                   },
@@ -203,22 +173,16 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
                       if (isBusy) return;
                       setOption(false);
                       setActionLoading("use");
-                      try {
-                        await Promise.resolve(handleUsarRutina());
-                      } finally {
-                        setActionLoading(null);
-                      }
+                      try { await Promise.resolve(handleUsarRutina()); }
+                      finally { setActionLoading(null); }
                     },
                     disabled: isBusy,
                   },
                   {
                     key: "delete",
                     label: "Eliminar",
-                    icon: <Trash2 size={16} color="#ef4444" />,
-                    onPress: () => {
-                      setOption(false);
-                      setConfirmDelete(true);
-                    },
+                    icon: <Trash2 size={16} color="#EF4444" />,
+                    onPress: () => { setOption(false); setConfirmDelete(true); },
                     danger: true,
                   },
                 ]}
@@ -235,15 +199,12 @@ export default function MostrarRutina({ rutinas, setVer, onDelete }: Props) {
         {/* Contenido scrollable */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingHorizontal: 12,
-            paddingBottom: 16,
-          }}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 16 }}
         >
           <Ejercicios dias={dias as any} day={day as any} />
         </ScrollView>
 
-        {/* Confirmación eliminar (overlay dentro de este mismo modal) */}
+        {/* Confirmación eliminar */}
         <ConfirmDialog
           visible={confirmDelete}
           title="¿Estás seguro?"

@@ -13,11 +13,12 @@ import {
   ImageSourcePropType,
 } from "react-native";
 import { useColorScheme } from "nativewind";
-import { LinearGradient } from "expo-linear-gradient";
 import { MessageCircle, Send, Loader2 } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 
 import { preguntarRutinaManualIA, ChatTurn } from "@/features/api/rutinas.api";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 type Message = {
   id: string;
@@ -28,11 +29,16 @@ type Message = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  rutinaJson: any; // el JSON de la rutina manual
+  rutinaJson: any;
 };
 
 const MAX_USER_QUESTIONS = 10;
 const LOGO_SOURCE: ImageSourcePropType = require("../../../../assets/logo.png");
+
+const PASTEL_USER_LIGHT = "#bfdbfe";
+const PASTEL_USER_DARK = "#38bdf8";
+const PASTEL_ASSISTANT_LIGHT = "#e5e7eb";
+const PASTEL_ASSISTANT_DARK = "rgba(39,39,42,0.9)";
 
 const RutinaQuestionModal: React.FC<Props> = ({
   visible,
@@ -47,12 +53,11 @@ const RutinaQuestionModal: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
 
   const logoScale = useRef(new Animated.Value(1)).current;
-
-  // ✅ ref scroll para auto-scroll
   const scrollRef = useRef<ScrollView | null>(null);
 
+  const t = scheme(isDark);
+
   const scrollToBottom = useCallback((animated = true) => {
-    // pequeño delay para que RN haya hecho layout
     requestAnimationFrame(() => {
       scrollRef.current?.scrollToEnd({ animated });
     });
@@ -77,30 +82,16 @@ const RutinaQuestionModal: React.FC<Props> = ({
     return () => loopAnimation.stop();
   }, [logoScale]);
 
-  const marcoGradient = ["rgb(0,255,64)", "rgb(94,230,157)", "rgb(178,0,255)"];
-  const cardBgDark = "rgba(20, 28, 44, 0.9)";
-  const cardBorderDark = "rgba(255,255,255,0.08)";
-  const textPrimaryDark = "#e5e7eb";
-  const textSecondaryDark = "#94a3b8";
-
-  const pastelUserLight = "#bfdbfe";
-  const pastelUserDark = "#38bdf8";
-  const pastelAssistantLight = "#e5e7eb";
-  const pastelAssistantDark = "rgba(39,39,42,0.9)";
-
-  // Reset cuando se cierra el modal
   useEffect(() => {
     if (!visible) {
       setMessages([]);
       setQuestion("");
       setLoading(false);
     } else {
-      // ✅ al abrir, baja al final (por si hay contenido inicial)
       setTimeout(() => scrollToBottom(false), 0);
     }
   }, [visible, scrollToBottom]);
 
-  // ✅ auto-scroll cuando cambia chat / loading
   useEffect(() => {
     if (!visible) return;
     scrollToBottom(true);
@@ -204,295 +195,273 @@ const RutinaQuestionModal: React.FC<Props> = ({
         >
           <Pressable
             onPress={() => {}}
-            // ✅ más altura: 86% (antes 70%)
             style={{ width: "100%", maxWidth: 520, height: "86%" }}
           >
-            <LinearGradient
-              colors={marcoGradient as any}
+            <View
               style={{
-                borderRadius: 18,
-                overflow: "hidden",
+                backgroundColor: isDark ? t.surface : Colors.secondary,
+                borderWidth: 1.5,
+                borderColor: Colors.accentBorder,
+                borderRadius: 17,
                 flex: 1,
-                padding: 1,
+                padding: 18,
               }}
             >
+              {/* Header */}
               <View
                 style={{
-                  backgroundColor: isDark ? cardBgDark : "#ffffff",
-                  borderWidth: 1,
-                  borderColor: isDark ? cardBorderDark : "rgba(0,0,0,0.06)",
-                  borderRadius: 16,
-                  flex: 1,
-                  padding: 18,
+                  marginBottom: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
                 }}
               >
-                {/* Header */}
                 <View
                   style={{
-                    marginBottom: 12,
-                    flexDirection: "row",
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
                     alignItems: "center",
-                    gap: 12,
+                    justifyContent: "center",
+                    backgroundColor: isDark ? Colors.dark.surface : t.surface,
+                    borderWidth: 1,
+                    borderColor: t.border,
                   }}
                 >
-                  <View
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 999,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: isDark
-                        ? "rgba(15,23,42,0.9)"
-                        : "#f3f4f6",
-                      borderWidth: 1,
-                      borderColor: isDark
-                        ? "rgba(148,163,184,0.5)"
-                        : "#e5e7eb",
-                    }}
-                  >
-                    <MessageCircle
-                      size={18}
-                      color={isDark ? textPrimaryDark : "#111827"}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        fontWeight: "700",
-                        color: isDark ? textPrimaryDark : "#0f172a",
-                      }}
-                    >
-                      Coach IA · Rutina manual
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        marginTop: 2,
-                        color: isDark ? textSecondaryDark : "#6b7280",
-                      }}
-                      numberOfLines={2}
-                    >
-                      Preguntas cortas sobre tu rutina (volumen, balance,
-                      descansos, orden…).
-                    </Text>
-                  </View>
+                  <MessageCircle size={18} color={t.textPrimary} />
                 </View>
 
-                {/* Chat */}
-                <ScrollView
-                  ref={(r) => (scrollRef.current = r)}
-                  style={{ flex: 1 }}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  onContentSizeChange={() => {
-                    if (visible) scrollToBottom(true);
-                  }}
-                  contentContainerStyle={{
-                    paddingVertical: 4,
-                    // ✅ espacio extra para que el último mensaje no quede pegado al input
-                    paddingBottom: 22,
-                  }}
-                >
-                  {messages.map((m) => {
-                    const isUser = m.from === "user";
-                    const bubbleBg = isUser
-                      ? isDark
-                        ? pastelUserDark
-                        : pastelUserLight
-                      : isDark
-                      ? pastelAssistantDark
-                      : pastelAssistantLight;
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      fontFamily: Font.body.bold,
+                      color: t.textPrimary,
+                    }}
+                  >
+                    Coach IA · Rutina manual
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontFamily: Font.body.regular,
+                      marginTop: 2,
+                      color: t.textSecondary,
+                    }}
+                    numberOfLines={2}
+                  >
+                    Preguntas cortas sobre tu rutina (volumen, balance,
+                    descansos, orden…).
+                  </Text>
+                </View>
+              </View>
 
-                    const textColor = isUser
-                      ? "#0f172a"
-                      : isDark
-                      ? textPrimaryDark
-                      : "#111827";
+              {/* Chat */}
+              <ScrollView
+                ref={(r) => (scrollRef.current = r)}
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                onContentSizeChange={() => {
+                  if (visible) scrollToBottom(true);
+                }}
+                contentContainerStyle={{
+                  paddingVertical: 4,
+                  paddingBottom: 22,
+                }}
+              >
+                {messages.map((m) => {
+                  const isUser = m.from === "user";
+                  const bubbleBg = isUser
+                    ? isDark
+                      ? PASTEL_USER_DARK
+                      : PASTEL_USER_LIGHT
+                    : isDark
+                    ? PASTEL_ASSISTANT_DARK
+                    : PASTEL_ASSISTANT_LIGHT;
 
-                    return (
-                      <View
-                        key={m.id}
-                        style={{
-                          alignSelf: isUser ? "flex-end" : "flex-start",
-                          maxWidth: "90%",
-                          borderRadius: 18,
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          marginBottom: 8,
-                          backgroundColor: bubbleBg,
-                          borderWidth: 1,
-                          borderColor: isUser
-                            ? isDark
-                              ? "rgba(125,211,252,0.6)"
-                              : "rgba(147,197,253,0.8)"
-                            : isDark
-                            ? "rgba(148,163,184,0.25)"
-                            : "rgba(209,213,219,0.8)",
-                        }}
-                      >
-                        <Text style={{ fontSize: 14, color: textColor }}>
-                          {m.text}
-                        </Text>
-                      </View>
-                    );
-                  })}
+                  const textColor = isUser ? "#0f172a" : t.textPrimary;
 
-                  {messages.length === 0 && !loading && (
-                    <View style={{ marginTop: 4 }}>
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          lineHeight: 16,
-                          color: isDark ? textSecondaryDark : "#6b7280",
-                        }}
-                      >
-                        Ejemplos:
-                        {"\n"}• ¿Es buena esta rutina para hipertrofia?
-                        {"\n"}• ¿Hay demasiado volumen para hombro?
-                        {"\n"}• ¿Cambio el orden o el descanso?
-                      </Text>
-                    </View>
-                  )}
-
-                  {loading && (
+                  return (
                     <View
+                      key={m.id}
                       style={{
-                        marginTop: 8,
-                        alignSelf: "flex-start",
-                        maxWidth: "75%",
+                        alignSelf: isUser ? "flex-end" : "flex-start",
+                        maxWidth: "90%",
                         borderRadius: 18,
                         paddingHorizontal: 12,
                         paddingVertical: 10,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        backgroundColor: isDark
-                          ? pastelAssistantDark
-                          : pastelAssistantLight,
+                        marginBottom: 8,
+                        backgroundColor: bubbleBg,
                         borderWidth: 1,
-                        borderColor: isDark
+                        borderColor: isUser
+                          ? isDark
+                            ? "rgba(125,211,252,0.6)"
+                            : "rgba(147,197,253,0.8)"
+                          : isDark
                           ? "rgba(148,163,184,0.25)"
                           : "rgba(209,213,219,0.8)",
                       }}
                     >
-                      <Animated.Image
-                        source={LOGO_SOURCE}
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 999,
-                          transform: [{ scale: logoScale }],
-                        }}
-                        resizeMode="contain"
-                      />
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          marginLeft: 8,
-                          color: isDark ? textSecondaryDark : "#4b5563",
-                        }}
-                      >
-                        Pensando la mejor respuesta...
+                      <Text style={{ fontSize: 14, fontFamily: Font.body.regular, color: textColor }}>
+                        {m.text}
                       </Text>
                     </View>
-                  )}
-                </ScrollView>
+                  );
+                })}
 
-                {/* Input */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    marginTop: 10,
-                  }}
-                >
+                {messages.length === 0 && !loading && (
+                  <View style={{ marginTop: 4 }}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: Font.body.regular,
+                        lineHeight: 16,
+                        color: t.textSecondary,
+                      }}
+                    >
+                      Ejemplos:
+                      {"\n"}• ¿Es buena esta rutina para hipertrofia?
+                      {"\n"}• ¿Hay demasiado volumen para hombro?
+                      {"\n"}• ¿Cambio el orden o el descanso?
+                    </Text>
+                  </View>
+                )}
+
+                {loading && (
                   <View
                     style={{
-                      flex: 1,
-                      borderRadius: 999,
+                      marginTop: 8,
+                      alignSelf: "flex-start",
+                      maxWidth: "75%",
+                      borderRadius: 18,
                       paddingHorizontal: 12,
-                      paddingVertical: 6,
+                      paddingVertical: 10,
                       flexDirection: "row",
                       alignItems: "center",
                       backgroundColor: isDark
-                        ? "rgba(15,23,42,0.9)"
-                        : "#f3f4f6",
+                        ? PASTEL_ASSISTANT_DARK
+                        : PASTEL_ASSISTANT_LIGHT,
                       borderWidth: 1,
                       borderColor: isDark
-                        ? "rgba(148,163,184,0.5)"
-                        : "#e5e7eb",
+                        ? "rgba(148,163,184,0.25)"
+                        : "rgba(209,213,219,0.8)",
                     }}
                   >
-                    <TextInput
-                      value={question}
-                      onChangeText={setQuestion}
-                      placeholder="Escribe una pregunta corta..."
-                      placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                    <Animated.Image
+                      source={LOGO_SOURCE}
                       style={{
-                        flex: 1,
-                        fontSize: 14,
-                        color: isDark ? "#f4f4f5" : "#111827",
+                        width: 22,
+                        height: 22,
+                        borderRadius: 999,
+                        transform: [{ scale: logoScale }],
                       }}
-                      editable={!loading}
-                      maxLength={220}
-                      returnKeyType="send"
-                      onSubmitEditing={handleSend}
-                      onFocus={() => {
-                        // ✅ cuando el usuario toca input, bajamos
-                        setTimeout(() => scrollToBottom(true), 120);
-                      }}
+                      resizeMode="contain"
                     />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: Font.body.regular,
+                        marginLeft: 8,
+                        color: t.textSecondary,
+                      }}
+                    >
+                      Pensando la mejor respuesta...
+                    </Text>
                   </View>
+                )}
+              </ScrollView>
 
-                  <TouchableOpacity
-                    onPress={handleSend}
-                    disabled={loading || !question.trim()}
-                    activeOpacity={0.9}
+              {/* Input */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  marginTop: 10,
+                }}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    borderRadius: 999,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: isDark ? Colors.dark.surface : t.surface,
+                    borderWidth: 1,
+                    borderColor: t.border,
+                  }}
+                >
+                  <TextInput
+                    value={question}
+                    onChangeText={setQuestion}
+                    placeholder="Escribe una pregunta corta..."
+                    placeholderTextColor={t.textTertiary}
                     style={{
-                      borderRadius: 999,
-                      paddingVertical: 10,
-                      paddingHorizontal: 12,
-                      backgroundColor: "#2563eb",
-                      opacity: loading || !question.trim() ? 0.45 : 1,
+                      flex: 1,
+                      fontSize: 14,
+                      color: t.textPrimary,
                     }}
-                  >
-                    {loading ? (
-                      <Loader2 size={16} color="#ffffff" />
-                    ) : (
-                      <Send size={16} color="#ffffff" />
-                    )}
-                  </TouchableOpacity>
+                    editable={!loading}
+                    maxLength={220}
+                    returnKeyType="send"
+                    onSubmitEditing={handleSend}
+                    onFocus={() => {
+                      setTimeout(() => scrollToBottom(true), 120);
+                    }}
+                  />
                 </View>
 
-                {/* Footer */}
-                <View style={{ marginTop: 8 }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      textAlign: "right",
-                      color: isDark ? textSecondaryDark : "#9ca3af",
-                    }}
-                  >
-                    Máx. {MAX_USER_QUESTIONS} preguntas por sesión.
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      textAlign: "right",
-                      marginTop: 4,
-                      color: isDark ? textSecondaryDark : "#9ca3af",
-                    }}
-                  >
-                    Este chat{" "}
-                    <Text style={{ fontWeight: "700" }}>no se guarda</Text>: al
-                    cerrar se borra el historial.
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={handleSend}
+                  disabled={loading || !question.trim()}
+                  activeOpacity={0.9}
+                  style={{
+                    borderRadius: 999,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    backgroundColor: "#2563eb",
+                    opacity: loading || !question.trim() ? 0.45 : 1,
+                  }}
+                >
+                  {loading ? (
+                    <Loader2 size={16} color="#ffffff" />
+                  ) : (
+                    <Send size={16} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
               </View>
-            </LinearGradient>
+
+              {/* Footer */}
+              <View style={{ marginTop: 8 }}>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontFamily: Font.body.regular,
+                    textAlign: "right",
+                    color: t.textSecondary,
+                  }}
+                >
+                  Máx. {MAX_USER_QUESTIONS} preguntas por sesión.
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontFamily: Font.body.regular,
+                    textAlign: "right",
+                    marginTop: 4,
+                    color: t.textSecondary,
+                  }}
+                >
+                  Este chat{" "}
+                  <Text style={{ fontWeight: "700", fontFamily: Font.body.bold }}>no se guarda</Text>: al
+                  cerrar se borra el historial.
+                </Text>
+              </View>
+            </View>
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
