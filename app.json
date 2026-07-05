@@ -4,7 +4,7 @@
     "slug": "fitgenius",
     "scheme": "fitgenius",
     "deeplinks": true,
-    "version": "1.0.1",
+    "version": "2.0.8",
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -34,7 +34,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "react-native",
+          "project": "fitgenius",
           "organization": "novaforge-2v"
         }
       ]
@@ -61,6 +61,7 @@
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
+      "versionCode": 28,
       "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

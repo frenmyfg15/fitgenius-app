@@ -368,12 +368,14 @@ export default function Cuenta() {
 
         {/* <ThemeActionRow isDark={isDark} /> */}
 
-        <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
-          <Lock size={17} color={t.textSecondary} strokeWidth={2} />
-          <Text style={[styles.actionText, { color: t.textPrimary }]}>
-            Cambiar contraseña
-          </Text>
-        </ActionButton>
+        {!usuario?.googleId && (
+          <ActionButton onPress={() => go("CambiarContrasena")} isDark={isDark}>
+            <Lock size={17} color={t.textSecondary} strokeWidth={2} />
+            <Text style={[styles.actionText, { color: t.textPrimary }]}>
+              Cambiar contraseña
+            </Text>
+          </ActionButton>
+        )}
 
         {isPremium && haPagado && yaCancelado && (
           <ActionButton

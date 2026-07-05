@@ -17,6 +17,7 @@ export type UsuarioLogin = {
   apellido: string;
   correo: string;
   imagenPerfil?: string;
+  googleId?: string | null;
 
   edad: number;
   altura: string;

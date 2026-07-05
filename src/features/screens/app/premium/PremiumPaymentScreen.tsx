@@ -32,44 +32,52 @@ import {
   TrendingUp,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import { Colors, scheme } from "@/shared/constants/colors";
+import { Font } from "@/shared/constants/typography";
 
 const MONTHLY_PRICE = "9,99 €";
 const YEARLY_PRICE = "59,99 €";
 const YEARLY_MONTH_EQUIVALENT = "5,00 €";
 const YEARLY_SAVINGS = "Ahorra un 50%";
 
-const getPremiumTheme = (isDark: boolean) => ({
-  background: isDark ? "#020617" : "#F8FAFC",
+// Púrpura semántico de "Premium" — distinto del acento verde de la app,
+// consistente con PremiumUpsellModal.tsx.
+const PREMIUM_PURPLE = { dark: "#C084FC", light: "#9333EA" };
+const PREMIUM_BORDER = { dark: "rgba(168,85,247,0.35)", light: "rgba(147,51,234,0.25)" };
+const FREE_BLUE = { dark: "#60A5FA", light: "#2563EB" };
 
-  cardBg: isDark ? "rgba(15,23,42,0.96)" : "#FFFFFF",
-  cardSoftBg: isDark ? "rgba(15,23,42,0.86)" : "#FFFFFF",
-  cardBorder: isDark ? "rgba(148,163,184,0.28)" : "rgba(15,23,42,0.06)",
+const getPremiumTheme = (isDark: boolean) => {
+  const t = scheme(isDark);
+  return {
+    background: isDark ? Colors.primary : Colors.secondary,
 
-  textPrimary: isDark ? "#F9FAFB" : "#0F172A",
-  textSecondary: isDark ? "#9CA3AF" : "#475569",
-  textSoft: isDark ? "#6B7280" : "#94A3B8",
+    cardBg: isDark ? Colors.dark.surface : Colors.secondary,
+    cardSoftBg: isDark ? Colors.dark.surface : Colors.secondary,
+    cardBorder: t.border,
 
-  iconMuted: isDark ? "#6B7280" : "#94A3B8",
-  iconPremium: isDark ? "#A855F7" : "#9333EA",
+    textPrimary: t.textPrimary,
+    textSecondary: t.textSecondary,
+    textSoft: t.textTertiary,
 
-  badgeMutedBg: isDark ? "rgba(71,85,105,0.2)" : "rgba(226,232,240,0.6)",
-  badgeMutedText: isDark ? "#9CA3AF" : "#64748B",
-  badgeFreeBg: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
-  badgeFreeText: isDark ? "#60A5FA" : "#2563EB",
-  badgePremiumBg: isDark ? "rgba(168,85,247,0.20)" : "rgba(168,85,247,0.12)",
-  badgePremiumText: isDark ? "#C084FC" : "#9333EA",
+    iconMuted: t.textTertiary,
+    iconPremium: isDark ? PREMIUM_PURPLE.dark : PREMIUM_PURPLE.light,
 
-  heroLabel: isDark ? "#A5B4FC" : "#6366F1",
+    badgeMutedBg: t.border,
+    badgeMutedText: t.textSecondary,
+    badgeFreeBg: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
+    badgeFreeText: isDark ? FREE_BLUE.dark : FREE_BLUE.light,
+    badgePremiumBg: isDark ? "rgba(168,85,247,0.20)" : "rgba(168,85,247,0.12)",
+    badgePremiumText: isDark ? PREMIUM_PURPLE.dark : PREMIUM_PURPLE.light,
 
-  gradientPrimary: ["#22C55E", "#A855F7"],
-  gradientHero: ["#22C55E", "#A855F7", "#FACC15"],
+    heroLabel: isDark ? PREMIUM_PURPLE.dark : PREMIUM_PURPLE.light,
+    heroBorder: isDark ? PREMIUM_BORDER.dark : PREMIUM_BORDER.light,
 
-  selectorBg: isDark ? "rgba(2,6,23,0.7)" : "#EEF2FF",
-  selectorBorder: isDark ? "rgba(148,163,184,0.22)" : "rgba(99,102,241,0.10)",
-  selectorActiveBg: isDark ? "rgba(168,85,247,0.18)" : "rgba(168,85,247,0.10)",
-  selectorActiveBorder: isDark ? "#A855F7" : "#9333EA",
-});
+    selectorBg: isDark ? Colors.dark.surfaceAlt : t.surface,
+    selectorBorder: t.border,
+    selectorActiveBg: isDark ? "rgba(168,85,247,0.18)" : "rgba(168,85,247,0.10)",
+    selectorActiveBorder: isDark ? PREMIUM_PURPLE.dark : PREMIUM_PURPLE.light,
+  };
+};
 
 export default function PremiumPaymentScreen() {
   const { confirmSetupIntent } = useStripe();
@@ -226,11 +234,7 @@ export default function PremiumPaymentScreen() {
             <View
               style={[
                 styles.logoWrap,
-                {
-                  borderColor: isDark
-                    ? "rgba(148,163,184,0.5)"
-                    : "rgba(148,163,184,0.3)",
-                },
+                { borderColor: theme.cardBorder },
               ]}
             >
               <Image
@@ -254,51 +258,45 @@ export default function PremiumPaymentScreen() {
           </TouchableOpacity>
         </View>
 
-        <LinearGradient
-          colors={theme.gradientHero as any}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: theme.heroBorder,
+              borderWidth: 1.5,
+            },
+          ]}
         >
-          <View
-            style={[
-              styles.heroCard,
-              {
-                backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder,
-              },
-            ]}
-          >
-            <View style={styles.heroTop}>
-              <View>
-                <Text style={[styles.heroLabel, { color: theme.heroLabel }]}>
-                  FITGENIUS PREMIUM
+          <View style={styles.heroTop}>
+            <View>
+              <Text style={[styles.heroLabel, { color: theme.heroLabel }]}>
+                FITGENIUS PREMIUM
+              </Text>
+
+              <View style={styles.priceRow}>
+                <Text style={[styles.price, { color: theme.textPrimary }]}>
+                  {planSummary.price}
                 </Text>
-
-                <View style={styles.priceRow}>
-                  <Text style={[styles.price, { color: theme.textPrimary }]}>
-                    {planSummary.price}
-                  </Text>
-                  <Text style={[styles.priceUnit, { color: theme.textSoft }]}>
-                    {planSummary.unit}
-                  </Text>
-                </View>
+                <Text style={[styles.priceUnit, { color: theme.textSoft }]}>
+                  {planSummary.unit}
+                </Text>
               </View>
-
-              <Sparkles
-                size={32}
-                color={theme.iconPremium}
-                strokeWidth={1.5}
-              />
             </View>
 
-            <Text style={[styles.billingHint, { color: theme.textSoft }]}>
-              {selectedPlan === "monthly"
-                ? "Sin permanencia · Cancela cuando quieras"
-                : `${YEARLY_SAVINGS} · Pago anual · Cancela cuando quieras`}
-            </Text>
+            <Sparkles
+              size={32}
+              color={theme.iconPremium}
+              strokeWidth={1.5}
+            />
           </View>
-        </LinearGradient>
+
+          <Text style={[styles.billingHint, { color: theme.textSoft }]}>
+            {selectedPlan === "monthly"
+              ? "Sin permanencia · Cancela cuando quieras"
+              : `${YEARLY_SAVINGS} · Pago anual · Cancela cuando quieras`}
+          </Text>
+        </View>
 
         <View
           style={[
@@ -457,20 +455,15 @@ export default function PremiumPaymentScreen() {
           <TouchableOpacity
             onPress={() => setShowPayModal(true)}
             activeOpacity={0.9}
-            style={styles.ctaWrapper}
+            style={[styles.ctaWrapper, { backgroundColor: Colors.accent }]}
           >
-            <LinearGradient
-              colors={theme.gradientPrimary as any}
-              style={styles.ctaGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+            <View style={styles.ctaGradient}>
+              <Text style={[styles.buttonText, { color: "#0F172A" }]}>
                 {selectedPlan === "yearly"
                   ? "Quiero Premium anual"
                   : "Quiero Premium mensual"}
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           <Text style={[styles.securityNote, { color: theme.textSoft }]}>
@@ -525,8 +518,8 @@ export default function PremiumPaymentScreen() {
                     number: "1234 1234 1234 1234",
                   }}
                   cardStyle={{
-                    backgroundColor: isDark ? "#020617" : "#FFFFFF",
-                    textColor: isDark ? "#E5E7EB" : "#0F172A",
+                    backgroundColor: isDark ? Colors.primary : Colors.secondary,
+                    textColor: theme.textPrimary,
                     placeholderColor: theme.textSoft,
                   }}
                   style={{
@@ -562,13 +555,11 @@ export default function PremiumPaymentScreen() {
                 disabled={loading || !cardComplete}
                 activeOpacity={0.9}
               >
-                <LinearGradient
-                  colors={["#22C55E", "#A855F7"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <View
                   style={[
                     styles.ctaGradient,
                     {
+                      backgroundColor: Colors.accent,
                       opacity: loading || !cardComplete ? 0.6 : 1,
                       marginTop: 0,
                     },
@@ -577,19 +568,19 @@ export default function PremiumPaymentScreen() {
                   {loading ? (
                     <View style={styles.buttonRow}>
                       <ActivityIndicator
-                        color="#FFFFFF"
+                        color="#0F172A"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                      <Text style={[styles.buttonText, { color: "#0F172A" }]}>
                         Procesando…
                       </Text>
                     </View>
                   ) : (
-                    <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                    <Text style={[styles.buttonText, { color: "#0F172A" }]}>
                       {planSummary.ctaText}
                     </Text>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <View style={styles.securityBadge}>
@@ -790,7 +781,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: "#020617",
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -798,26 +789,22 @@ const styles = StyleSheet.create({
   logo: {
     width: 24,
     height: 24,
-    tintColor: "#FFFFFF",
   },
   appName: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: Font.title.bold,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   appTagline: {
     fontSize: 12,
+    fontFamily: Font.body.regular,
     marginTop: 1,
   },
 
-  heroGradient: {
-    borderRadius: 24,
-    padding: 2.5,
-    marginBottom: 20,
-  },
   heroCard: {
-    borderRadius: 21,
+    borderRadius: 22,
+    marginBottom: 20,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 18,
@@ -832,7 +819,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     marginBottom: 8,
   },
   priceRow: {
@@ -841,16 +828,17 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 32,
-    fontWeight: "700",
+    fontFamily: Font.title.bold,
     letterSpacing: -0.5,
   },
   priceUnit: {
     fontSize: 14,
     marginLeft: 4,
-    fontWeight: "500",
+    fontFamily: Font.body.medium,
   },
   billingHint: {
     fontSize: 12,
+    fontFamily: Font.body.regular,
   },
 
   planSelectorCard: {
@@ -881,15 +869,16 @@ const styles = StyleSheet.create({
   },
   planOptionTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: Font.title.bold,
   },
   planOptionSubtitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   planOptionExtra: {
     marginTop: 4,
     fontSize: 12,
+    fontFamily: Font.body.regular,
   },
   planBadge: {
     paddingHorizontal: 8,
@@ -898,7 +887,7 @@ const styles = StyleSheet.create({
   },
   planBadgeText: {
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: Font.body.bold,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
@@ -912,7 +901,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: Font.title.semiBold,
     marginBottom: 14,
   },
   benefitItem: {
@@ -935,11 +924,12 @@ const styles = StyleSheet.create({
   },
   benefitTitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     marginBottom: 2,
   },
   benefitDescription: {
     fontSize: 12,
+    fontFamily: Font.body.regular,
     lineHeight: 17,
   },
 
@@ -960,7 +950,7 @@ const styles = StyleSheet.create({
   },
   planLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     width: 60,
@@ -974,6 +964,7 @@ const styles = StyleSheet.create({
   compareLabel: {
     flex: 1,
     fontSize: 13,
+    fontFamily: Font.body.regular,
     lineHeight: 18,
   },
   compareValue: {
@@ -996,7 +987,7 @@ const styles = StyleSheet.create({
   },
   limitedText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: Font.body.semiBold,
   },
   divider: {
     height: 1,
@@ -1016,7 +1007,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: Font.body.bold,
   },
   buttonRow: {
     flexDirection: "row",
@@ -1024,6 +1015,7 @@ const styles = StyleSheet.create({
   },
   securityNote: {
     fontSize: 11,
+    fontFamily: Font.body.regular,
     marginTop: 12,
     textAlign: "center",
     lineHeight: 16,
@@ -1059,10 +1051,11 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: Font.title.semiBold,
   },
   modalSubtitle: {
     fontSize: 13,
+    fontFamily: Font.body.regular,
     lineHeight: 19,
     marginBottom: 4,
   },
@@ -1078,6 +1071,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
+    fontFamily: Font.body.medium,
     flex: 1,
   },
   securityBadge: {
@@ -1089,6 +1083,7 @@ const styles = StyleSheet.create({
   },
   securityBadgeText: {
     fontSize: 11,
+    fontFamily: Font.body.regular,
     textAlign: "center",
   },
 });

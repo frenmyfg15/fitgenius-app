@@ -1,5 +1,6 @@
 // src/features/screens/app/estadistica/EstadisticasContent.tsx
 import React, { useEffect, useState, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   View,
   Text,
@@ -130,7 +131,9 @@ export default function EstadisticasContent() {
   const workoutRev = useSyncStore((s) => s.workoutRev);
   const routineRev = useSyncStore((s) => s.routineRev);
 
-  const estadisticasCache = useEstadisticasCache();
+  const estadisticasCache = useEstadisticasCache(
+    useShallow((s) => ({ get: s.get, set: s.set, clear: s.clear }))
+  );
 
   const applyCache = useCallback((cached: NonNullable<ReturnType<typeof estadisticasCache.get>>) => {
     setActividad(cached.actividad);
